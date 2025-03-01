@@ -1,0 +1,7 @@
+{
+  "name": "@repo/css-reset",
+  "version": "0.0.0-unused",
+  "private": true,
+  "description": "Shared CSS reset styles",
+  "main": "main.css"
+}

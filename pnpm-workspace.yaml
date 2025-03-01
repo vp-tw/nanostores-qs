@@ -1,0 +1,4 @@
+catalog:
+  es-toolkit: ^1.31.0
+packages:
+  - "packages/*"

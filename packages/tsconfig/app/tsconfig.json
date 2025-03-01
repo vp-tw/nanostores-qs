@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Repo App",
+  "extends": ["@vp-tw/tsconfig/base/vite-react/tsconfig"]
+}

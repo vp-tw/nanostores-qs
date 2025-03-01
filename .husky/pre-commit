@@ -1,0 +1,2 @@
+TYPE=format pnpm exec lint-staged --concurrent false
+pnpm exec lint-staged

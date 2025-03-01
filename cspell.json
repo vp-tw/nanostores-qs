@@ -1,0 +1,22 @@
+{
+  "allowCompoundWords": true,
+  "enableFiletypes": ["*"],
+  "enableGlobDot": true,
+  "files": ["**/*"],
+  "ignorePaths": [
+    "**/*.svg",
+    "**/.env.*.local",
+    "**/.env.local",
+    "**/.gitignore",
+    "**/__snapshots__/**",
+    "/*.code-workspace",
+    "/.git",
+    "/.prettierignore",
+    "/.stylelintignore",
+    "/pnpm-lock.yaml"
+  ],
+  "includeRegExpList": ["[ -~]"],
+  "useGitignore": true,
+  "version": "0.2",
+  "words": ["antfu", "jsdoc", "nums", "nvmrc", "pathe", "tsdoc"]
+}

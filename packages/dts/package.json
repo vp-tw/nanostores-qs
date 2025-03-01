@@ -1,0 +1,6 @@
+{
+  "name": "@repo/dts",
+  "version": "0.0.0-unused",
+  "private": true,
+  "description": "Shared TypeScript definitions"
+}

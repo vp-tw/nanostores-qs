@@ -1,0 +1,63 @@
+{
+  "name": "@repo/root",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm run --filter vite-react-19 build --outDir ../../dist",
+    "commit": "cz",
+    "dev": "pnpm run --filter vite-react-19 dev",
+    "lint": "run-p lint:*",
+    "lint:cspell": "cspell --no-summary --no-progress",
+    "lint:es": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
+    "lint:prettier": "prettier --ignore-unknown --write .",
+    "lint:style": "stylelint '**/*.{css,js,jsx,ts,tsx}' --fix -i .stylelintignore",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@repo/dts": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@types/fs-extra": "^11.0.4",
+    "babel-plugin-react-compiler": "19.0.0-beta-e1e972c-20250221",
+    "fs-extra": "^11.3.0",
+    "npm-run-all": "^4.1.5",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^4.3.0",
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "@commitlint/types": "^19.5.0",
+    "@eslint-react/eslint-plugin": "^1.29.0",
+    "@eslint/compat": "^1.2.7",
+    "@total-typescript/ts-reset": "^0.6.1",
+    "@types/lint-staged": "^13.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vp-tw/eslint-config": "^0.0.26",
+    "@vp-tw/tsconfig": "^3.0.0",
+    "commitizen": "^4.3.1",
+    "cspell": "^8.17.5",
+    "eslint": "^9.21.0",
+    "eslint-plugin-package-json": "^0.26.0",
+    "eslint-plugin-react-compiler": "19.0.0-beta-e1e972c-20250221",
+    "fast-glob": "^3.3.3",
+    "husky": "^9.1.7",
+    "jiti": "^2.4.2",
+    "lint-staged": "^15.4.3",
+    "pathe": "^2.0.3",
+    "postcss-styled-syntax": "^0.7.1",
+    "prettier": "^3.5.2",
+    "stylelint": "^16.15.0",
+    "stylelint-config-idiomatic-order": "^10.0.0",
+    "stylelint-config-standard": "^37.0.0",
+    "stylelint-prettier": "^5.0.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  },
+  "packageManager": "pnpm@10.5.2+sha512.da9dc28cd3ff40d0592188235ab25d3202add8a207afbedc682220e4a0029ffbff4562102b9e6e46b4e3f9e8bd53e6d05de48544b0c57d4b0179e22c76d1199b",
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}

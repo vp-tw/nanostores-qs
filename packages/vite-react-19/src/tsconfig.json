@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@utils/*": ["./utils/*"]
+    }
+  },
+  "extends": ["@repo/tsconfig/app/tsconfig"]
+}
