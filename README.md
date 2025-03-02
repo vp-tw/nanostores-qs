@@ -1,15 +1,23 @@
-# template-aio
+# @vp-tw/nanostores-qs
 
-My all-in-one template for web development.
+A reactive querystring manager using nanostores.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/VdustR/template-aio)
+## Installation
 
-[![Open in CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/github/Vdustr/template-aio)
+```bash
+pnpm install @vp-tw/nanostores-qs
+```
 
-[![Open in IDX](https://cdn.idx.dev/btn/open_dark_32.svg)](https://idx.google.com/import?url=https%3A%2F%2Fgithub.com%2FVdustR%2Ftemplate-aio)
+## Usage
+
+```ts
+import { createQS } from "@vp-tw/nanostores-qs";
+
+const qs = createQS(/* Options */);
+```
 
 ## License
 
 [MIT](./LICENSE)
 
-Copyright (c) 2024-2025 ViPro <vdustr@gmail.com> (<http://vdustr.dev>)
+Copyright (c) 2025 ViPro <vdustr@gmail.com> (<http://vdustr.dev>)

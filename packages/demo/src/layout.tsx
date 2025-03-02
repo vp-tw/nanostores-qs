@@ -11,10 +11,12 @@ const styles = {
   },
   container: {
     ...sxUtils.flexFill,
+    minHeight: "auto",
     flexDirection: "column",
     justifyContent: "center",
     mt: 2,
     mb: 2,
+    zIndex: 0,
   },
 } satisfies Record<string, SxProps>;
 

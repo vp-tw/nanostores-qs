@@ -10,10 +10,11 @@
   "folders": [
     { "name": "root", "path": "." },
     { "path": "packages/css-reset" },
+    { "path": "packages/demo" },
     { "path": "packages/dts" },
+    { "path": "packages/nanostores-qs" },
     { "path": "packages/tsconfig" },
     { "path": "packages/utils" },
-    { "path": "packages/vite-react-19" },
   ],
   "settings": {
     "css.validate": false,

@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "outDir": "../dist",
+    "target": "ES5"
+  },
+  "extends": ["./tsconfig", "@vp-tw/tsconfig/ext/emit/tsconfig"]
+}

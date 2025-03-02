@@ -14,6 +14,9 @@ const styles = {
     gap: theme.spacing(2),
     px: 2,
     bgcolor: theme.palette.background.level1,
+    position: "sticky",
+    top: 0,
+    zIndex: 1,
   }),
   title: {
     flex: 1,
@@ -25,7 +28,7 @@ function TopBar() {
   return (
     <Box sx={styles.root}>
       <Typography level="h1" sx={styles.title}>
-        Hello, world!
+        @vp-tw/nanostores-qs
       </Typography>
       <ModeToggle />
     </Box>
