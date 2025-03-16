@@ -26,7 +26,6 @@
     "ts-toolbelt": "^9.6.0"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.51.1",
     "pkg-dir": "^8.0.0"
   },
   "peerDependencies": {
