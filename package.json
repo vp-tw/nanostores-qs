@@ -12,7 +12,8 @@
     "lint:es": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
     "lint:prettier": "prettier --ignore-unknown --write .",
     "lint:style": "stylelint '**/*.{css,js,jsx,ts,tsx}' --fix -i .stylelintignore",
-    "prepare": "husky"
+    "prepare": "husky",
+    "v": "lerna version --conventional-commits -y"
   },
   "dependencies": {
     "@repo/dts": "workspace:*",
@@ -45,6 +46,7 @@
     "fast-glob": "^3.3.3",
     "husky": "^9.1.7",
     "jiti": "^2.4.2",
+    "lerna": "^8.2.1",
     "lint-staged": "^15.5.0",
     "pathe": "^2.0.3",
     "postcss-styled-syntax": "^0.7.1",
