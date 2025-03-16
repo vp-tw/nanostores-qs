@@ -23,6 +23,11 @@ import { parse, stringify } from "qs";
 import { z } from "zod";
 import { Layout } from "./layout";
 
+const IntegerParamSchema = z.pipeline(
+  z.string().refine((v) => v.match(/^\d+$/), { message: "Not a integer" }),
+  z.coerce.number().int(),
+);
+
 const urlSearchParamsUtils = createQsUtils();
 
 const TabSchema = z.enum(["qs", "urlSearchParams"]);
@@ -55,9 +60,9 @@ const qsUtils = createQsUtils({
 
 const qsSearchParamsStore = qsUtils.createSearchParamsStore(
   (defineSearchParam) => ({
-    qsStr: defineSearchParam({}),
-    qsNum: defineSearchParam({
-      decode: Number,
+    qsSearch: defineSearchParam({}),
+    qsPage: defineSearchParam({
+      decode: IntegerParamSchema.parse,
       encode: String,
     }),
     qsEnumArray: defineSearchParam({
@@ -76,9 +81,9 @@ const qsSearchParamsStore = qsUtils.createSearchParamsStore(
 
 const urlSearchParamsStore = urlSearchParamsUtils.createSearchParamsStore(
   (defineSearchParam) => ({
-    urlStr: defineSearchParam({}),
-    urlNum: defineSearchParam({
-      decode: Number,
+    urlSearch: defineSearchParam({}),
+    urlPage: defineSearchParam({
+      decode: IntegerParamSchema.parse,
       encode: String,
     }),
     urlEnumArray: defineSearchParam({
@@ -138,16 +143,17 @@ const Qs: React.FC = () => {
       </Stack>
       <Stack direction="column" spacing={2} flex={1}>
         <FormControl size="sm" color="primary">
-          <FormLabel>str</FormLabel>
+          <FormLabel>search str</FormLabel>
           <Input
             fullWidth
             type="text"
-            value={searchParams.qsStr ?? ""}
+            value={searchParams.qsSearch ?? ""}
             onChange={(event) => {
               qsSearchParamsStore.updateAll(
                 {
                   ...qsSearchParamsStore.$values.get(),
-                  qsStr: event.target.value,
+                  qsSearch: event.currentTarget.value,
+                  qsPage: undefined,
                 },
                 {
                   replace,
@@ -161,7 +167,8 @@ const Qs: React.FC = () => {
                   qsSearchParamsStore.updateAll(
                     {
                       ...qsSearchParamsStore.$values.get(),
-                      qsStr: undefined,
+                      qsSearch: undefined,
+                      qsPage: undefined,
                     },
                     {
                       replace,
@@ -176,19 +183,18 @@ const Qs: React.FC = () => {
           />
         </FormControl>
         <FormControl size="sm" color="primary">
-          <FormLabel>num</FormLabel>
+          <FormLabel>page</FormLabel>
           <Input
             fullWidth
             type="number"
-            value={!searchParams.qsNum ? "" : searchParams.qsNum}
+            value={searchParams.qsPage === undefined ? "" : searchParams.qsPage}
             onChange={(event) => {
-              qsSearchParamsStore.updateAll(
-                {
-                  ...qsSearchParamsStore.$values.get(),
-                  qsNum: !event.target.value
-                    ? undefined
-                    : Number(event.target.value),
-                },
+              if (event.currentTarget.value === "") return;
+              qsSearchParamsStore.update(
+                "qsPage",
+                !event.currentTarget.value
+                  ? undefined
+                  : Number(event.currentTarget.value),
                 {
                   replace,
                   keepHash,
@@ -198,16 +204,10 @@ const Qs: React.FC = () => {
             endDecorator={
               <IconButton
                 onClick={() => {
-                  qsSearchParamsStore.updateAll(
-                    {
-                      ...qsSearchParamsStore.$values.get(),
-                      qsNum: undefined,
-                    },
-                    {
-                      replace,
-                      keepHash,
-                    },
-                  );
+                  qsSearchParamsStore.update("qsPage", undefined, {
+                    replace,
+                    keepHash,
+                  });
                 }}
               >
                 ❌
@@ -251,7 +251,7 @@ const Qs: React.FC = () => {
               qsSearchParamsStore.updateAll(
                 {
                   ...qsSearchParamsStore.$values.get(),
-                  qsDate: new Date(event.target.value),
+                  qsDate: new Date(event.currentTarget.value),
                 },
                 {
                   replace,
@@ -311,16 +311,17 @@ const UrlSearchParams: React.FC = () => {
       </Stack>
       <Stack direction="column" spacing={2} flex={1}>
         <FormControl size="sm" color="primary">
-          <FormLabel>str</FormLabel>
+          <FormLabel>search str</FormLabel>
           <Input
             fullWidth
             type="text"
-            value={searchParams.urlStr ?? ""}
+            value={searchParams.urlSearch ?? ""}
             onChange={(event) => {
               urlSearchParamsStore.updateAll(
                 {
                   ...urlSearchParamsStore.$values.get(),
-                  urlStr: event.target.value,
+                  urlSearch: event.currentTarget.value,
+                  urlPage: undefined,
                 },
                 {
                   replace,
@@ -334,7 +335,8 @@ const UrlSearchParams: React.FC = () => {
                   urlSearchParamsStore.updateAll(
                     {
                       ...urlSearchParamsStore.$values.get(),
-                      urlStr: undefined,
+                      urlSearch: undefined,
+                      urlPage: undefined,
                     },
                     {
                       replace,
@@ -349,19 +351,19 @@ const UrlSearchParams: React.FC = () => {
           />
         </FormControl>
         <FormControl size="sm" color="primary">
-          <FormLabel>num</FormLabel>
+          <FormLabel>page</FormLabel>
           <Input
             fullWidth
             type="number"
-            value={!searchParams.urlNum ? "" : searchParams.urlNum}
+            value={
+              searchParams.urlPage === undefined ? "" : searchParams.urlPage
+            }
             onChange={(event) => {
-              urlSearchParamsStore.updateAll(
-                {
-                  ...urlSearchParamsStore.$values.get(),
-                  urlNum: !event.target.value
-                    ? undefined
-                    : Number(event.target.value),
-                },
+              urlSearchParamsStore.update(
+                "urlPage",
+                !event.currentTarget.value
+                  ? undefined
+                  : Number(event.currentTarget.value),
                 {
                   replace,
                   keepHash,
@@ -374,7 +376,7 @@ const UrlSearchParams: React.FC = () => {
                   urlSearchParamsStore.updateAll(
                     {
                       ...urlSearchParamsStore.$values.get(),
-                      urlNum: undefined,
+                      urlPage: undefined,
                     },
                     {
                       replace,
@@ -424,7 +426,7 @@ const UrlSearchParams: React.FC = () => {
               urlSearchParamsStore.updateAll(
                 {
                   ...urlSearchParamsStore.$values.get(),
-                  urlDate: new Date(event.target.value),
+                  urlDate: new Date(event.currentTarget.value),
                 },
                 {
                   replace,

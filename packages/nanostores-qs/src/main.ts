@@ -198,6 +198,15 @@ function createQsUtils<
       },
       options?: createQsUtils.UpdateOptions,
     ) => void;
+    update: {
+      <TKey extends keyof ReturnType<TDefineFn>>(
+        key: TKey,
+        value: createQsUtils.GetValueFromSearchParamConfig<
+          ReturnType<TDefineFn>[TKey]
+        >,
+        options?: createQsUtils.UpdateOptions,
+      ): void;
+    };
   } {
     type TValues = {
       [K in keyof ReturnType<TDefineFn>]: createQsUtils.GetValueFromSearchParamConfig<
@@ -277,9 +286,10 @@ function createQsUtils<
             return [];
           }
         }),
-      );
+      ) as TQsRecord;
+      const nextDecodedValue = getParsedValues(nextEncodedValues);
       const keysToOmit = Object.keys(nextEncodedValues).filter((key) =>
-        isEqual(nextEncodedValues[key], configRecord[key]?.defaultValue),
+        isEqual(nextDecodedValue[key], configRecord[key]?.defaultValue),
       );
       const nextQsValues = { ...qsRecord, ...nextEncodedValues };
       for (const key of [...keysToOmit, ...failedEncodeKeys]) {
@@ -295,9 +305,23 @@ function createQsUtils<
         history.pushState(state, unused, url);
       }
     };
+    const update: ReturnType<typeof createSearchParamsStore>["update"] = (
+      key,
+      value,
+      options,
+    ) => {
+      updateAll(
+        {
+          ...$values.get(),
+          [key]: value,
+        },
+        options,
+      );
+    };
     return {
       $values,
       updateAll,
+      update: update as any,
     };
   }
   function defineSearchParamInternal<
