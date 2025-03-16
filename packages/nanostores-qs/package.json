@@ -19,9 +19,6 @@
     "build:clear": "rm -rf dist",
     "build:js": "tsc -p src/tsconfig.build.json",
     "cp": "tsx scripts/cp.ts",
-    "docs": "run-s cp docs:build",
-    "docs:build": "typedoc --entryPoints src/main.ts --tsconfig src/tsconfig.json --out docs",
-    "docs:watch": "pnpm run docs:build --watch",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
@@ -30,8 +27,7 @@
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.51.1",
-    "pkg-dir": "^8.0.0",
-    "typedoc": "^0.27.9"
+    "pkg-dir": "^8.0.0"
   },
   "peerDependencies": {
     "nanostores": "catalog:"
