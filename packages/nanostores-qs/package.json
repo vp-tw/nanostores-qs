@@ -3,14 +3,26 @@
   "version": "0.0.0",
   "description": "A reactive querystring manager using nanostores",
   "keywords": [
-    "nanostore",
+    "nanostores",
     "qs",
     "querystring",
     "reactive",
     "search",
     "searchparams"
   ],
+  "homepage": "https://github.com/vdustr/nanostores-qs",
+  "bugs": {
+    "url": "https://github.com/VdustR/nanostores-qs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:VdustR/nanostores-qs.git"
+  },
   "license": "MIT",
+  "author": {
+    "name": "ViPro",
+    "url": "https://vdustr.dev"
+  },
   "type": "module",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",

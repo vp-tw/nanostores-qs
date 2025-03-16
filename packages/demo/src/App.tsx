@@ -13,6 +13,7 @@ import {
   TabPanel,
   Tabs,
   Textarea,
+  Typography,
 } from "@mui/joy";
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
@@ -525,6 +526,18 @@ const App: FC = () => {
   return (
     <Layout>
       <Stack direction="column" spacing={2} alignSelf="stretch" flex={1}>
+        <Typography>
+          <code>
+            <a
+              target="_blank"
+              href="https://github.com/vdustr/nanostores-qs"
+              rel="noopener noreferrer"
+            >
+              @vp-tw/nanostores-qs
+            </a>
+          </code>
+          , A reactive querystring manager using nanostores
+        </Typography>
         <Stack direction="row" spacing={2} flexWrap="wrap" alignSelf="stretch">
           <Controls />
           <CommonState />
