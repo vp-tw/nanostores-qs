@@ -309,15 +309,15 @@ function createQsUtils<
       : (value: TQsRecord[keyof TQsRecord]) => any,
     TDefaultValue = undefined,
     TConfig extends {
+      isArray?: TIsArray;
       decode?: TDecode;
       encode?: (value: ReturnType<TDecode>) => TQsRecord[keyof TQsRecord];
       defaultValue?: F.Narrow<TDefaultValue>;
-      isArray?: TIsArray;
     } = {
+      isArray?: TIsArray;
       decode?: TDecode;
       encode?: (value: ReturnType<TDecode>) => TQsRecord[keyof TQsRecord];
       defaultValue?: F.Narrow<TDefaultValue>;
-      isArray?: TIsArray;
     },
   >(config: TConfig) {
     return config;
@@ -347,9 +347,12 @@ function createQsUtils<
     TDefaultValue = undefined,
   >(
     name: string,
-    config?: Parameters<
-      typeof defineSearchParamInternal<TIsArray, TDecode, TDefaultValue>
-    >[0],
+    config?: {
+      isArray?: TIsArray;
+      decode?: TDecode;
+      encode?: (value: ReturnType<TDecode>) => TQsRecord[keyof TQsRecord];
+      defaultValue?: F.Narrow<TDefaultValue>;
+    },
   ): {
     $value: ReadableAtom<ReturnType<TDecode> | TDefaultValue>;
     update: (
