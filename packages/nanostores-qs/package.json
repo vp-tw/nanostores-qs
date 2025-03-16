@@ -45,5 +45,8 @@
   },
   "peerDependencies": {
     "nanostores": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

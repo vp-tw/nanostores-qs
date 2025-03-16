@@ -1,7 +1,3 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "declaration": true
-  },
   "extends": "@vp-tw/tsconfig/base/bundler/tsconfig"
 }
