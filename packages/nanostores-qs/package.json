@@ -14,6 +14,9 @@
   "type": "module",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "run-s build:clear build:js cp",
     "build:clear": "rm -rf dist",
