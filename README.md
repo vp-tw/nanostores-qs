@@ -217,6 +217,14 @@ const qsUtils = createQsUtils({
 // of the 'qs' library instead of the built-in URLSearchParams
 ```
 
+## Maintainance
+
+### Release
+
+```bash
+pnpm pub
+```
+
 ## License
 
 [MIT](./LICENSE)
