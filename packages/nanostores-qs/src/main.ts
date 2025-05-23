@@ -1,6 +1,5 @@
 import type { ReadableAtom } from "nanostores";
-import type { F } from "ts-toolbelt";
-import { isEqual, mapValues } from "es-toolkit";
+import { isEqual, isNil, mapValues } from "es-toolkit";
 import { atom, computed } from "nanostores";
 
 function getSearch() {
@@ -9,7 +8,11 @@ function getSearch() {
 
 namespace createQsUtils {
   export type BaseQsRecord = Record<string, any>;
-  export interface Options<TQsRecord extends BaseQsRecord> {
+  export type DefaultQsRecord = Record<
+    string,
+    undefined | string | Array<string>
+  >;
+  export interface Options<TQsRecord extends BaseQsRecord = DefaultQsRecord> {
     /**
      * Custom `isEqual` function to determine if a value is equal to default
      * value or not. If they are equal, the key will be omitted from the query
@@ -34,6 +37,172 @@ namespace createQsUtils {
       stringify: (qs: TQsRecord) => string;
     };
   }
+
+  export type BaseItemSearchParamConfig<
+    TQsRecord extends BaseQsRecord = BaseQsRecord,
+  > =
+    | undefined
+    | {
+        isArray?: false;
+        decode?: (value: TQsRecord[keyof TQsRecord]) => any;
+        defaultValue?: any;
+        encode?: (value: any) => TQsRecord[keyof TQsRecord];
+      };
+
+  export interface BaseArraySearchParamConfig<
+    TQsRecord extends BaseQsRecord = BaseQsRecord,
+  > {
+    isArray: true;
+    decode?: (value: ToArray<TQsRecord[keyof TQsRecord]>) => Array<any>;
+    defaultValue?: Array<any>;
+    encode?: (value: any) => TQsRecord[keyof TQsRecord];
+  }
+
+  export type BaseSearchParamConfig<
+    TQsRecord extends BaseQsRecord = BaseQsRecord,
+  > =
+    | BaseItemSearchParamConfig<TQsRecord>
+    | BaseArraySearchParamConfig<TQsRecord>;
+
+  export interface DefaultConfig<
+    TQsRecord extends BaseQsRecord = BaseQsRecord,
+  > {
+    isArray: false;
+    defaultValue: undefined;
+    decode: (value: TQsRecord) => undefined | string;
+  }
+  export interface DefaultArrayConfig<
+    TQsRecord extends BaseQsRecord = BaseQsRecord,
+  > {
+    isArray: true;
+    defaultValue: Array<string>;
+    decode: (value: ToArray<TQsRecord[keyof TQsRecord]>) => Array<string>;
+  }
+
+  export type InferValueFromItemQueryParamConfig<TConfig> =
+    | (TConfig extends {
+        defaultValue: infer TDefaultValue;
+      }
+        ? TDefaultValue
+        : undefined)
+    | (TConfig extends {
+        decode: (...args: any) => infer TDecodeReturnType;
+      }
+        ? TDecodeReturnType
+        : string);
+  export type InferValueFromArrayQueryParamConfig<TConfig> =
+    | (TConfig extends {
+        defaultValue: infer TDefaultValue;
+      }
+        ? TDefaultValue
+        : TConfig extends {
+              decode: (...args: any) => infer TDecodeReturnType;
+            }
+          ? TDecodeReturnType
+          : Array<string>)
+    | (TConfig extends {
+        decode: (...args: any) => infer TDecodeReturnType;
+      }
+        ? TDecodeReturnType
+        : Array<string>);
+  export type InferValueFromQueryParamConfig<TConfig> = TConfig extends {
+    isArray: true;
+  }
+    ? InferValueFromArrayQueryParamConfig<TConfig>
+    : InferValueFromItemQueryParamConfig<TConfig>;
+  export type FallbackQueryParamConfig<
+    TQsRecord extends BaseQsRecord,
+    TConfig,
+  > = TConfig extends undefined
+    ? undefined extends TConfig
+      ? DefaultConfig<TQsRecord>
+      : NonNullable<TConfig>
+    : NonNullable<TConfig>;
+  export type InferQsRecordFromOptions<TOptions extends Options<BaseQsRecord>> =
+    TOptions extends Options<infer TQsRecord> ? TQsRecord : DefaultQsRecord;
+  export type DefineSearchParam<TQsRecord extends BaseQsRecord> = <
+    TConfig extends NonNullable<BaseSearchParamConfig<TQsRecord>>,
+  >(
+    config: TConfig,
+  ) => TConfig & {
+    setEncode: (
+      encode: (
+        value:
+          | (TConfig["decode"] extends (...args: any) => any
+              ? ReturnType<TConfig["decode"]>
+              : [])
+          | (TConfig extends {
+              defaultValue: infer TDefaultValue;
+            }
+              ? TDefaultValue
+              : TConfig["decode"] extends (...args: any) => any
+                ? ReturnType<TConfig["decode"]>
+                : []),
+      ) => TQsRecord[keyof TQsRecord],
+    ) => TConfig;
+  };
+  export type CreateSearchParamsStore<
+    TQsRecord extends BaseQsRecord = DefaultQsRecord,
+  > = <
+    const TConfigRecord extends Record<
+      string,
+      BaseSearchParamConfig<TQsRecord>
+    >,
+  >(
+    configs:
+      | TConfigRecord
+      | ((def: createQsUtils.DefineSearchParam<TQsRecord>) => TConfigRecord),
+  ) => {
+    $values: ReadableAtom<{
+      [TKey in keyof TConfigRecord]: InferValueFromSearchParamConfig<
+        FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+      >;
+    }>;
+    updateAll: (
+      values: {
+        [TKey in keyof TConfigRecord]: InferValueFromSearchParamConfig<
+          FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+        >;
+      },
+      options?: UpdateOptions,
+    ) => void;
+    update: <TKey extends keyof TConfigRecord>(
+      key: TKey,
+      value: InferValueFromSearchParamConfig<
+        FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+      >,
+      options?: UpdateOptions,
+    ) => void;
+  };
+  export type CreateSearchParamStore<
+    TQsRecord extends BaseQsRecord = DefaultQsRecord,
+  > = <TConfig extends BaseSearchParamConfig<TQsRecord> = undefined>(
+    name: string,
+    config?:
+      | TConfig
+      | ((def: createQsUtils.DefineSearchParam<TQsRecord>) => TConfig),
+  ) => {
+    $value: ReadableAtom<
+      InferValueFromQueryParamConfig<
+        FallbackQueryParamConfig<TQsRecord, TConfig>
+      >
+    >;
+    update: (
+      value: InferValueFromQueryParamConfig<
+        FallbackQueryParamConfig<TQsRecord, TConfig>
+      >,
+      options?: UpdateOptions,
+    ) => void;
+  };
+  export interface QsUtils<TQsRecord extends BaseQsRecord = DefaultQsRecord> {
+    $search: ReadableAtom<string>;
+    $urlSearchParams: ReadableAtom<URLSearchParams>;
+    $qs: ReadableAtom<TQsRecord>;
+    defineSearchParam: DefineSearchParam<TQsRecord>;
+    createSearchParamsStore: CreateSearchParamsStore<TQsRecord>;
+    createSearchParamStore: CreateSearchParamStore<TQsRecord>;
+    destroy: () => void;
+  }
   export interface UpdateOptions {
     replace?: boolean;
     keepHash?: boolean;
@@ -41,11 +210,13 @@ namespace createQsUtils {
     unused?: Parameters<typeof history.pushState>[1];
   }
   export type ToArray<T> = Extract<T, Array<any>> | [Exclude<T, Array<any>>];
-  export type GetValueFromSearchParamConfig<
-    TConfig extends {
-      decode?: (...args: any) => any;
-      defaultValue?: any;
-    },
+  export type InferValueFromSearchParamConfig<
+    TConfig extends
+      | {
+          decode?: (...args: any) => any;
+          defaultValue?: any;
+        }
+      | undefined,
   > =
     | (TConfig extends {
         decode?: (...args: any) => infer TDecodeReturnType;
@@ -57,12 +228,12 @@ namespace createQsUtils {
         : undefined);
 }
 
-const defaultOptions = {
+const defaultOptions: createQsUtils.Options<createQsUtils.DefaultQsRecord> = {
   qs: {
     parse: (search) => {
       const urlSearchParams = new URLSearchParams(search);
       const entries = Array.from(urlSearchParams.entries());
-      const result: Record<string, undefined | string | Array<string>> = {};
+      const result: createQsUtils.DefaultQsRecord = {};
       for (const [key, value] of entries) {
         if (key in result) {
           if (Array.isArray(result[key])) {
@@ -94,9 +265,7 @@ const defaultOptions = {
     },
   },
   isEqual,
-} satisfies createQsUtils.Options<
-  Record<string, undefined | string | Array<string>>
->;
+};
 
 /**
  * Create a utility for managing query string.
@@ -116,30 +285,32 @@ const defaultOptions = {
  * ```
  */
 function createQsUtils<
-  TOptions extends
-    createQsUtils.Options<createQsUtils.BaseQsRecord> = createQsUtils.Options<
-    ReturnType<typeof defaultOptions.qs.parse>
-  >,
->(options?: TOptions) {
-  const qs: NonNullable<Extract<TOptions, { qs: any }>["qs"]> =
-    options?.qs ?? defaultOptions.qs;
-  const isEqual: NonNullable<Extract<TOptions, { isEqual: any }>["isEqual"]> =
-    options?.isEqual ?? defaultOptions.isEqual;
-  type TQsRecord = TOptions extends {
-    qs: {
-      parse: (search: string) => infer TQsRecord;
-    };
-  }
-    ? TQsRecord
-    : ReturnType<typeof defaultOptions.qs.parse>;
+  TQsRecord extends createQsUtils.BaseQsRecord = createQsUtils.DefaultQsRecord,
+>(
+  options?: createQsUtils.Options<TQsRecord>,
+): createQsUtils.QsUtils<TQsRecord> {
+  type TOptions = createQsUtils.Options<TQsRecord>;
+  type TQsUtils = createQsUtils.QsUtils<TQsRecord>;
+  const qs: NonNullable<TOptions["qs"]> =
+    options?.qs ??
+    (defaultOptions.qs as unknown as NonNullable<TOptions["qs"]>);
+  const isEqual: NonNullable<TOptions["isEqual"]> =
+    options?.isEqual ??
+    (defaultOptions.isEqual as NonNullable<TOptions["isEqual"]>);
 
   const $internalSearch = atom<string>(getSearch());
-  const $search = computed($internalSearch, (search) => search);
-  const $urlSearchParams = computed($internalSearch, () => {
-    const search = $internalSearch.get();
-    return new URLSearchParams(search);
-  });
-  const $qs = computed($search, (search) => {
+  const $search: TQsUtils["$search"] = computed(
+    $internalSearch,
+    (search) => search,
+  );
+  const $urlSearchParams: TQsUtils["$urlSearchParams"] = computed(
+    $internalSearch,
+    () => {
+      const search = $internalSearch.get();
+      return new URLSearchParams(search);
+    },
+  );
+  const $qs: TQsUtils["$qs"] = computed($search, (search) => {
     return qs.parse(search);
   });
 
@@ -177,80 +348,100 @@ function createQsUtils<
       updateSearch();
     };
   }
+  const defaultItemConfig = {
+    isArray: false,
+    defaultValue: undefined,
+    decode: (value) => (isNil(value) ? undefined : String(value)),
+  } satisfies createQsUtils.DefaultConfig<TQsRecord>;
+  const defaultArrayConfig = {
+    isArray: true,
+    defaultValue: [],
+    decode: (value) =>
+      (value as Array<unknown>).flatMap((i) => (isNil(i) ? [] : [String(i)])),
+  } satisfies createQsUtils.DefaultArrayConfig<TQsRecord>;
+  const defineSearchParam: createQsUtils.DefineSearchParam<TQsRecord> = <
+    TConfig extends NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>,
+  >(
+    config: TConfig,
+  ) => {
+    return {
+      ...config,
+      setEncode: (encode: any) => ({
+        ...config,
+        encode,
+      }),
+    };
+  };
   /**
    * Create a store for a search params.
    */
-  function createSearchParamsStore<
-    TDefineFn extends (def: typeof defineSearchParam) => Record<string, any>,
+  const createSearchParamsStore: createQsUtils.CreateSearchParamsStore<
+    TQsRecord
+  > = <
+    const TConfigRecord extends Record<
+      string,
+      createQsUtils.BaseSearchParamConfig<TQsRecord>
+    >,
   >(
-    callback: TDefineFn,
-  ): {
-    $values: ReadableAtom<{
-      [K in keyof ReturnType<TDefineFn>]: createQsUtils.GetValueFromSearchParamConfig<
-        ReturnType<TDefineFn>[K]
-      >;
-    }>;
-    updateAll: (
-      values: {
-        [K in keyof ReturnType<TDefineFn>]: createQsUtils.GetValueFromSearchParamConfig<
-          ReturnType<TDefineFn>[K]
-        >;
-      },
-      options?: createQsUtils.UpdateOptions,
-    ) => void;
-    update: {
-      <TKey extends keyof ReturnType<TDefineFn>>(
-        key: TKey,
-        value: createQsUtils.GetValueFromSearchParamConfig<
-          ReturnType<TDefineFn>[TKey]
-        >,
-        options?: createQsUtils.UpdateOptions,
-      ): void;
-    };
-  } {
+    configRecord:
+      | TConfigRecord
+      | ((def: createQsUtils.DefineSearchParam<TQsRecord>) => TConfigRecord),
+  ) => {
+    const resolvedConfigRecord: TConfigRecord =
+      typeof configRecord === "function"
+        ? configRecord(defineSearchParam)
+        : configRecord;
     type TValues = {
-      [K in keyof ReturnType<TDefineFn>]: createQsUtils.GetValueFromSearchParamConfig<
-        ReturnType<TDefineFn>[K]
+      [K in keyof TConfigRecord]: createQsUtils.InferValueFromSearchParamConfig<
+        TConfigRecord[K]
       >;
     };
-    const configRecord = callback(defineSearchParam);
     function getParsedValues(qsRecord: TQsRecord): TValues {
-      const values: TValues = mapValues(configRecord, (config, key) => {
-        const qsValue = !(key in qsRecord)
-          ? undefined
-          : qsRecord[key as keyof TQsRecord];
-        const value = Array.isArray(qsValue)
-          ? config.isArray
-            ? qsValue
-            : qsValue[0]
-          : config.isArray
-            ? !(key in qsRecord)
-              ? []
-              : [qsValue]
-            : qsValue;
-        const parsed = (() => {
-          if (
-            !("defaultValue" in config) &&
-            (qsValue === undefined ||
-              (config.isArray && Array.isArray(value) && value.length === 0))
-          ) {
-            return undefined;
-          }
-          try {
-            return config.decode
-              ? config.decode(value)
-              : !value
-                ? value
-                : String(value);
-          } catch (_e) {
-            return config.defaultValue;
-          }
-        })();
-        return parsed;
-      }) as TValues;
+      const values: TValues = mapValues(
+        resolvedConfigRecord,
+        (configInput, key) => {
+          const config = {
+            ...(configInput?.isArray ? defaultArrayConfig : defaultItemConfig),
+            ...configInput,
+          } as NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>;
+          const qsValue = !(key in qsRecord)
+            ? undefined
+            : qsRecord[key as keyof TQsRecord];
+          const value = Array.isArray(qsValue)
+            ? config.isArray
+              ? qsValue
+              : qsValue[0]
+            : config.isArray
+              ? !(key in qsRecord)
+                ? []
+                : [qsValue]
+              : qsValue;
+          const parsed = (() => {
+            if (
+              !("defaultValue" in config) &&
+              (qsValue === undefined ||
+                (config.isArray && Array.isArray(value) && value.length === 0))
+            ) {
+              return undefined;
+            }
+            try {
+              return config.decode
+                ? config.decode(value)
+                : !value
+                  ? value
+                  : String(value);
+            } catch (_e) {
+              return config.defaultValue;
+            }
+          })();
+          return parsed;
+        },
+      ) as TValues;
       return values;
     }
-    const $values = computed($qs, (qs) => getParsedValues(qs));
+    const $values: ReadableAtom<TValues> = computed($qs, (qs) =>
+      getParsedValues(qs),
+    );
     const updateAll: ReturnType<typeof createSearchParamsStore>["updateAll"] = (
       values,
       updateOptions,
@@ -260,9 +451,13 @@ function createQsUtils<
       const replace = updateOptions?.replace ?? false;
       const keepHash = updateOptions?.keepHash ?? false;
       const qsRecord = $qs.get();
-      const failedEncodeKeys: Array<keyof typeof configRecord> = [];
+      const failedEncodeKeys: Array<keyof TValues> = [];
       const nextEncodedValues = Object.fromEntries(
-        Object.entries(configRecord).flatMap(([key, config]) => {
+        Object.entries(resolvedConfigRecord).flatMap(([key, configInput]) => {
+          const config = {
+            ...(configInput?.isArray ? defaultArrayConfig : defaultItemConfig),
+            ...configInput,
+          } as NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>;
           if (
             !("defaultValue" in config) &&
             (values[key] === undefined ||
@@ -289,7 +484,7 @@ function createQsUtils<
       ) as TQsRecord;
       const nextDecodedValue = getParsedValues(nextEncodedValues);
       const keysToOmit = Object.keys(nextEncodedValues).filter((key) =>
-        isEqual(nextDecodedValue[key], configRecord[key]?.defaultValue),
+        isEqual(nextDecodedValue[key], resolvedConfigRecord[key]?.defaultValue),
       );
       const nextQsValues = { ...qsRecord, ...nextEncodedValues };
       for (const key of [...keysToOmit, ...failedEncodeKeys]) {
@@ -305,7 +500,7 @@ function createQsUtils<
         history.pushState(state, unused, url);
       }
     };
-    const update: ReturnType<typeof createSearchParamsStore>["update"] = (
+    const update: ReturnType<TQsUtils["createSearchParamsStore"]>["update"] = (
       key,
       value,
       options,
@@ -321,105 +516,60 @@ function createQsUtils<
     return {
       $values,
       updateAll,
-      update: update as any,
+      update,
     };
-  }
-  function defineSearchParamInternal<
-    TIsArray extends boolean = false,
-    TDecode extends TIsArray extends true
-      ? (value: createQsUtils.ToArray<TQsRecord[keyof TQsRecord]>) => any
-      : (value: TQsRecord[keyof TQsRecord]) => any = TIsArray extends true
-      ? (value: createQsUtils.ToArray<TQsRecord[keyof TQsRecord]>) => any
-      : (value: TQsRecord[keyof TQsRecord]) => any,
-    TDefaultValue = undefined,
-    TConfig extends {
-      isArray?: TIsArray;
-      decode?: TDecode;
-      encode?: (value: ReturnType<TDecode>) => TQsRecord[keyof TQsRecord];
-      defaultValue?: F.Narrow<TDefaultValue>;
-    } = {
-      isArray?: TIsArray;
-      decode?: TDecode;
-      encode?: (value: ReturnType<TDecode>) => TQsRecord[keyof TQsRecord];
-      defaultValue?: F.Narrow<TDefaultValue>;
-    },
-  >(config: TConfig) {
-    return config;
-  }
-  function defineSearchParam<
-    TIsArray extends boolean = false,
-    TDecode extends TIsArray extends true
-      ? (value: createQsUtils.ToArray<TQsRecord[keyof TQsRecord]>) => any
-      : (value: TQsRecord[keyof TQsRecord]) => any = TIsArray extends true
-      ? (value: createQsUtils.ToArray<TQsRecord[keyof TQsRecord]>) => any
-      : (value: TQsRecord[keyof TQsRecord]) => any,
-    TDefaultValue = undefined,
-  >(
-    ...args: Parameters<
-      typeof defineSearchParamInternal<TIsArray, TDecode, TDefaultValue>
-    >
-  ) {
-    return defineSearchParamInternal<TIsArray, TDecode, TDefaultValue>(...args);
-  }
-  function createSearchParamStore<
-    TIsArray extends boolean = false,
-    TDecode extends TIsArray extends true
-      ? (value: createQsUtils.ToArray<TQsRecord[keyof TQsRecord]>) => any
-      : (value: TQsRecord[keyof TQsRecord]) => any = TIsArray extends true
-      ? (value: createQsUtils.ToArray<TQsRecord[keyof TQsRecord]>) => any
-      : (value: TQsRecord[keyof TQsRecord]) => any,
-    TDefaultValue = undefined,
+  };
+  const createSearchParamStore: createQsUtils.CreateSearchParamStore<
+    TQsRecord
+  > = <
+    TConfig extends createQsUtils.BaseSearchParamConfig<TQsRecord> = undefined,
   >(
     name: string,
-    config?: {
-      isArray?: TIsArray;
-      decode?: TDecode;
-      encode?: (value: ReturnType<TDecode>) => TQsRecord[keyof TQsRecord];
-      defaultValue?: F.Narrow<TDefaultValue>;
-    },
-  ): {
-    $value: ReadableAtom<ReturnType<TDecode> | TDefaultValue>;
-    update: (
-      value: ReturnType<TDecode>,
-      options?: createQsUtils.UpdateOptions,
-    ) => void;
-  } {
-    type TValue = ReturnType<TDecode> | TDefaultValue;
+    config:
+      | TConfig
+      | ((def: createQsUtils.DefineSearchParam<TQsRecord>) => TConfig),
+  ) => {
+    type TValue = createQsUtils.InferValueFromQueryParamConfig<
+      createQsUtils.FallbackQueryParamConfig<TQsRecord, TConfig>
+    >;
     const _fake_key: unique symbol = Symbol("_fake_key");
     type Name = string & {
       [_fake_key]: "_fake_key";
     };
     const typedName = name as Name;
-    const searchParamsStore = createSearchParamsStore((defineSearchParam) => ({
-      [typedName]: defineSearchParam({
-        ...config,
-      }),
-    }));
+    const resolvedConfig: TConfig =
+      typeof config === "function" ? config(defineSearchParam) : config;
+    const searchParamsStore = createSearchParamsStore({
+      [typedName]: resolvedConfig,
+    });
     const $value: ReadableAtom<TValue> = computed(
       searchParamsStore.$values,
       (values) => values[typedName] as TValue,
     );
-    const update: ReturnType<typeof createSearchParamStore>["update"] = (
-      value,
-      options,
-    ) => {
+    const update: (
+      value: createQsUtils.InferValueFromQueryParamConfig<
+        createQsUtils.FallbackQueryParamConfig<TQsRecord, TConfig>
+      >,
+      options?: createQsUtils.UpdateOptions,
+    ) => void = (value, options) => {
       searchParamsStore.updateAll(
         { [name]: value } as ReturnType<typeof searchParamsStore.$values.get>,
         options,
       );
     };
     return {
-      $value,
+      // TODO: fix type
+      $value: $value as any,
       update,
     };
-  }
+  };
   return {
     $search,
     $urlSearchParams,
     $qs,
-    createSearchParamsStore,
     defineSearchParam,
     createSearchParamStore,
+    createSearchParamsStore,
     destroy,
   };
 }
