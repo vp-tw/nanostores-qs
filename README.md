@@ -56,7 +56,7 @@ function Str() {
 
   return (
     <input
-      value={str}
+      value={str ?? ""}
       onChange={(e) => {
         strStore.update(e.target.value);
       }}
