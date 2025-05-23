@@ -3,6 +3,9 @@ import { isEqual, isNil, mapValues } from "es-toolkit";
 import { atom, computed } from "nanostores";
 
 function getSearch() {
+  if (typeof window === "undefined") {
+    return "";
+  }
   return window.location.search;
 }
 
@@ -333,7 +336,9 @@ function createQsUtils<
     if ($internalSearch.get() === search) return;
     $internalSearch.set(search);
   }
-  {
+  (() => {
+    if (typeof window === "undefined") return;
+
     // Listen to popstate and pushState/replaceState
 
     window.addEventListener("popstate", updateSearch);
@@ -352,7 +357,7 @@ function createQsUtils<
       if (destroyed) return;
       updateSearch();
     };
-  }
+  })();
   const defaultItemConfig = {
     isArray: false,
     defaultValue: undefined,
