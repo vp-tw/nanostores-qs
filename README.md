@@ -52,7 +52,7 @@ const strStore = qsUtils.createSearchParamStore("str");
 // In React component
 function Str() {
   const str = useStore(strStore.$value);
-  //    ^? string
+  //    ^? string | undefined
 
   return (
     <input
@@ -65,11 +65,12 @@ function Str() {
 }
 
 // Number parameter with custom encoding/decoding
-const numStore = qsUtils.createSearchParamStore("num", {
-  decode: (v) => (!v ? "" : Number(v)),
-  encode: String,
-  defaultValue: "",
-});
+const numStore = qsUtils.createSearchParamStore("num", (def) =>
+  def({
+    decode: (v) => (!v ? "" : Number(v)),
+    defaultValue: "",
+  }),
+);
 
 function Num() {
   const num = useStore(numStore.$value);
@@ -122,18 +123,16 @@ By default, it uses `es-toolkit`'s `isEqual` function.
 ### Multiple Parameters
 
 ```tsx
-const filtersStore = qsUtils.createSearchParamsStore((defineSearchParam) => ({
-  search: defineSearchParam({ defaultValue: "" }),
-  category: defineSearchParam({ isArray: true }),
-  minPrice: defineSearchParam({
+const filtersStore = qsUtils.createSearchParamsStore((def) => ({
+  search: def({ defaultValue: "" }),
+  category: def({ isArray: true }),
+  minPrice: def({
     decode: Number,
-    encode: String,
-  }),
-  maxPrice: defineSearchParam({
+  }).setEncode(String),
+  maxPrice: def({
     decode: Number,
-    encode: String,
-  }),
-  sortBy: defineSearchParam({
+  }).setEncode(String),
+  sortBy: def({
     defaultValue: "newest",
   }),
 }));

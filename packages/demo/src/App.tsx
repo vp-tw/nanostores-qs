@@ -39,17 +39,23 @@ const tabStore = urlSearchParamsUtils.createSearchParamStore("tab", {
   defaultValue: TabSchema.options[0],
 });
 
-const replaceStore = urlSearchParamsUtils.createSearchParamStore("replace", {
-  decode: (v) => v !== "false",
-  encode: (v) => (v ? undefined : "false"),
-  defaultValue: true,
-});
+const replaceStore = urlSearchParamsUtils.createSearchParamStore(
+  "replace",
+  (def) =>
+    def({
+      decode: (v) => v !== "false",
+      defaultValue: true,
+    }).setEncode((v) => (v ? undefined : "false")),
+);
 
-const keepHashStore = urlSearchParamsUtils.createSearchParamStore("keepHash", {
-  decode: (v) => v === "true",
-  encode: (v) => (v ? "true" : undefined),
-  defaultValue: false,
-});
+const keepHashStore = urlSearchParamsUtils.createSearchParamStore(
+  "keepHash",
+  (def) =>
+    def({
+      decode: (v) => v === "true",
+      defaultValue: false,
+    }).setEncode((v) => (v ? "true" : undefined)),
+);
 
 const qsUtils = createQsUtils({
   qs: {
@@ -58,42 +64,40 @@ const qsUtils = createQsUtils({
   },
 });
 
-const qsSearchParamsStore = qsUtils.createSearchParamsStore(
-  (defineSearchParam) => ({
-    qsSearch: defineSearchParam({}),
-    qsPage: defineSearchParam({
-      decode: IntegerParamSchema.parse,
-      encode: String,
-    }),
-    qsEnumArray: defineSearchParam({
-      isArray: true,
-      decode: z
-        .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
-        .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v])))
-        .parse,
-    }),
-    qsDate: defineSearchParam({
-      decode: z.string().transform(datetimeLocalToDate).parse,
-      encode: z.date().transform(dateToDatetimeLocal).parse,
-    }),
+const qsSearchParamsStore = qsUtils.createSearchParamsStore((def) => ({
+  qsSearch: undefined,
+  qsPage: def({
+    decode: IntegerParamSchema.parse,
+    encode: String,
   }),
-);
+  qsEnumArray: def({
+    isArray: true,
+    decode: z
+      .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
+      .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v])))
+      .parse,
+  }),
+  qsDate: def({
+    decode: z.string().transform(datetimeLocalToDate).parse,
+    encode: z.date().transform(dateToDatetimeLocal).parse,
+  }),
+}));
 
 const urlSearchParamsStore = urlSearchParamsUtils.createSearchParamsStore(
-  (defineSearchParam) => ({
-    urlSearch: defineSearchParam({}),
-    urlPage: defineSearchParam({
+  (def) => ({
+    urlSearch: undefined,
+    urlPage: def({
       decode: IntegerParamSchema.parse,
       encode: String,
     }),
-    urlEnumArray: defineSearchParam({
+    urlEnumArray: def({
       isArray: true,
       decode: z
         .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
         .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v])))
         .parse,
     }),
-    urlDate: defineSearchParam({
+    urlDate: def({
       decode: z.string().transform(datetimeLocalToDate).parse,
       encode: z.date().transform(dateToDatetimeLocal).parse,
     }),
