@@ -206,6 +206,10 @@ namespace createQsUtils {
   export interface UpdateOptions {
     replace?: boolean;
     keepHash?: boolean;
+    /**
+     * If true, forces the update to proceed even if the new value is the same as the current value.
+     * Defaults to `false`.
+     */
     force?: boolean;
     state?: Parameters<typeof history.pushState>[0];
     unused?: Parameters<typeof history.pushState>[1];
