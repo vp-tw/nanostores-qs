@@ -206,6 +206,7 @@ namespace createQsUtils {
   export interface UpdateOptions {
     replace?: boolean;
     keepHash?: boolean;
+    force?: boolean;
     state?: Parameters<typeof history.pushState>[0];
     unused?: Parameters<typeof history.pushState>[1];
   }
@@ -448,8 +449,13 @@ function createQsUtils<
     ) => {
       const state = updateOptions?.state ?? {};
       const unused = updateOptions?.unused ?? "";
+      const force = updateOptions?.force ?? false;
       const replace = updateOptions?.replace ?? false;
       const keepHash = updateOptions?.keepHash ?? false;
+      const currentValue = $values.get();
+      if (!force && isEqual(currentValue, values)) {
+        return;
+      }
       const qsRecord = $qs.get();
       const failedEncodeKeys: Array<keyof TValues> = [];
       const nextEncodedValues = Object.fromEntries(
