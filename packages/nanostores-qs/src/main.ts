@@ -508,7 +508,7 @@ function createQsUtils<
       const stringified = qs.stringify(nextQsValues);
       const nextSearch = !stringified ? "" : `?${stringified}`;
       const currentHash = window.location.hash;
-      const url = nextSearch + (keepHash ? currentHash : "") || ".";
+      const url = window.location.pathname + (nextSearch || "") + (keepHash ? currentHash : "");
       if (replace) {
         history.replaceState(state, unused, url);
       } else {
