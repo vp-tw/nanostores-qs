@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.1](https://github.com/VdustR/nanostore-qs/compare/v0.3.0...v0.3.1) (2025-06-27)
+
+
+### Bug Fixes
+
+* **nanostores-qs:** fix default encode and pathname ([#12](https://github.com/VdustR/nanostore-qs/issues/12)) ([709d1c0](https://github.com/VdustR/nanostore-qs/commit/709d1c059b864fd913cff2a89d06ba83487b7c72))
+
+
+
+
+
 # [0.3.0](https://github.com/VdustR/nanostore-qs/compare/v0.2.1...v0.3.0) (2025-05-23)
 
 
