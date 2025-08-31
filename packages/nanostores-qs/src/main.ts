@@ -144,6 +144,56 @@ namespace createQsUtils {
       ) => TQsRecord[keyof TQsRecord],
     ) => TConfig;
   };
+  export type UpdateAllBase<
+    TQsRecord extends BaseQsRecord,
+    TConfigRecord extends Record<string, BaseSearchParamConfig<TQsRecord>>,
+  > = (
+    values: {
+      [TKey in keyof TConfigRecord]: InferValueFromSearchParamConfig<
+        FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+      >;
+    },
+    options?: UpdateOptions,
+  ) => void;
+  export type UpdateAllDry<
+    TQsRecord extends BaseQsRecord,
+    TConfigRecord extends Record<string, BaseSearchParamConfig<TQsRecord>>,
+  > = (values: {
+    [TKey in keyof TConfigRecord]: InferValueFromSearchParamConfig<
+      FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+    >;
+  }) => string;
+  export type UpdateAll<
+    TQsRecord extends BaseQsRecord,
+    TConfigRecord extends Record<string, BaseSearchParamConfig<TQsRecord>>,
+  > = UpdateAllBase<TQsRecord, TConfigRecord> & {
+    dry: UpdateAllDry<TQsRecord, TConfigRecord>;
+  };
+  export type UpdateBase<
+    TQsRecord extends BaseQsRecord,
+    TConfigRecord extends Record<string, BaseSearchParamConfig<TQsRecord>>,
+  > = <TKey extends keyof TConfigRecord>(
+    key: TKey,
+    value: InferValueFromSearchParamConfig<
+      FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+    >,
+    options?: UpdateOptions,
+  ) => void;
+  export type UpdateDry<
+    TQsRecord extends BaseQsRecord,
+    TConfigRecord extends Record<string, BaseSearchParamConfig<TQsRecord>>,
+  > = <TKey extends keyof TConfigRecord>(
+    key: TKey,
+    value: InferValueFromSearchParamConfig<
+      FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
+    >,
+  ) => string;
+  export type Update<
+    TQsRecord extends BaseQsRecord,
+    TConfigRecord extends Record<string, BaseSearchParamConfig<TQsRecord>>,
+  > = UpdateBase<TQsRecord, TConfigRecord> & {
+    dry: UpdateDry<TQsRecord, TConfigRecord>;
+  };
   export type CreateSearchParamsStore<
     TQsRecord extends BaseQsRecord = DefaultQsRecord,
   > = <
@@ -161,21 +211,31 @@ namespace createQsUtils {
         FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
       >;
     }>;
-    updateAll: (
-      values: {
-        [TKey in keyof TConfigRecord]: InferValueFromSearchParamConfig<
-          FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
-        >;
-      },
-      options?: UpdateOptions,
-    ) => void;
-    update: <TKey extends keyof TConfigRecord>(
-      key: TKey,
-      value: InferValueFromSearchParamConfig<
-        FallbackQueryParamConfig<TQsRecord, TConfigRecord[TKey]>
-      >,
-      options?: UpdateOptions,
-    ) => void;
+    updateAll: UpdateAll<TQsRecord, TConfigRecord>;
+    update: Update<TQsRecord, TConfigRecord>;
+  };
+  export type UpdateSingleBase<
+    TQsRecord extends BaseQsRecord,
+    TConfig extends BaseSearchParamConfig<TQsRecord>,
+  > = (
+    value: InferValueFromQueryParamConfig<
+      FallbackQueryParamConfig<TQsRecord, TConfig>
+    >,
+    options?: UpdateOptions,
+  ) => void;
+  export type UpdateSingleDry<
+    TQsRecord extends BaseQsRecord,
+    TConfig extends BaseSearchParamConfig<TQsRecord>,
+  > = (
+    value: InferValueFromQueryParamConfig<
+      FallbackQueryParamConfig<TQsRecord, TConfig>
+    >,
+  ) => string;
+  export type UpdateSingle<
+    TQsRecord extends BaseQsRecord,
+    TConfig extends BaseSearchParamConfig<TQsRecord>,
+  > = UpdateSingleBase<TQsRecord, TConfig> & {
+    dry: UpdateSingleDry<TQsRecord, TConfig>;
   };
   export type CreateSearchParamStore<
     TQsRecord extends BaseQsRecord = DefaultQsRecord,
@@ -190,12 +250,7 @@ namespace createQsUtils {
         FallbackQueryParamConfig<TQsRecord, TConfig>
       >
     >;
-    update: (
-      value: InferValueFromQueryParamConfig<
-        FallbackQueryParamConfig<TQsRecord, TConfig>
-      >,
-      options?: UpdateOptions,
-    ) => void;
+    update: UpdateSingle<TQsRecord, TConfig>;
   };
   export interface QsUtils<TQsRecord extends BaseQsRecord = DefaultQsRecord> {
     $search: ReadableAtom<string>;
@@ -452,19 +507,9 @@ function createQsUtils<
     const $values: ReadableAtom<TValues> = computed($qs, (qs) =>
       getParsedValues(qs),
     );
-    const updateAll: ReturnType<typeof createSearchParamsStore>["updateAll"] = (
+    const updateAllDry: createQsUtils.UpdateAllDry<TQsRecord, TConfigRecord> = (
       values,
-      updateOptions,
     ) => {
-      const state = updateOptions?.state ?? {};
-      const unused = updateOptions?.unused ?? "";
-      const force = updateOptions?.force ?? false;
-      const replace = updateOptions?.replace ?? false;
-      const keepHash = updateOptions?.keepHash ?? false;
-      const currentValue = $values.get();
-      if (!force && isEqual(currentValue, values)) {
-        return;
-      }
       const qsRecord = $qs.get();
       const failedEncodeKeys: Array<keyof TValues> = [];
       const nextEncodedValues = Object.fromEntries(
@@ -478,7 +523,8 @@ function createQsUtils<
             (values[key] === undefined ||
               (config.isArray &&
                 Array.isArray(values[key]) &&
-                values[key].length === 0))
+                // TS doesn't know that values[key] is an array here, so we use a type assertion
+                (values[key] as Array<unknown>).length === 0))
           ) {
             failedEncodeKeys.push(key);
             return [];
@@ -507,6 +553,22 @@ function createQsUtils<
       }
       const stringified = qs.stringify(nextQsValues);
       const nextSearch = !stringified ? "" : `?${stringified}`;
+      return nextSearch;
+    };
+    const updateAllBase: createQsUtils.UpdateAllBase<
+      TQsRecord,
+      TConfigRecord
+    > = (values, updateOptions) => {
+      const state = updateOptions?.state ?? {};
+      const unused = updateOptions?.unused ?? "";
+      const force = updateOptions?.force ?? false;
+      const replace = updateOptions?.replace ?? false;
+      const keepHash = updateOptions?.keepHash ?? false;
+      const currentValue = $values.get();
+      if (!force && isEqual(currentValue, values)) {
+        return;
+      }
+      const nextSearch = updateAllDry(values);
       const currentHash = window.location.hash;
       const url =
         window.location.pathname + nextSearch + (keepHash ? currentHash : "");
@@ -516,11 +578,23 @@ function createQsUtils<
         history.pushState(state, unused, url);
       }
     };
-    const update: ReturnType<TQsUtils["createSearchParamsStore"]>["update"] = (
+    const updateAll: createQsUtils.UpdateAll<TQsRecord, TConfigRecord> =
+      Object.assign(updateAllBase, {
+        dry: updateAllDry,
+      });
+    const updateDry: createQsUtils.UpdateDry<TQsRecord, TConfigRecord> = (
+      key,
+      value,
+    ) =>
+      updateAllDry({
+        ...$values.get(),
+        [key]: value,
+      });
+    const updateBase: createQsUtils.UpdateBase<TQsRecord, TConfigRecord> = (
       key,
       value,
       options,
-    ) => {
+    ) =>
       updateAll(
         {
           ...$values.get(),
@@ -528,7 +602,11 @@ function createQsUtils<
         },
         options,
       );
-    };
+
+    const update: createQsUtils.Update<TQsRecord, TConfigRecord> =
+      Object.assign(updateBase, {
+        dry: updateDry,
+      });
     return {
       $values,
       updateAll,
@@ -541,7 +619,7 @@ function createQsUtils<
     TConfig extends createQsUtils.BaseSearchParamConfig<TQsRecord> = undefined,
   >(
     name: string,
-    config:
+    config?:
       | TConfig
       | ((def: createQsUtils.DefineSearchParam<TQsRecord>) => TConfig),
   ) => {
@@ -553,7 +631,7 @@ function createQsUtils<
       [_fake_key]: "_fake_key";
     };
     const typedName = name as Name;
-    const resolvedConfig: TConfig =
+    const resolvedConfig: TConfig | undefined =
       typeof config === "function" ? config(defineSearchParam) : config;
     const searchParamsStore = createSearchParamsStore({
       [typedName]: resolvedConfig,
@@ -562,20 +640,27 @@ function createQsUtils<
       searchParamsStore.$values,
       (values) => values[typedName] as TValue,
     );
-    const update: (
-      value: createQsUtils.InferValueFromQueryParamConfig<
-        createQsUtils.FallbackQueryParamConfig<TQsRecord, TConfig>
-      >,
-      options?: createQsUtils.UpdateOptions,
-    ) => void = (value, options) => {
+    const updateDry: createQsUtils.UpdateSingleDry<TQsRecord, TConfig> = (
+      value,
+    ) =>
+      searchParamsStore.updateAll.dry({
+        [name]: value,
+      } as ReturnType<typeof searchParamsStore.$values.get>);
+
+    const updateBase: createQsUtils.UpdateSingleBase<TQsRecord, TConfig> = (
+      value,
+      options,
+    ) =>
       searchParamsStore.updateAll(
         { [name]: value } as ReturnType<typeof searchParamsStore.$values.get>,
         options,
       );
-    };
+    const update: createQsUtils.UpdateSingle<TQsRecord, TConfig> =
+      Object.assign(updateBase, {
+        dry: updateDry,
+      });
     return {
-      // TODO: fix type
-      $value: $value as any,
+      $value,
       update,
     };
   };
