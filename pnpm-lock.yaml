@@ -13,8 +13,8 @@ catalogs:
       specifier: ^1.31.0
       version: 1.32.0
     nanostores:
-      specifier: ^0.11.4
-      version: 0.11.4
+      specifier: ^1.1.0
+      version: 1.1.0
 
 importers:
 
@@ -154,7 +154,7 @@ importers:
         version: 5.0.0-beta.51(@emotion/react@11.11.4(@types/react@19.0.10)(react@19.0.0))(@emotion/styled@11.14.0(@emotion/react@11.11.4(@types/react@19.0.10)(react@19.0.0))(@types/react@19.0.10)(react@19.0.0))(@types/react@19.0.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@nanostores/react':
         specifier: 'catalog:'
-        version: 0.8.4(nanostores@0.11.4)(react@19.0.0)
+        version: 0.8.4(nanostores@1.1.0)(react@19.0.0)
       '@repo/css-reset':
         specifier: workspace:*
         version: link:../css-reset
@@ -175,7 +175,7 @@ importers:
         version: link:../nanostores-qs
       nanostores:
         specifier: 'catalog:'
-        version: 0.11.4
+        version: 1.1.0
       object-inspect:
         specifier: ^1.13.4
         version: 1.13.4
@@ -211,7 +211,7 @@ importers:
         version: 1.32.0
       nanostores:
         specifier: 'catalog:'
-        version: 0.11.4
+        version: 1.1.0
       ts-toolbelt:
         specifier: ^9.6.0
         version: 9.6.0
@@ -4933,9 +4933,9 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanostores@0.11.4:
-    resolution: {integrity: sha512-k1oiVNN4hDK8NcNERSZLQiMfRzEGtfnvZvdBvey3SQbgn8Dcrk0h1I6vpxApjb10PFUflZrgJ2WEZyJQ+5v7YQ==}
-    engines: {node: ^18.0.0 || >=20.0.0}
+  nanostores@1.1.0:
+    resolution: {integrity: sha512-yJBmDJr18xy47dbNVlHcgdPrulSn1nhSE6Ns9vTG+Nx9VPT6iV1MD6aQFp/t52zpf82FhLLTXAXr30NuCnxvwA==}
+    engines: {node: ^20.0.0 || >=22.0.0}
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -8115,9 +8115,9 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.0.10
 
-  '@nanostores/react@0.8.4(nanostores@0.11.4)(react@19.0.0)':
+  '@nanostores/react@0.8.4(nanostores@1.1.0)(react@19.0.0)':
     dependencies:
-      nanostores: 0.11.4
+      nanostores: 1.1.0
       react: 19.0.0
 
   '@napi-rs/wasm-runtime@0.2.4':
@@ -12051,7 +12051,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nanostores@0.11.4: {}
+  nanostores@1.1.0: {}
 
   natural-compare@1.4.0: {}
 
