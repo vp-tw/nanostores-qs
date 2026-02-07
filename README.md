@@ -36,9 +36,7 @@ const str = qsUtils.createSearchParamStore("str");
 
 function StrInput() {
   const value = useStore(str.$value); // string | undefined
-  return (
-    <input value={value ?? ""} onChange={(e) => str.update(e.target.value)} />
-  );
+  return <input value={value ?? ""} onChange={(e) => str.update(e.target.value)} />;
 }
 ```
 
@@ -151,7 +149,6 @@ Notes:
 ## Good Practices
 
 - Integrate with routers using `.dry`:
-
   - Generate `search` via `.dry` and hand it to your router (`Link`, `navigate`, etc.).
   - Preserves router features like navigation blocking, transitions, scroll restoration, analytics, loaders.
   - Avoids potential conflicts from calling the History API directly.
@@ -226,10 +223,7 @@ const sort = qsUtils.createSearchParamStore("sort", {
 function SortSelector() {
   const option = useStore(sort.$value); // SortOption
   return (
-    <select
-      value={option}
-      onChange={(e) => sort.update(e.target.value as SortOption)}
-    >
+    <select value={option} onChange={(e) => sort.update(e.target.value as SortOption)}>
       {SortOptionSchema.options.map((o) => (
         <option key={o} value={o}>
           {o}

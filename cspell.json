@@ -10,13 +10,27 @@
     "**/.gitignore",
     "**/__snapshots__/**",
     "/*.code-workspace",
+    "/.changeset",
     "/.git",
-    "/.prettierignore",
-    "/.stylelintignore",
     "/pnpm-lock.yaml"
   ],
   "includeRegExpList": ["[ -~]"],
   "useGitignore": true,
   "version": "0.2",
-  "words": ["antfu", "jsdoc", "nanostores", "nums", "nvmrc", "pathe", "tsdoc"]
+  "words": [
+    "antfu",
+    "commitizen",
+    "jsdoc",
+    "nanostores",
+    "nums",
+    "nvmrc",
+    "oxfmt",
+    "oxfmtrc",
+    "pathe",
+    "tsdoc",
+    "tsgo",
+    "vite",
+    "vitejs",
+    "vitest"
+  ]
 }

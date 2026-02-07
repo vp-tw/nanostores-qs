@@ -1,4 +1,11 @@
 {
-  "extends": ["@repo/tsconfig/script/tsconfig"],
-  "include": ["*.config.*", "*.d.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./packages/utils/tsconfig.app.json" },
+    { "path": "./packages/demo/tsconfig.node.json" },
+    { "path": "./packages/demo/tsconfig.app.json" },
+    { "path": "./packages/nanostores-qs/tsconfig.lib.json" },
+    { "path": "./packages/nanostores-qs/tsconfig.node.json" }
+  ]
 }

@@ -1,22 +1,22 @@
-import { fileURLToPath } from "node:url";
-
-import { GLOB_MARKDOWN_CODE } from "@antfu/eslint-config";
-import { includeIgnoreFile } from "@eslint/compat";
+import { GLOB_SRC } from "@antfu/eslint-config";
 import { vdustr } from "@vp-tw/eslint-config";
-import path from "pathe";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const prettierignorePath = path.resolve(__dirname, ".prettierignore");
+import oxfmtConfig from "./.oxfmtrc.json" with { type: "json" };
 
 export default vdustr(
+  // @ts-expect-error TS2589 — ESLint config type recursion too deep for tsgo
   {
     react: true,
   },
-  includeIgnoreFile(prettierignorePath),
-).append({
-  files: [GLOB_MARKDOWN_CODE, "**/*.mdx/**.*"],
-  rules: {
-    "react-refresh/only-export-components": "off",
+  {
+    ignores: oxfmtConfig.ignorePatterns,
   },
-});
+  {
+    files: [GLOB_SRC],
+    rules: {
+      // Pre-existing demo code patterns — suppress until refactored
+      "react/jsx-no-iife": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks-extra/no-direct-set-state-in-use-effect": "off",
+    },
+  },
+);

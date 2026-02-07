@@ -2,6 +2,7 @@
   "name": "demo",
   "version": "0.3.1",
   "private": true,
+  "description": "Demo app for @vp-tw/nanostores-qs",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -9,26 +10,26 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emotion/styled": "^11.13.0",
-    "@fontsource/inter": "^5.1.0",
-    "@mui/joy": "5.0.0-beta.51",
+    "@emotion/styled": "catalog:",
+    "@fontsource/inter": "catalog:",
+    "@mui/joy": "catalog:",
     "@nanostores/react": "catalog:",
     "@repo/css-reset": "workspace:*",
-    "@types/object-inspect": "^1.13.0",
-    "@types/qs": "^6.9.18",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
+    "@types/object-inspect": "catalog:",
+    "@types/qs": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vp-tw/nanostores-qs": "workspace:*",
     "nanostores": "catalog:",
-    "object-inspect": "^1.13.4",
-    "qs": "^6.14.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^2.1.3",
-    "zod": "^3.24.2"
+    "object-inspect": "catalog:",
+    "qs": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "vite-tsconfig-paths": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "pkg-dir": "^8.0.0"
+    "pkg-dir": "catalog:"
   }
 }

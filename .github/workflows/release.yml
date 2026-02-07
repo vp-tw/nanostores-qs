@@ -1,0 +1,21 @@
+name: Release
+on:
+  push:
+    branches: [main]
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Release
+        uses: changesets/action@v1
+        with:
+          publish: pnpm release
+          title: "build: bump version"
+          commit: "build: bump version"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

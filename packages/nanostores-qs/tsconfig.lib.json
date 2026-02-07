@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.lib.tsbuildinfo"
+  },
+  "extends": ["@vp-tw/tsconfig/base/bundler/tsconfig", "@vp-tw/tsconfig/ext/lib/tsconfig"],
+  "include": ["./src/**/*"]
+}
