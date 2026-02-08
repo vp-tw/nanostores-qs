@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
+  },
+  "extends": ["@repo/tsconfig/tsconfig.node"],
+  "include": ["*"]
+}

@@ -14,21 +14,24 @@
   "bugs": {
     "url": "https://github.com/VdustR/nanostores-qs/issues"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:VdustR/nanostores-qs.git"
-  },
   "license": "MIT",
   "author": {
     "name": "ViPro",
     "url": "https://vdustr.dev"
   },
-  "type": "module",
-  "main": "dist/main.js",
-  "types": "dist/main.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:VdustR/nanostores-qs.git"
+  },
   "files": [
     "dist"
   ],
+  "type": "module",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "run-s build:clear build:js cp",
     "build:clear": "rm -rf dist",
@@ -38,15 +41,13 @@
   },
   "dependencies": {
     "es-toolkit": "catalog:",
-    "ts-toolbelt": "^9.6.0"
+    "ts-toolbelt": "catalog:"
   },
   "devDependencies": {
-    "pkg-dir": "^8.0.0"
+    "nanostores": "catalog:",
+    "pkg-dir": "catalog:"
   },
   "peerDependencies": {
     "nanostores": "catalog:"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

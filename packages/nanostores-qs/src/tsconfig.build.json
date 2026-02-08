@@ -3,5 +3,5 @@
     "outDir": "../dist",
     "target": "ES5"
   },
-  "extends": ["./tsconfig", "@vp-tw/tsconfig/ext/emit/tsconfig"]
+  "extends": ["../tsconfig.lib.json", "@vp-tw/tsconfig/ext/emit/tsconfig"]
 }

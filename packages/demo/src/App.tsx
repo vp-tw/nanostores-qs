@@ -39,22 +39,18 @@ const tabStore = urlSearchParamsUtils.createSearchParamStore("tab", {
   defaultValue: TabSchema.options[0],
 });
 
-const replaceStore = urlSearchParamsUtils.createSearchParamStore(
-  "replace",
-  (def) =>
-    def({
-      decode: (v) => v !== "false",
-      defaultValue: true,
-    }).setEncode((v) => (v ? undefined : "false")),
+const replaceStore = urlSearchParamsUtils.createSearchParamStore("replace", (def) =>
+  def({
+    decode: (v) => v !== "false",
+    defaultValue: true,
+  }).setEncode((v) => (v ? undefined : "false")),
 );
 
-const keepHashStore = urlSearchParamsUtils.createSearchParamStore(
-  "keepHash",
-  (def) =>
-    def({
-      decode: (v) => v === "true",
-      defaultValue: false,
-    }).setEncode((v) => (v ? "true" : undefined)),
+const keepHashStore = urlSearchParamsUtils.createSearchParamStore("keepHash", (def) =>
+  def({
+    decode: (v) => v === "true",
+    defaultValue: false,
+  }).setEncode((v) => (v ? "true" : undefined)),
 );
 
 const qsUtils = createQsUtils({
@@ -74,8 +70,7 @@ const qsSearchParamsStore = qsUtils.createSearchParamsStore((def) => ({
     isArray: true,
     decode: z
       .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
-      .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v])))
-      .parse,
+      .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v]))).parse,
   }),
   qsDate: def({
     decode: z.string().transform(datetimeLocalToDate).parse,
@@ -83,32 +78,27 @@ const qsSearchParamsStore = qsUtils.createSearchParamsStore((def) => ({
   }),
 }));
 
-const urlSearchParamsStore = urlSearchParamsUtils.createSearchParamsStore(
-  (def) => ({
-    urlSearch: undefined,
-    urlPage: def({
-      decode: IntegerParamSchema.parse,
-      encode: String,
-    }),
-    urlEnumArray: def({
-      isArray: true,
-      decode: z
-        .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
-        .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v])))
-        .parse,
-    }),
-    urlDate: def({
-      decode: z.string().transform(datetimeLocalToDate).parse,
-      encode: z.date().transform(dateToDatetimeLocal).parse,
-    }),
+const urlSearchParamsStore = urlSearchParamsUtils.createSearchParamsStore((def) => ({
+  urlSearch: undefined,
+  urlPage: def({
+    decode: IntegerParamSchema.parse,
+    encode: String,
   }),
-);
+  urlEnumArray: def({
+    isArray: true,
+    decode: z
+      .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
+      .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v]))).parse,
+  }),
+  urlDate: def({
+    decode: z.string().transform(datetimeLocalToDate).parse,
+    encode: z.date().transform(dateToDatetimeLocal).parse,
+  }),
+}));
 
 function dateToDatetimeLocal(date: Date) {
   const tzOffset = date.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(date.getTime() - tzOffset)
-    .toISOString()
-    .slice(0, 16);
+  const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
   return localISOTime;
 }
 
@@ -130,19 +120,11 @@ const Qs: React.FC = () => {
       <Stack direction="column" spacing={2} flex={1}>
         <FormControl size="sm" color="primary">
           <FormLabel>qs</FormLabel>
-          <Textarea
-            maxRows={10}
-            value={objectInspect(qs, { indent: 2 })}
-            readOnly
-          />
+          <Textarea maxRows={10} value={objectInspect(qs, { indent: 2 })} readOnly />
         </FormControl>
         <FormControl size="sm" color="primary">
           <FormLabel>searchParams</FormLabel>
-          <Textarea
-            maxRows={10}
-            value={objectInspect(searchParams, { indent: 2 })}
-            readOnly
-          />
+          <Textarea maxRows={10} value={objectInspect(searchParams, { indent: 2 })} readOnly />
         </FormControl>
       </Stack>
       <Stack direction="column" spacing={2} flex={1}>
@@ -196,9 +178,7 @@ const Qs: React.FC = () => {
               if (event.currentTarget.value === "") return;
               qsSearchParamsStore.update(
                 "qsPage",
-                !event.currentTarget.value
-                  ? undefined
-                  : Number(event.currentTarget.value),
+                !event.currentTarget.value ? undefined : Number(event.currentTarget.value),
                 {
                   replace,
                   keepHash,
@@ -228,9 +208,7 @@ const Qs: React.FC = () => {
               qsSearchParamsStore.updateAll(
                 {
                   ...qsSearchParamsStore.$values.get(),
-                  qsEnumArray: value.flatMap((v) =>
-                    v === undefined ? [] : [v],
-                  ),
+                  qsEnumArray: value.flatMap((v) => (v === undefined ? [] : [v])),
                 },
                 {
                   replace,
@@ -246,11 +224,7 @@ const Qs: React.FC = () => {
           <Input
             fullWidth
             type="datetime-local"
-            value={
-              !searchParams.qsDate
-                ? ""
-                : dateToDatetimeLocal(searchParams.qsDate)
-            }
+            value={!searchParams.qsDate ? "" : dateToDatetimeLocal(searchParams.qsDate)}
             onChange={(event) => {
               qsSearchParamsStore.updateAll(
                 {
@@ -298,19 +272,11 @@ const UrlSearchParams: React.FC = () => {
       <Stack direction="column" spacing={2} flex={1}>
         <FormControl size="sm" color="primary">
           <FormLabel>qs</FormLabel>
-          <Textarea
-            maxRows={10}
-            value={objectInspect(urlSearchParams, { indent: 2 })}
-            readOnly
-          />
+          <Textarea maxRows={10} value={objectInspect(urlSearchParams, { indent: 2 })} readOnly />
         </FormControl>
         <FormControl size="sm" color="primary">
           <FormLabel>searchParams</FormLabel>
-          <Textarea
-            maxRows={10}
-            value={objectInspect(searchParams, { indent: 2 })}
-            readOnly
-          />
+          <Textarea maxRows={10} value={objectInspect(searchParams, { indent: 2 })} readOnly />
         </FormControl>
       </Stack>
       <Stack direction="column" spacing={2} flex={1}>
@@ -359,15 +325,11 @@ const UrlSearchParams: React.FC = () => {
           <Input
             fullWidth
             type="number"
-            value={
-              searchParams.urlPage === undefined ? "" : searchParams.urlPage
-            }
+            value={searchParams.urlPage === undefined ? "" : searchParams.urlPage}
             onChange={(event) => {
               urlSearchParamsStore.update(
                 "urlPage",
-                !event.currentTarget.value
-                  ? undefined
-                  : Number(event.currentTarget.value),
+                !event.currentTarget.value ? undefined : Number(event.currentTarget.value),
                 {
                   replace,
                   keepHash,
@@ -403,9 +365,7 @@ const UrlSearchParams: React.FC = () => {
               urlSearchParamsStore.updateAll(
                 {
                   ...urlSearchParamsStore.$values.get(),
-                  urlEnumArray: value.flatMap((v) =>
-                    v === undefined ? [] : [v],
-                  ),
+                  urlEnumArray: value.flatMap((v) => (v === undefined ? [] : [v])),
                 },
                 {
                   replace,
@@ -421,11 +381,7 @@ const UrlSearchParams: React.FC = () => {
           <Input
             fullWidth
             type="datetime-local"
-            value={
-              !searchParams.urlDate
-                ? ""
-                : dateToDatetimeLocal(searchParams.urlDate)
-            }
+            value={!searchParams.urlDate ? "" : dateToDatetimeLocal(searchParams.urlDate)}
             onChange={(event) => {
               urlSearchParamsStore.updateAll(
                 {
@@ -492,11 +448,7 @@ const Controls = () => {
         onClick={() => {
           const nextUrl = new URL(window.location.href);
           nextUrl.hash = Math.random().toString(36).slice(2);
-          history[replace ? "replaceState" : "pushState"](
-            {},
-            "",
-            nextUrl.toString(),
-          );
+          history[replace ? "replaceState" : "pushState"]({}, "", nextUrl.toString());
         }}
       >
         Random Hash
@@ -516,10 +468,7 @@ const CommonState: React.FC = () => {
       </FormControl>
       <FormControl size="sm" color="primary">
         <FormLabel>urlSearchParams</FormLabel>
-        <Textarea
-          value={objectInspect(urlSearchParams, { indent: 2 })}
-          readOnly
-        />
+        <Textarea value={objectInspect(urlSearchParams, { indent: 2 })} readOnly />
       </FormControl>
     </Stack>
   );
@@ -566,6 +515,7 @@ const App: FC = () => {
           </TabList>
           {TabSchema.options.map((value) => (
             <TabPanel key={value} value={value}>
+              {/* eslint-disable-next-line react/jsx-no-iife -- exhaustive switch for type-safe tab rendering */}
               {(() => {
                 switch (value) {
                   case "qs":
@@ -574,9 +524,7 @@ const App: FC = () => {
                     return <UrlSearchParams />;
                   default:
                     value satisfies never;
-                    throw new Error(
-                      `Unexpected value: ${objectInspect(value)}`,
-                    );
+                    throw new Error(`Unexpected value: ${objectInspect(value)}`);
                 }
               })()}
             </TabPanel>

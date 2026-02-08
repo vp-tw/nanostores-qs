@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "paths": {
-      "@utils/*": ["./utils/*"],
-      "@vp-tw/nanostores-qs": ["../../nanostores-qs/src/main.ts"]
-    }
-  },
-  "extends": ["@repo/tsconfig/app/tsconfig"]
-}

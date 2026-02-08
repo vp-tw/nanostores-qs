@@ -2,9 +2,9 @@
   "extensions": {
     "recommendations": [
       "dbaeumer.vscode-eslint",
-      "esbenp.prettier-vscode",
+      "oxc.oxc-vscode",
       "streetsidesoftware.code-spell-checker",
-      "stylelint.vscode-stylelint",
+      "TypeScriptTeam.native-preview",
     ],
   },
   "folders": [
@@ -17,14 +17,16 @@
     { "path": "packages/utils" },
   ],
   "settings": {
+    "[mdx]": {
+      "editor.codeActionsOnSave": ["source.fixAll.eslint", "source.formatDocument"],
+    },
     "css.validate": false,
     "editor.codeActionsOnSave": [
       "source.removeUnusedImports",
       "source.fixAll.eslint",
-      "source.fixAll.stylelint",
       "source.formatDocument",
     ],
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.formatOnSave": true,
     "eslint.rules.customizations": [
       { "fixable": true, "rule": "perfectionist/*", "severity": "off" },
@@ -64,12 +66,7 @@
       "postcss",
       "mdx",
     ],
-    "less.validate": false,
-    "scss.validate": false,
-    "search.useParentIgnoreFiles": true,
-    "stylelint.packageManager": "pnpm",
-    "stylelint.stylelintPath": "node_modules/stylelint",
-    "stylelint.validate": ["css"],
-    "typescript.tsdk": "root/node_modules/typescript/lib",
+    "typescript.experimental.useTsgo": true,
+    "typescript.native-preview.tsdk": "node_modules/@typescript/native-preview",
   },
 }

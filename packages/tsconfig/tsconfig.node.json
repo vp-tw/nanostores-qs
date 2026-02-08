@@ -1,5 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Repo Script",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "target": "ESNext"
+  },
+  "display": "Repo Node",
   "extends": ["@vp-tw/tsconfig/base/bundler/tsconfig"]
 }

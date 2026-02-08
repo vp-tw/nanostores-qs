@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@utils/*": ["./src/utils/*"],
+      "@vp-tw/nanostores-qs": ["../nanostores-qs/src/main.ts"]
+    },
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
+  },
+  "extends": ["@repo/tsconfig/tsconfig.app"],
+  "include": ["./src/**/*"]
+}

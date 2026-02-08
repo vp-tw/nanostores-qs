@@ -6,7 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [
     tsconfigPaths({
-      projects: ["./src/tsconfig.json"],
+      projects: ["./tsconfig.app.json"],
     }) as unknown as PluginOption,
     react({
       babel: {
