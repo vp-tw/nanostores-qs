@@ -1,0 +1,133 @@
+---
+title: API Reference
+description: Complete API reference for @vp-tw/nanostores-qs
+---
+
+## `createQsUtils(options?)`
+
+Factory function that creates a reactive query string utility.
+
+```ts
+import { createQsUtils } from "@vp-tw/nanostores-qs";
+
+const qsUtils = createQsUtils(options?);
+```
+
+### Options
+
+| Option    | Type                   | Description                                              |
+| --------- | ---------------------- | -------------------------------------------------------- |
+| `qs`      | `{ parse, stringify }` | Custom query string library (default: `URLSearchParams`) |
+| `isEqual` | `(a, b) => boolean`    | Custom equality check (default: `es-toolkit` isEqual)    |
+
+### Returned properties
+
+| Property                  | Type                                    | Description                             |
+| ------------------------- | --------------------------------------- | --------------------------------------- |
+| `$search`                 | `ReadableAtom<string>`                  | Current `window.location.search` string |
+| `$urlSearchParams`        | `ReadableAtom<URLSearchParams>`         | Parsed `URLSearchParams` from `$search` |
+| `$qs`                     | `ReadableAtom<Record<string, unknown>>` | Parsed query object                     |
+| `createSearchParamStore`  | `(name, preset?) => Store`              | Create a single-parameter store         |
+| `createSearchParamsStore` | `(configs) => Store`                    | Create a multi-parameter store          |
+
+---
+
+## `createSearchParamStore(name, preset?)`
+
+Create a reactive store for a single URL query parameter.
+
+```ts
+const store = qsUtils.createSearchParamStore("page", presetInt);
+```
+
+### Parameters
+
+| Parameter | Type                        | Description                                |
+| --------- | --------------------------- | ------------------------------------------ |
+| `name`    | `string`                    | Query parameter name                       |
+| `preset`  | `Preset \| (def) => Config` | Preset, config object, or `def()` callback |
+
+### Returned store
+
+| Property / Method         | Type              | Description                                     |
+| ------------------------- | ----------------- | ----------------------------------------------- |
+| `$value`                  | `ReadableAtom<T>` | Current decoded value                           |
+| `update(value, options?)` | `void`            | Update URL with new value                       |
+| `update.dry(value)`       | `string`          | Compute next search string without side effects |
+
+---
+
+## `createSearchParamsStore(configs)`
+
+Create a reactive store for multiple URL query parameters.
+
+```ts
+const store = qsUtils.createSearchParamsStore({
+  page: presetInt,
+  sort: presetEnum(["newest", "oldest"]),
+});
+```
+
+### Parameters
+
+Accepts either:
+
+- An object mapping parameter names to presets/configs
+- A `(def) => configs` callback for inline configuration
+
+### Returned store
+
+| Property / Method              | Type                              | Description                      |
+| ------------------------------ | --------------------------------- | -------------------------------- |
+| `$values`                      | `ReadableAtom<Record<string, T>>` | All current decoded values       |
+| `update(key, value, options?)` | `void`                            | Update a single parameter        |
+| `update.dry(key, value)`       | `string`                          | Dry-run for single parameter     |
+| `updateAll(values, options?)`  | `void`                            | Update all parameters atomically |
+| `updateAll.dry(values)`        | `string`                          | Dry-run for all parameters       |
+
+---
+
+## Update options
+
+All `update` and `updateAll` calls accept an options object:
+
+| Option     | Type      | Default | Description                               |
+| ---------- | --------- | ------- | ----------------------------------------- |
+| `replace`  | `boolean` | `false` | Use `replaceState` instead of `pushState` |
+| `keepHash` | `boolean` | `false` | Preserve current URL hash                 |
+| `state`    | `unknown` | —       | Custom state for History API              |
+| `force`    | `boolean` | `false` | Bypass equality check                     |
+
+---
+
+## `defineSearchParam(config)`
+
+Create a reusable, standalone preset. Import from `@vp-tw/nanostores-qs/defineSearchParam`.
+
+```ts
+import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+
+const myPreset = defineSearchParam({
+  decode: (v) => Number(v),
+  defaultValue: 0,
+}).setEncode((v) => String(v));
+```
+
+### Config
+
+| Property       | Type                | Description                      |
+| -------------- | ------------------- | -------------------------------- |
+| `decode`       | `(v: unknown) => T` | Decode URL string to typed value |
+| `defaultValue` | `T`                 | Value when parameter is missing  |
+| `isArray`      | `boolean`           | Treat as array parameter         |
+
+### `.setEncode(fn)`
+
+Chain `.setEncode()` to define the encode direction. Return `undefined` to omit the parameter from the URL.
+
+---
+
+## Routing notes
+
+- When `window` is unavailable (SSR), the internal search defaults to an empty string; listeners are not attached.
+- The utility listens to `popstate` and patches `pushState`/`replaceState` to stay reactive.

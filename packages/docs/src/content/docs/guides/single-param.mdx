@@ -1,0 +1,66 @@
+---
+title: Single Parameter
+description: Working with single query parameters using presets
+---
+
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import SingleParamDemo from "../../../components/demos/SingleParamDemo";
+
+Use `createSearchParamStore` to manage one query parameter. Pass a **preset** for type-safe decode/encode.
+
+```tsx
+import { createQsUtils } from "@vp-tw/nanostores-qs";
+import {
+  presetInt,
+  presetStringOptional,
+  presetEnum,
+  presetBoolean,
+} from "@vp-tw/nanostores-qs/presets";
+
+const qsUtils = createQsUtils();
+
+const pageStore = qsUtils.createSearchParamStore("page", presetInt);
+const searchStore = qsUtils.createSearchParamStore("q", presetStringOptional);
+const sortStore = qsUtils.createSearchParamStore(
+  "sort",
+  presetEnum(["newest", "oldest", "popular"]),
+);
+const archivedStore = qsUtils.createSearchParamStore("archived", presetBoolean);
+```
+
+## Reading values
+
+```tsx
+import { useStore } from "@nanostores/react";
+
+const page = useStore(pageStore.$value); // number (NaN when absent)
+const search = useStore(searchStore.$value); // string | undefined
+```
+
+## Updating
+
+```tsx
+pageStore.update(42); // pushState
+pageStore.update(42, { replace: true }); // replaceState
+pageStore.update(NaN); // removes "page" from URL
+```
+
+## Dry-run
+
+`.dry()` returns the next search string **without** modifying the URL — useful for link building.
+
+```tsx
+const nextSearch = pageStore.update.dry(100); // "?page=100"
+```
+
+## Live demo
+
+Try interacting with the controls below — watch the URL update in real time.
+
+<DemoWrapper source="packages/docs/src/components/demos/SingleParamDemo.tsx">
+  <SingleParamDemo client:load />
+</DemoWrapper>
+
+## Default behavior
+
+When a value equals the preset's `defaultValue`, the parameter is removed from the URL to keep it clean. For example, `presetBoolean` removes `archived` when `false`.

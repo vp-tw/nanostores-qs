@@ -1,0 +1,37 @@
+---
+title: "@vp-tw/nanostores-qs"
+description: A reactive querystring manager using nanostores
+template: splash
+hero:
+  tagline: Reactive, type-safe query string management built on nanostores
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/VdustR/nanostores-qs
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+## Features
+
+<CardGrid>
+  <Card title="Type-safe presets" icon="puzzle">
+    19 built-in presets for strings, numbers, booleans, enums, dates, and arrays. Full TypeScript
+    inference.
+  </Card>
+  <Card title="Reactive stores" icon="rocket">
+    Built on nanostores — use with React, Vue, Svelte, Solid, or vanilla JS. URL stays in sync
+    automatically.
+  </Card>
+  <Card title="Dry-run support" icon="pencil">
+    Generate next search strings via `.dry()` without side effects — perfect for router
+    integrations.
+  </Card>
+  <Card title="Pluggable parsing" icon="setting">
+    Works with native `URLSearchParams` or custom libs like `qs` and `query-string`.
+  </Card>
+</CardGrid>

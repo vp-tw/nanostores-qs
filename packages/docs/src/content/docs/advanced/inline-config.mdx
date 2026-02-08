@@ -1,0 +1,57 @@
+---
+title: Inline Configuration
+description: Custom decode/encode with the def() callback pattern
+---
+
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import InlineConfigDemo from "../../../components/demos/InlineConfigDemo";
+
+When presets don't fit your use case, use the **inline `def()` callback** or a config object directly.
+
+## Single-parameter inline config
+
+```tsx
+// num: number | "" — custom decode with defaultValue
+const num = qsUtils.createSearchParamStore("num", (def) =>
+  def({ decode: (v) => (!v ? "" : Number(v)), defaultValue: "" }),
+);
+```
+
+The `def()` callback receives a builder function. Call it with `{ decode, defaultValue }` to configure the parameter. Chain `.setEncode()` to customize the encode direction:
+
+```tsx
+const replaceStore = qsUtils.createSearchParamStore("replace", (def) =>
+  def({
+    decode: (v) => v !== "false",
+    defaultValue: true,
+  }).setEncode((v) => (v ? undefined : "false")),
+);
+```
+
+## Multi-parameter inline config
+
+```tsx
+const filters = qsUtils.createSearchParamsStore((def) => ({
+  search: def({ defaultValue: "" }),
+  category: def({ isArray: true }),
+  minPrice: def({ decode: Number }).setEncode(String),
+  maxPrice: def({ decode: Number }).setEncode(String),
+  sortBy: def({ defaultValue: "newest" }),
+}));
+```
+
+## When to use inline config
+
+| Scenario                              | Approach                                            |
+| ------------------------------------- | --------------------------------------------------- |
+| Standard type (int, enum, boolean...) | Use a built-in preset                               |
+| Custom logic, used in one place       | Inline `def()` callback                             |
+| Custom logic, reused across stores    | Create a [custom preset](/advanced/custom-presets/) |
+
+## Live demo
+
+The controls below use inline config for `replace` and `keepHash` toggles, and a custom `num` parameter:
+
+<DemoWrapper source="packages/docs/src/components/demos/InlineConfigDemo.tsx">
+  <InlineConfigDemo client:load />
+</DemoWrapper>

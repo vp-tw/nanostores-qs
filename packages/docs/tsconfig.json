@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "paths": {
+      "@vp-tw/nanostores-qs": ["../nanostores-qs/src/main.ts"],
+      "@vp-tw/nanostores-qs/*": ["../nanostores-qs/src/*"]
+    },
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo"
+  },
+  "extends": "astro/tsconfigs/strict",
+  "include": ["./src/**/*.ts", "./src/**/*.tsx", "astro.config.ts"]
+}

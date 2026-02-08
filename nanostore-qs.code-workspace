@@ -1,6 +1,7 @@
 {
   "extensions": {
     "recommendations": [
+      "astro-build.astro-vscode",
       "dbaeumer.vscode-eslint",
       "oxc.oxc-vscode",
       "streetsidesoftware.code-spell-checker",
@@ -9,8 +10,7 @@
   },
   "folders": [
     { "name": "root", "path": "." },
-    { "path": "packages/css-reset" },
-    { "path": "packages/demo" },
+    { "path": "packages/docs" },
     { "path": "packages/dts" },
     { "path": "packages/nanostores-qs" },
     { "path": "packages/tsconfig" },

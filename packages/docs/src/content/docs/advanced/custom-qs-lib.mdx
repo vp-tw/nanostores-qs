@@ -1,0 +1,66 @@
+---
+title: Custom QS Library
+description: Use qs, query-string, or other parsing libraries
+---
+
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import CustomQsLibDemo from "../../../components/demos/CustomQsLibDemo";
+
+By default, `createQsUtils()` uses the browser's native `URLSearchParams`. You can swap in any query string library by passing a `qs` option.
+
+## Using the `qs` library
+
+```ts
+import { parse, stringify } from "qs";
+
+const qsUtils = createQsUtils({
+  qs: {
+    parse: (search) => parse(search, { ignoreQueryPrefix: true }),
+    stringify: (values) => stringify(values),
+  },
+});
+```
+
+## Using `query-string`
+
+```ts
+import queryString from "query-string";
+
+const qsUtils = createQsUtils({
+  qs: {
+    parse: (search) => queryString.parse(search),
+    stringify: (values) => queryString.stringify(values),
+  },
+});
+```
+
+## Interface
+
+The `qs` option expects:
+
+```ts
+{
+  parse: (search: string) => Record<string, unknown>;
+  stringify: (values: Record<string, unknown>) => string;
+}
+```
+
+`parse` receives the raw `location.search` string (with or without `?` depending on your library).
+`stringify` should return the query string **without** the leading `?`.
+
+## Why use a custom library?
+
+| Feature            | `URLSearchParams`  | `qs` / `query-string`                  |
+| ------------------ | ------------------ | -------------------------------------- |
+| Nested objects     | No                 | Yes                                    |
+| Array formats      | `key=a&key=b` only | `key[]=a`, `key[0]=a`, comma-separated |
+| Date serialization | Manual             | Configurable                           |
+| Bundle size        | 0 KB (built-in)    | ~5-10 KB                               |
+
+## Live demo
+
+Both sides share the same URL. Edit values on either side and observe how each library parses the same search string differently:
+
+<DemoWrapper source="packages/docs/src/components/demos/CustomQsLibDemo.tsx">
+  <CustomQsLibDemo client:load />
+</DemoWrapper>

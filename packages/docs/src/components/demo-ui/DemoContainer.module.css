@@ -1,0 +1,31 @@
+.container {
+  background: var(--demo-bg);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-lg);
+  padding: var(--demo-spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-lg);
+}
+
+.label {
+  font-size: 0.75rem;
+  color: var(--demo-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.row {
+  display: flex;
+  gap: var(--demo-spacing-lg);
+  flex-wrap: wrap;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-md);
+  flex: 1;
+  min-width: 200px;
+}

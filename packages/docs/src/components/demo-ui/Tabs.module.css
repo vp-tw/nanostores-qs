@@ -1,0 +1,37 @@
+.tabList {
+  display: flex;
+  border-bottom: 1px solid var(--demo-border);
+  gap: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--demo-spacing-sm) var(--demo-spacing-lg);
+  color: var(--demo-text-muted);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  outline: none;
+}
+
+.tab:hover {
+  color: var(--demo-text);
+}
+
+.tabActive {
+  color: var(--demo-text);
+  border-bottom-color: var(--demo-text);
+}
+
+.tab:focus-visible {
+  box-shadow: var(--demo-focus-ring);
+}
+
+.tabPanel {
+  padding: var(--demo-spacing-lg) 0;
+}

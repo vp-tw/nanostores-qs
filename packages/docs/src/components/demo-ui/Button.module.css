@@ -1,0 +1,22 @@
+.button {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: var(--demo-spacing-sm) var(--demo-spacing-lg);
+  color: var(--demo-text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  outline: none;
+}
+
+.button:hover {
+  background: var(--demo-surface-hover);
+}
+
+.button:focus-visible {
+  box-shadow: var(--demo-focus-ring);
+}

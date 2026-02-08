@@ -1,0 +1,19 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--demo-spacing-sm);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--demo-accent);
+  cursor: pointer;
+}
+
+.label {
+  font-size: 0.875rem;
+  color: var(--demo-text);
+  user-select: none;
+}

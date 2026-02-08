@@ -1,0 +1,57 @@
+---
+title: Validation
+description: Validate query parameters with Zod and other schema libraries
+---
+
+Validate via `decode` and fall back to `defaultValue` on failure. Any schema library works — Zod, Valibot, ArkType, etc.
+
+## Zod example
+
+```tsx
+import { z } from "zod";
+
+const SortOptionSchema = z.enum(["newest", "price_asc", "price_desc"]);
+type SortOption = z.infer<typeof SortOptionSchema>;
+
+const sort = qsUtils.createSearchParamStore("sort", {
+  decode: (v) => {
+    const result = SortOptionSchema.safeParse(v);
+    return result.success ? result.data : "newest";
+  },
+  defaultValue: "newest" as SortOption,
+});
+```
+
+## Custom preset with Zod
+
+Combine `defineSearchParam` with Zod for reusable validated presets:
+
+```ts
+import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+import { z } from "zod";
+
+function presetZodEnum<T extends [string, ...string[]]>(schema: z.ZodEnum<T>) {
+  const options = schema.options;
+  return defineSearchParam({
+    decode: (v) => {
+      const result = schema.safeParse(v);
+      return result.success ? result.data : options[0];
+    },
+    defaultValue: options[0],
+  });
+}
+
+// Usage
+const StatusSchema = z.enum(["active", "inactive", "pending"]);
+const statusStore = qsUtils.createSearchParamStore("status", presetZodEnum(StatusSchema));
+```
+
+## Validation strategy
+
+The library's approach is **decode-time validation**: invalid URL values are silently replaced with the `defaultValue`. This ensures the app always has valid state, even when users manually edit URLs.
+
+| Approach          | Behavior                    |
+| ----------------- | --------------------------- |
+| Parse succeeds    | Use parsed value            |
+| Parse fails       | Fall back to `defaultValue` |
+| Parameter missing | Use `defaultValue`          |

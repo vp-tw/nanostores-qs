@@ -1,0 +1,76 @@
+---
+title: Custom Presets
+description: Create reusable custom presets with defineSearchParam
+---
+
+Use `defineSearchParam` from `@vp-tw/nanostores-qs/defineSearchParam` to create reusable presets that work with any `createQsUtils` instance.
+
+```ts
+import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+```
+
+## Int with min/max
+
+```ts
+const presetBoundedInt = (min: number, max: number) =>
+  defineSearchParam({
+    decode: (value) => {
+      const int = Number.parseInt(String(value), 10);
+      if (Number.isNaN(int)) return undefined;
+      return Math.max(min, Math.min(max, int));
+    },
+  }).setEncode((value) => {
+    if (value == null) return undefined;
+    return String(Math.max(min, Math.min(max, value)));
+  });
+
+const pageStore = qsUtils.createSearchParamStore("page", presetBoundedInt(1, 100));
+```
+
+## Comma-separated array
+
+A single URL parameter representing an array (vs `isArray: true` which uses multiple same-name parameters):
+
+```ts
+const presetCommaSeparated = defineSearchParam({
+  decode: (value) =>
+    String(value)
+      .split(",")
+      .filter((s) => s.length > 0),
+  defaultValue: [] as Array<string>,
+}).setEncode((value) => (value.length === 0 ? undefined : value.join(",")));
+
+// URL: ?tags=react,typescript,nanostores
+const tagsStore = qsUtils.createSearchParamStore("tags", presetCommaSeparated);
+```
+
+## JSON object
+
+Serialize complex objects to/from URL parameters:
+
+```ts
+const presetJson = <T>(defaultValue: T) =>
+  defineSearchParam({
+    decode: (value) => {
+      try {
+        return JSON.parse(String(value)) as T;
+      } catch {
+        return defaultValue;
+      }
+    },
+    defaultValue,
+  }).setEncode((value) => JSON.stringify(value));
+
+// URL: ?filter=%7B%22status%22%3A%22active%22%7D
+const filterStore = qsUtils.createSearchParamStore("filter", presetJson({ status: "active" }));
+```
+
+## Preset anatomy
+
+A preset created by `defineSearchParam` returns a builder with:
+
+- **`decode`**: `(rawValue: unknown) => T` — convert URL string to typed value
+- **`defaultValue`**: `T` — the value when the parameter is missing from the URL
+- **`.setEncode(fn)`**: `(value: T) => string | undefined` — convert typed value back; return `undefined` to omit from URL
+
+Presets are **standalone** — they work with any `createQsUtils` instance, making them shareable across your app.

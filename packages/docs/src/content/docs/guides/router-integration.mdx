@@ -1,0 +1,83 @@
+---
+title: Router Integration
+description: Integrate with React Router, TanStack Router, and Next.js
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Use `.dry()` to generate the `search` string, then let your router perform navigation. This preserves router features (navigation blocking, data loaders, transitions, scroll restoration, analytics).
+
+<Aside type="tip">
+  Calling `update()`/`updateAll()` directly mutates the History API and may bypass router-level
+  hooks. Prefer `.dry()` + router navigation when your app relies on router features.
+</Aside>
+
+## React Router
+
+```tsx
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
+const location = useLocation();
+const navigate = useNavigate();
+
+const nextSearch = filters.updateAll.dry({
+  ...filters.$values.get(),
+  sortBy: "price_desc",
+});
+
+// As a link
+<Link to={{ pathname: location.pathname, search: nextSearch }}>Sort by price</Link>;
+
+// Programmatic
+function onApply() {
+  navigate({ pathname: location.pathname, search: nextSearch });
+}
+```
+
+## TanStack Router
+
+```tsx
+import { useNavigate } from "@tanstack/react-router";
+
+const navigate = useNavigate();
+
+const nextSearch = filters.updateAll.dry({
+  ...filters.$values.get(),
+  page: 2,
+});
+
+navigate({ search: nextSearch });
+```
+
+## Next.js App Router
+
+```tsx
+"use client";
+import { useRouter, usePathname } from "next/navigation";
+
+const router = useRouter();
+const pathname = usePathname();
+
+const nextSearch = filters.updateAll.dry({
+  ...filters.$values.get(),
+  tab: "settings",
+});
+
+router.push(`${pathname}${nextSearch}`);
+```
+
+## Plain anchor
+
+When you don't need router features, a simple `<a>` works:
+
+```tsx
+<a href={`${location.pathname}${nextSearch}`}>Apply filters</a>
+```
+
+## When to use `.dry()` vs `update()`
+
+| Scenario                                   | Use                                 |
+| ------------------------------------------ | ----------------------------------- |
+| App uses a router with navigation features | `.dry()` + router navigation        |
+| Simple SPA without router blocking/loaders | `update()` / `updateAll()` directly |
+| Building `<a>` links or `href` attributes  | `.dry()`                            |

@@ -1,0 +1,28 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--demo-text-muted);
+  font-weight: 500;
+}
+
+.code {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: var(--demo-spacing-md);
+  font-family: var(--demo-font-mono);
+  font-size: 0.8125rem;
+  color: var(--demo-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.5;
+  margin: 0;
+}

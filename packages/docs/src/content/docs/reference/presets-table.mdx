@@ -1,0 +1,78 @@
+---
+title: Presets Reference
+description: Complete reference for all built-in presets
+---
+
+All presets are imported from `@vp-tw/nanostores-qs/presets`.
+
+```ts
+import { presetInt, presetEnum, presetBoolean } from "@vp-tw/nanostores-qs/presets";
+```
+
+## String presets
+
+| Preset                 | Value Type            | Default     | URL behavior              |
+| ---------------------- | --------------------- | ----------- | ------------------------- |
+| `presetString`         | `string`              | `""`        | Omitted when empty        |
+| `presetStringOptional` | `string \| undefined` | `undefined` | Omitted when undefined    |
+| `presetStringArray`    | `string[]`            | `[]`        | Multiple same-name params |
+
+## Number presets
+
+| Preset                | Value Type            | Default     | URL behavior                    |
+| --------------------- | --------------------- | ----------- | ------------------------------- |
+| `presetInt`           | `number`              | `NaN`       | Integer, omitted when NaN       |
+| `presetIntOptional`   | `number \| undefined` | `undefined` | Integer, omitted when undefined |
+| `presetIntArray`      | `number[]`            | `[]`        | Filters invalid values          |
+| `presetFloat`         | `number`              | `NaN`       | Float, omitted when NaN         |
+| `presetFloatOptional` | `number \| undefined` | `undefined` | Float, omitted when undefined   |
+| `presetFloatArray`    | `number[]`            | `[]`        | Filters invalid values          |
+
+## Boolean presets
+
+| Preset                  | Value Type             | Default     | URL behavior                         |
+| ----------------------- | ---------------------- | ----------- | ------------------------------------ |
+| `presetBoolean`         | `boolean`              | `false`     | `"true"` present, omitted when false |
+| `presetBooleanOptional` | `boolean \| undefined` | `undefined` | `"true"`/`"false"` or omitted        |
+
+## Enum presets
+
+| Preset                        | Value Type               | Default       | URL behavior                    |
+| ----------------------------- | ------------------------ | ------------- | ------------------------------- |
+| `presetEnum(options)`         | `T[number]`              | First element | Falls back to first for invalid |
+| `presetEnumOptional(options)` | `T[number] \| undefined` | `undefined`   | Undefined for invalid           |
+| `presetEnumArray(options)`    | `T[number][]`            | `[]`          | Filters invalid values          |
+
+### Enum usage
+
+```ts
+const sortOptions = ["newest", "oldest", "popular"] as const;
+
+// Required enum — always one of the options
+const sortStore = qsUtils.createSearchParamStore("sort", presetEnum(sortOptions));
+
+// Optional enum — can be undefined
+const filterStore = qsUtils.createSearchParamStore("filter", presetEnumOptional(sortOptions));
+
+// Array of enums — filter invalid
+const tagsStore = qsUtils.createSearchParamStore("tags", presetEnumArray(sortOptions));
+```
+
+## Date presets
+
+| Preset               | Value Type          | Default         | URL behavior                     |
+| -------------------- | ------------------- | --------------- | -------------------------------- |
+| `presetDate`         | `Date`              | `new Date(NaN)` | ISO string, omitted when invalid |
+| `presetDateOptional` | `Date \| undefined` | `undefined`     | Undefined for invalid            |
+| `presetDateArray`    | `Date[]`            | `[]`            | Filters invalid dates            |
+
+### Date usage
+
+```ts
+const startDate = qsUtils.createSearchParamStore("start", presetDateOptional);
+// URL: ?start=2024-01-15T00:00:00.000Z
+```
+
+## Creating custom presets
+
+See [Custom Presets](/advanced/custom-presets/) for creating reusable presets with `defineSearchParam`.

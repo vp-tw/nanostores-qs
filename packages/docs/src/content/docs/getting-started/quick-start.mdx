@@ -1,0 +1,54 @@
+---
+title: Quick Start
+description: Get started with @vp-tw/nanostores-qs in minutes
+---
+
+## Minimal example
+
+```tsx
+import { useStore } from "@nanostores/react";
+import { createQsUtils } from "@vp-tw/nanostores-qs";
+import { presetBoolean, presetEnum, presetInt } from "@vp-tw/nanostores-qs/presets";
+
+const qsUtils = createQsUtils();
+
+// Single parameter with a preset
+const pageStore = qsUtils.createSearchParamStore("page", presetInt);
+
+// Multiple parameters with presets
+const filters = qsUtils.createSearchParamsStore({
+  page: presetInt,
+  sort: presetEnum(["newest", "oldest", "popular"]),
+  showArchived: presetBoolean,
+});
+
+function Filters() {
+  const page = useStore(pageStore.$value); // number (NaN when absent)
+  const values = useStore(filters.$values); // { page, sort, showArchived }
+  return (
+    <div>
+      <p>Page: {Number.isNaN(page) ? "—" : page}</p>
+      <button
+        type="button"
+        onClick={() => filters.updateAll({ ...values, page: 1, sort: "popular" })}
+      >
+        Popular first
+      </button>
+    </div>
+  );
+}
+```
+
+## How it works
+
+1. **`createQsUtils()`** creates a reactive utility that listens to URL changes.
+2. **Presets** like `presetInt` handle type conversion (decode from URL string, encode back).
+3. **Stores** (`$value`, `$values`) are nanostores — use your framework's binding to subscribe.
+4. **`update()`** pushes a new browser history entry with the updated URL.
+5. **`.dry()`** returns the next search string without changing the URL — useful for building links.
+
+## Next steps
+
+- Learn about [single parameter stores](/guides/single-param/)
+- Learn about [multi-parameter stores](/guides/multi-param/)
+- See all available [presets](/reference/presets-table/)
