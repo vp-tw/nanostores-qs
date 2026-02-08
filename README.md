@@ -30,15 +30,64 @@ pnpm install @vp-tw/nanostores-qs @nanostores/react nanostores
 ```tsx
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
+import { presetBoolean, presetEnum, presetInt } from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
-const str = qsUtils.createSearchParamStore("str");
 
-function StrInput() {
-  const value = useStore(str.$value); // string | undefined
-  return <input value={value ?? ""} onChange={(e) => str.update(e.target.value)} />;
+// Single parameter with a preset
+const pageStore = qsUtils.createSearchParamStore("page", presetInt);
+
+// Multiple parameters with presets
+const filters = qsUtils.createSearchParamsStore({
+  page: presetInt,
+  sort: presetEnum(["newest", "oldest", "popular"]),
+  showArchived: presetBoolean,
+});
+
+function Filters() {
+  const page = useStore(pageStore.$value); // number (NaN when absent)
+  const values = useStore(filters.$values); // { page, sort, showArchived }
+  return (
+    <div>
+      <p>Page: {Number.isNaN(page) ? "—" : page}</p>
+      <button
+        type="button"
+        onClick={() => filters.updateAll({ ...values, page: 1, sort: "popular" })}
+      >
+        Popular first
+      </button>
+    </div>
+  );
 }
 ```
+
+## Presets
+
+Built-in presets for common parameter types. Import from `@vp-tw/nanostores-qs/presets`:
+
+```bash
+import { presetInt, presetEnum, presetBoolean } from "@vp-tw/nanostores-qs/presets";
+```
+
+| Preset                    | Value Type               | Description                                             |
+| ------------------------- | ------------------------ | ------------------------------------------------------- |
+| `presetString`            | `string`                 | String with `""` as default, omitted when empty         |
+| `presetStringOptional`    | `string \| undefined`    | Optional string (`undefined` when missing)              |
+| `presetStringArray`       | `Array<string>`          | Array of strings                                        |
+| `presetInt`               | `number`                 | Integer, `NaN` as default, omitted when `NaN`           |
+| `presetIntOptional`       | `number \| undefined`    | Integer, `undefined` for invalid                        |
+| `presetIntArray`          | `Array<number>`          | Array of integers, filters invalid                      |
+| `presetFloat`             | `number`                 | Float, `NaN` as default, omitted when `NaN`             |
+| `presetFloatOptional`     | `number \| undefined`    | Float, `undefined` for invalid                          |
+| `presetFloatArray`        | `Array<number>`          | Array of floats, filters invalid                        |
+| `presetBoolean`           | `boolean`                | `true` = `"true"`, `false` = omitted                    |
+| `presetBooleanOptional`   | `boolean \| undefined`   | `"true"`/`"false"` or `undefined`                       |
+| `presetEnum(arr)`         | `T[number]`              | Falls back to first element for invalid                 |
+| `presetEnumOptional(arr)` | `T[number] \| undefined` | `undefined` for invalid                                 |
+| `presetEnumArray(arr)`    | `Array<T[number]>`       | Filters invalid values                                  |
+| `presetDate`              | `Date`                   | ISO string, invalid = `Date(NaN)`, omitted when invalid |
+| `presetDateOptional`      | `Date \| undefined`      | `undefined` for invalid                                 |
+| `presetDateArray`         | `Array<Date>`            | Filters invalid dates                                   |
 
 ## Core Concepts
 
@@ -46,29 +95,26 @@ function StrInput() {
   - `$search`: current `window.location.search` string.
   - `$urlSearchParams`: `URLSearchParams` derived from `$search`.
   - `$qs`: parsed query object (`string | string[] | undefined` values by default).
-  - `createSearchParamStore(name, config?)`: single-parameter store.
+  - `createSearchParamStore(name, preset?)`: single-parameter store.
   - `createSearchParamsStore(configs)`: multi-parameter store.
-  - `defineSearchParam(config).setEncode(fn)`: helper to attach an `encode` function.
+  - For custom decode/encode logic, see [Advanced: Inline Configuration](#advanced-inline-configuration).
 
 ## Single-Parameter Store (`createSearchParamStore`)
 
-Create a store for one query parameter. Configure decode/encode and defaults; update mutates history, and `.dry` returns the next search string without side effects.
+Create a store for one query parameter. Pass a preset for type-safe decode/encode; update mutates history, and `.dry` returns the next search string without side effects.
 
 ```tsx
-// num: number | "" (empty string) — demonstrates custom decode with defaultValue
-const num = qsUtils.createSearchParamStore("num", (def) =>
-  def({ decode: (v) => (!v ? "" : Number(v)), defaultValue: "" }),
-);
+const pageStore = qsUtils.createSearchParamStore("page", presetInt);
 
 // Read in React
-const value = useStore(num.$value);
+const page = useStore(pageStore.$value); // number
 
 // Mutate URL
-num.update(42); // push history
-num.update(42, { replace: true, keepHash: true });
+pageStore.update(42); // push history
+pageStore.update(42, { replace: true, keepHash: true });
 
 // Dry-run: just compute next search
-const nextSearch = num.update.dry(100); // "?num=100"
+const nextSearch = pageStore.update.dry(100); // "?page=100"
 ```
 
 Notes:
@@ -81,13 +127,20 @@ Notes:
 Manage multiple query parameters together with ergonomic `update` and `updateAll`. Both have `.dry` counterparts for computing the next search string.
 
 ```tsx
-const filters = qsUtils.createSearchParamsStore((def) => ({
-  search: def({ defaultValue: "" }),
-  category: def({ isArray: true }),
-  minPrice: def({ decode: Number }).setEncode(String),
-  maxPrice: def({ decode: Number }).setEncode(String),
-  sortBy: def({ defaultValue: "newest" }),
-}));
+import {
+  presetEnum,
+  presetIntOptional,
+  presetString,
+  presetStringArray,
+} from "@vp-tw/nanostores-qs/presets";
+
+const filters = qsUtils.createSearchParamsStore({
+  search: presetString,
+  category: presetStringArray,
+  minPrice: presetIntOptional,
+  maxPrice: presetIntOptional,
+  sortBy: presetEnum(["newest", "price_asc", "price_desc"]),
+});
 
 // Mutate URL
 filters.update("minPrice", 100);
@@ -157,13 +210,15 @@ Notes:
   - Example: when `search` changes, reset `page` to `1` in a single update to keep state consistent and produce a single history entry.
 
 ```tsx
+import { presetInt, presetString } from "@vp-tw/nanostores-qs/presets";
+
 const qsUtils = createQsUtils();
 
 // Correlated params: search + page
-const list = qsUtils.createSearchParamsStore((def) => ({
-  search: def({ defaultValue: "" }),
-  page: def({ decode: Number, defaultValue: 1 }).setEncode(String),
-}));
+const list = qsUtils.createSearchParamsStore({
+  search: presetString,
+  page: presetInt,
+});
 
 // Good: one atomic update (single history entry, consistent UI)
 function onSearchChange(term: string) {
@@ -171,12 +226,8 @@ function onSearchChange(term: string) {
 }
 
 // Bad: two separate single-param updates (can create two entries and transient states)
-const searchStore = qsUtils.createSearchParamStore("search", {
-  defaultValue: "",
-});
-const pageStore = qsUtils.createSearchParamStore("page", (def) =>
-  def({ decode: Number, defaultValue: 1 }).setEncode(String),
-);
+const searchStore = qsUtils.createSearchParamStore("search", presetString);
+const pageStore = qsUtils.createSearchParamStore("page", presetInt);
 
 function onSearchChangeBad(term: string) {
   searchStore.update(term); // 1st history mutation
@@ -205,7 +256,112 @@ const qsUtils = createQsUtils({
 
 Default `isEqual` comes from `es-toolkit`.
 
-## Validation and Custom Types
+## Advanced
+
+### Advanced: Inline Configuration
+
+For cases where presets don't fit, you can use the inline `def()` callback or a config object directly.
+
+#### Single-parameter inline config
+
+```tsx
+// num: number | "" (empty string) — demonstrates custom decode with defaultValue
+const num = qsUtils.createSearchParamStore("num", (def) =>
+  def({ decode: (v) => (!v ? "" : Number(v)), defaultValue: "" }),
+);
+
+// Read in React
+const value = useStore(num.$value);
+
+// Mutate URL
+num.update(42); // push history
+num.update(42, { replace: true, keepHash: true });
+
+// Dry-run: just compute next search
+const nextSearch = num.update.dry(100); // "?num=100"
+```
+
+#### Multi-parameter inline config
+
+```tsx
+const filters = qsUtils.createSearchParamsStore((def) => ({
+  search: def({ defaultValue: "" }),
+  category: def({ isArray: true }),
+  minPrice: def({ decode: Number }).setEncode(String),
+  maxPrice: def({ decode: Number }).setEncode(String),
+  sortBy: def({ defaultValue: "newest" }),
+}));
+```
+
+### Advanced: Custom Presets
+
+Use `defineSearchParam` to create reusable custom presets:
+
+```bash
+import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+```
+
+#### Int with min/max
+
+Add validation and clamping logic on top of a preset:
+
+```typescript
+import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+
+const presetBoundedInt = (min: number, max: number) =>
+  defineSearchParam({
+    decode: (value) => {
+      const int = Number.parseInt(String(value), 10);
+      if (Number.isNaN(int)) return undefined;
+      return Math.max(min, Math.min(max, int));
+    },
+  }).setEncode((value) => {
+    if (value == null) return undefined;
+    return String(Math.max(min, Math.min(max, value)));
+  });
+
+const pageStore = qsUtils.createSearchParamStore("page", presetBoundedInt(1, 100));
+```
+
+#### Comma-separated array
+
+A single URL parameter representing an array (vs `isArray: true` which uses multiple same-name parameters):
+
+```typescript
+const presetCommaSeparated = defineSearchParam({
+  decode: (value) =>
+    String(value)
+      .split(",")
+      .filter((s) => s.length > 0),
+  defaultValue: [] as Array<string>,
+}).setEncode((value) => (value.length === 0 ? undefined : value.join(",")));
+
+// URL: ?tags=react,typescript,nanostores
+const tagsStore = qsUtils.createSearchParamStore("tags", presetCommaSeparated);
+```
+
+#### JSON object
+
+Serialize complex objects to/from URL parameters:
+
+```typescript
+const presetJson = <T>(defaultValue: T) =>
+  defineSearchParam({
+    decode: (value) => {
+      try {
+        return JSON.parse(String(value)) as T;
+      } catch {
+        return defaultValue;
+      }
+    },
+    defaultValue,
+  }).setEncode((value) => JSON.stringify(value));
+
+// URL: ?filter=%7B%22status%22%3A%22active%22%7D
+const filterStore = qsUtils.createSearchParamStore("filter", presetJson({ status: "active" }));
+```
+
+### Advanced: Validation and Custom Types
 
 You can validate via `decode` and fall back to `defaultValue` on failure.
 

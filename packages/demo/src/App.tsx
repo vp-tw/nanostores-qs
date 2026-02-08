@@ -17,27 +17,72 @@ import {
 } from "@mui/joy";
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
+import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+import {
+  presetEnum,
+  presetEnumArray,
+  presetIntOptional,
+  presetStringOptional,
+} from "@vp-tw/nanostores-qs/presets";
 import objectInspect from "object-inspect";
 
 import { parse, stringify } from "qs";
-import { z } from "zod";
 import { Layout } from "./layout";
 
-const IntegerParamSchema = z.pipeline(
-  z.string().refine((v) => v.match(/^\d+$/), { message: "Not a integer" }),
-  z.coerce.number().int(),
-);
+function dateToDatetimeLocal(date: Date | undefined) {
+  if (!date || Number.isNaN(date.getTime())) return undefined;
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  return localISOTime;
+}
+
+function datetimeLocalToDate(datetimeLocal: string): Date | undefined {
+  const [date, time] = datetimeLocal.split("T");
+  if (!date || !time) return undefined;
+  const [hours, minutes] = time.split(":");
+  const dateObj = new Date(date);
+  if (Number.isNaN(dateObj.getTime())) return undefined;
+  dateObj.setHours(Number(hours), Number(minutes), 0, 0);
+  return dateObj;
+}
+
+// Custom preset for datetime-local input (demonstrates defineSearchParam)
+const presetDatetimeLocal = defineSearchParam({
+  decode: (v: unknown) => datetimeLocalToDate(String(v)),
+}).setEncode(dateToDatetimeLocal);
 
 const urlSearchParamsUtils = createQsUtils();
 
-const TabSchema = z.enum(["qs", "urlSearchParams"]);
+const tabOptions = ["qs", "urlSearchParams"] as const;
 
-const MultipleOptionsSchema = z.enum(["foo", "bar", "baz", "qux"]);
+const multipleOptions = ["foo", "bar", "baz", "qux"] as const;
 
-const tabStore = urlSearchParamsUtils.createSearchParamStore("tab", {
-  decode: TabSchema.parse,
-  defaultValue: TabSchema.options[0],
+// ── Preset-based stores (recommended) ──────────────
+
+const tabStore = urlSearchParamsUtils.createSearchParamStore("tab", presetEnum(tabOptions));
+
+const qsUtils = createQsUtils({
+  qs: {
+    parse: (search) => parse(search, { ignoreQueryPrefix: true }),
+    stringify: (values) => stringify(values),
+  },
 });
+
+const qsSearchParamsStore = qsUtils.createSearchParamsStore({
+  qsSearch: presetStringOptional,
+  qsPage: presetIntOptional,
+  qsEnumArray: presetEnumArray(multipleOptions),
+  qsDate: presetDatetimeLocal,
+});
+
+const urlSearchParamsStore = urlSearchParamsUtils.createSearchParamsStore({
+  urlSearch: presetStringOptional,
+  urlPage: presetIntOptional,
+  urlEnumArray: presetEnumArray(multipleOptions),
+  urlDate: presetDatetimeLocal,
+});
+
+// ── Advanced: inline config (for non-standard behavior) ──
 
 const replaceStore = urlSearchParamsUtils.createSearchParamStore("replace", (def) =>
   def({
@@ -52,63 +97,6 @@ const keepHashStore = urlSearchParamsUtils.createSearchParamStore("keepHash", (d
     defaultValue: false,
   }).setEncode((v) => (v ? "true" : undefined)),
 );
-
-const qsUtils = createQsUtils({
-  qs: {
-    parse: (search) => parse(search, { ignoreQueryPrefix: true }),
-    stringify: (values) => stringify(values),
-  },
-});
-
-const qsSearchParamsStore = qsUtils.createSearchParamsStore((def) => ({
-  qsSearch: undefined,
-  qsPage: def({
-    decode: IntegerParamSchema.parse,
-    encode: String,
-  }),
-  qsEnumArray: def({
-    isArray: true,
-    decode: z
-      .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
-      .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v]))).parse,
-  }),
-  qsDate: def({
-    decode: z.string().transform(datetimeLocalToDate).parse,
-    encode: z.date().transform(dateToDatetimeLocal).parse,
-  }),
-}));
-
-const urlSearchParamsStore = urlSearchParamsUtils.createSearchParamsStore((def) => ({
-  urlSearch: undefined,
-  urlPage: def({
-    decode: IntegerParamSchema.parse,
-    encode: String,
-  }),
-  urlEnumArray: def({
-    isArray: true,
-    decode: z
-      .array(MultipleOptionsSchema.or(z.undefined().catch(undefined)))
-      .transform((arr) => arr.flatMap((v) => (v === undefined ? [] : [v]))).parse,
-  }),
-  urlDate: def({
-    decode: z.string().transform(datetimeLocalToDate).parse,
-    encode: z.date().transform(dateToDatetimeLocal).parse,
-  }),
-}));
-
-function dateToDatetimeLocal(date: Date) {
-  const tzOffset = date.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
-  return localISOTime;
-}
-
-function datetimeLocalToDate(datetimeLocal: string) {
-  const [date, time] = datetimeLocal.split("T");
-  const [hours, minutes] = time?.split(":") || [];
-  const dateObj = new Date(date || "");
-  dateObj.setHours(Number(hours), Number(minutes), 0, 0);
-  return dateObj;
-}
 
 const Qs: React.FC = () => {
   const replace = useStore(replaceStore.$value);
@@ -202,7 +190,7 @@ const Qs: React.FC = () => {
         <FormControl size="sm" color="primary">
           <FormLabel>enumArr</FormLabel>
           <Autocomplete
-            options={MultipleOptionsSchema.options}
+            options={[...multipleOptions]}
             value={searchParams.qsEnumArray ?? []}
             onChange={(_event, value) => {
               qsSearchParamsStore.updateAll(
@@ -224,7 +212,7 @@ const Qs: React.FC = () => {
           <Input
             fullWidth
             type="datetime-local"
-            value={!searchParams.qsDate ? "" : dateToDatetimeLocal(searchParams.qsDate)}
+            value={!searchParams.qsDate ? "" : (dateToDatetimeLocal(searchParams.qsDate) ?? "")}
             onChange={(event) => {
               qsSearchParamsStore.updateAll(
                 {
@@ -359,7 +347,7 @@ const UrlSearchParams: React.FC = () => {
         <FormControl size="sm" color="primary">
           <FormLabel>enumArr</FormLabel>
           <Autocomplete
-            options={MultipleOptionsSchema.options}
+            options={[...multipleOptions]}
             value={searchParams.urlEnumArray ?? []}
             onChange={(_event, value) => {
               urlSearchParamsStore.updateAll(
@@ -381,7 +369,7 @@ const UrlSearchParams: React.FC = () => {
           <Input
             fullWidth
             type="datetime-local"
-            value={!searchParams.urlDate ? "" : dateToDatetimeLocal(searchParams.urlDate)}
+            value={!searchParams.urlDate ? "" : (dateToDatetimeLocal(searchParams.urlDate) ?? "")}
             onChange={(event) => {
               urlSearchParamsStore.updateAll(
                 {
@@ -500,20 +488,20 @@ const App: FC = () => {
         <Tabs
           value={tab}
           onChange={(_e, value) =>
-            tabStore.update(TabSchema.parse(value), {
+            tabStore.update(value as (typeof tabOptions)[number], {
               replace,
               keepHash,
             })
           }
         >
           <TabList>
-            {TabSchema.options.map((value) => (
+            {tabOptions.map((value) => (
               <Tab key={value} value={value}>
                 {value}
               </Tab>
             ))}
           </TabList>
-          {TabSchema.options.map((value) => (
+          {tabOptions.map((value) => (
             <TabPanel key={value} value={value}>
               {/* eslint-disable-next-line react/jsx-no-iife -- exhaustive switch for type-safe tab rendering */}
               {(() => {

@@ -27,8 +27,23 @@
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    },
+    "./defineSearchParam": {
+      "types": "./dist/defineSearchParam.d.ts",
+      "import": "./dist/defineSearchParam.js"
+    },
+    "./presets": {
+      "types": "./dist/presets.d.ts",
+      "import": "./dist/presets.js"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },

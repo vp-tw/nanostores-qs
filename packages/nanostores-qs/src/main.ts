@@ -1,6 +1,7 @@
-import type { ReadableAtom } from "nanostores";
+import type { ReadableAtom, WritableAtom } from "nanostores";
 import { isEqual, isNil, mapValues } from "es-toolkit";
 import { atom, computed } from "nanostores";
+import { defineSearchParam as defaultDefineSearchParam } from "./defineSearchParam";
 
 function getSearch() {
   if (typeof window === "undefined") {
@@ -223,6 +224,7 @@ namespace createQsUtils {
     update: UpdateSingle<TQsRecord, TConfig>;
   };
   export interface QsUtils<TQsRecord extends BaseQsRecord = DefaultQsRecord> {
+    _$internalSearch: WritableAtom<string>;
     $search: ReadableAtom<string>;
     $urlSearchParams: ReadableAtom<URLSearchParams>;
     $qs: ReadableAtom<TQsRecord>;
@@ -381,19 +383,7 @@ function createQsUtils<
     defaultValue: [],
     decode: (value) => (value as Array<unknown>).flatMap((i) => (isNil(i) ? [] : [String(i)])),
   } satisfies createQsUtils.DefaultArrayConfig<TQsRecord>;
-  const defineSearchParam: createQsUtils.DefineSearchParam<TQsRecord> = <
-    TConfig extends NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>,
-  >(
-    config: TConfig,
-  ) => {
-    return {
-      ...config,
-      setEncode: (encode: any) => ({
-        ...config,
-        encode,
-      }),
-    };
-  };
+  const defineSearchParam: createQsUtils.DefineSearchParam<TQsRecord> = defaultDefineSearchParam;
   /**
    * Create a store for a search params.
    */
@@ -582,6 +572,7 @@ function createQsUtils<
     };
   };
   return {
+    _$internalSearch: $internalSearch,
     $search,
     $urlSearchParams,
     $qs,
