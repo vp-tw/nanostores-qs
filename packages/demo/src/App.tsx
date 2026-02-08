@@ -515,6 +515,7 @@ const App: FC = () => {
           </TabList>
           {TabSchema.options.map((value) => (
             <TabPanel key={value} value={value}>
+              {/* eslint-disable-next-line react/jsx-no-iife -- exhaustive switch for type-safe tab rendering */}
               {(() => {
                 switch (value) {
                   case "qs":
