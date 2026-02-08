@@ -12,6 +12,9 @@ function ModeToggle() {
   });
 
   useEffect(function bindMounted() {
+    // MUI Joy official pattern for useColorScheme SSR guard
+    // https://mui.com/joy-ui/getting-started/tutorial/#bonus-build-a-toggle-for-light-and-dark-mode
+    // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks-extra/no-direct-set-state-in-use-effect
     setMounted(true);
     return function cleanup() {
       setMounted(false);
