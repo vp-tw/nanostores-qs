@@ -1,6 +1,6 @@
 {
   "name": "@vp-tw/nanostores-qs",
-  "version": "0.3.1",
+  "version": "1.0.0",
   "description": "A reactive querystring manager using nanostores",
   "keywords": [
     "nanostores",
