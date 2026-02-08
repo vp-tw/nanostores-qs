@@ -90,6 +90,9 @@ catalogs:
     eslint-plugin-react-hooks:
       specifier: ^7.0.1
       version: 7.0.1
+    eslint-plugin-react-refresh:
+      specifier: ^0.4.19
+      version: 0.4.26
     husky:
       specifier: ^9.1.7
       version: 9.1.7
@@ -170,7 +173,7 @@ importers:
     devDependencies:
       '@antfu/eslint-config':
         specifier: 'catalog:'
-        version: 7.3.0(@eslint-react/eslint-plugin@2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3))(@vue/compiler-sfc@3.4.30)(eslint-plugin-react-hooks@7.0.1(eslint@9.39.2(jiti@2.4.2)))(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)(vitest@2.1.9(@types/node@22.13.10))
+        version: 7.3.0(@eslint-react/eslint-plugin@2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3))(@vue/compiler-sfc@3.4.30)(eslint-plugin-react-hooks@7.0.1(eslint@9.39.2(jiti@2.4.2)))(eslint-plugin-react-refresh@0.4.26(eslint@9.39.2(jiti@2.4.2)))(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)(vitest@2.1.9(@types/node@22.13.10))
       '@changesets/cli':
         specifier: 'catalog:'
         version: 2.29.8(@types/node@22.13.10)
@@ -225,6 +228,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: 'catalog:'
         version: 7.0.1(eslint@9.39.2(jiti@2.4.2))
+      eslint-plugin-react-refresh:
+        specifier: 'catalog:'
+        version: 0.4.26(eslint@9.39.2(jiti@2.4.2))
       husky:
         specifier: 'catalog:'
         version: 9.1.7
@@ -295,7 +301,7 @@ importers:
         version: 19.0.0(react@19.0.0)
       vite-tsconfig-paths:
         specifier: 'catalog:'
-        version: 5.1.4(typescript@5.9.3)(vite@7.0.8(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.8.2))
+        version: 5.1.4(typescript@5.9.3)(vite@5.4.14(@types/node@22.13.10))
       vitest:
         specifier: 'catalog:'
         version: 2.1.9(@types/node@22.13.10)
@@ -2750,6 +2756,11 @@ packages:
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <6.0.0'
 
+  eslint-plugin-react-refresh@0.4.26:
+    resolution: {integrity: sha512-1RETEylht2O6FM/MvgnyvT+8K21wLqDNg4qD51Zj3guhjt433XbnnkVttHMyaVyAFD03QSV4LPS5iE3VQmO7XQ==}
+    peerDependencies:
+      eslint: '>=8.40'
+
   eslint-plugin-react-rsc@2.10.1:
     resolution: {integrity: sha512-2y3lqL2ykGs2ASJPSetJGaKNfneCoQJj8KuJANWImR2jCbWwwz/G+3w/WeoLEWiSN6v8iO8AkNSMcoFuR8W8iQ==}
     engines: {node: '>=20.19.0'}
@@ -4780,7 +4791,7 @@ snapshots:
 
   '@altano/repository-tools@2.0.1': {}
 
-  '@antfu/eslint-config@7.3.0(@eslint-react/eslint-plugin@2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3))(@vue/compiler-sfc@3.4.30)(eslint-plugin-react-hooks@7.0.1(eslint@9.39.2(jiti@2.4.2)))(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)(vitest@2.1.9(@types/node@22.13.10))':
+  '@antfu/eslint-config@7.3.0(@eslint-react/eslint-plugin@2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3))(@vue/compiler-sfc@3.4.30)(eslint-plugin-react-hooks@7.0.1(eslint@9.39.2(jiti@2.4.2)))(eslint-plugin-react-refresh@0.4.26(eslint@9.39.2(jiti@2.4.2)))(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)(vitest@2.1.9(@types/node@22.13.10))':
     dependencies:
       '@antfu/install-pkg': 1.1.0
       '@clack/prompts': 1.0.0
@@ -4822,6 +4833,7 @@ snapshots:
     optionalDependencies:
       '@eslint-react/eslint-plugin': 2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)
       eslint-plugin-react-hooks: 7.0.1(eslint@9.39.2(jiti@2.4.2))
+      eslint-plugin-react-refresh: 0.4.26(eslint@9.39.2(jiti@2.4.2))
     transitivePeerDependencies:
       - '@eslint/json'
       - '@vue/compiler-sfc'
@@ -7468,6 +7480,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  eslint-plugin-react-refresh@0.4.26(eslint@9.39.2(jiti@2.4.2)):
+    dependencies:
+      eslint: 9.39.2(jiti@2.4.2)
+
   eslint-plugin-react-rsc@2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3):
     dependencies:
       '@eslint-react/ast': 2.10.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)
@@ -9546,13 +9562,13 @@ snapshots:
       - supports-color
       - terser
 
-  vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@7.0.8(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.8.2)):
+  vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@5.4.14(@types/node@22.13.10)):
     dependencies:
       debug: 4.4.3
       globrex: 0.1.2
       tsconfck: 3.1.5(typescript@5.9.3)
     optionalDependencies:
-      vite: 7.0.8(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.8.2)
+      vite: 5.4.14(@types/node@22.13.10)
     transitivePeerDependencies:
       - supports-color
       - typescript

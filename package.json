@@ -49,6 +49,7 @@
     "eslint-plugin-package-json": "catalog:",
     "eslint-plugin-react-compiler": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:",
     "husky": "catalog:",
     "lint-staged": "catalog:",
     "oxfmt": "catalog:",
