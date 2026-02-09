@@ -11,10 +11,10 @@ export default defineConfig({
     starlight({
       title: "@vp-tw/nanostores-qs",
       logo: {
-        src: "./src/assets/logo.svg",
+        src: "./src/assets/logo.png",
       },
       description: "A reactive querystring manager using nanostores",
-      favicon: "/favicon.svg",
+      favicon: "/favicon.png",
       components: {
         ThemeProvider: "./src/components/ThemeProvider.astro",
         ThemeSelect: "./src/components/ThemeSelectHidden.astro",
