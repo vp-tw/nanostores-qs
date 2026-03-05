@@ -120,6 +120,9 @@ catalogs:
     react-dom:
       specifier: ^19.0.0
       version: 19.0.0
+    sharp:
+      specifier: ^0.34.5
+      version: 0.34.5
     ts-toolbelt:
       specifier: ^9.6.0
       version: 9.6.0
@@ -286,7 +289,7 @@ importers:
         specifier: 'catalog:'
         version: 19.0.0(react@19.0.0)
       sharp:
-        specifier: ^0.34.5
+        specifier: 'catalog:'
         version: 0.34.5
       vitest:
         specifier: 'catalog:'
