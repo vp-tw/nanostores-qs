@@ -259,4 +259,110 @@ function float(options?: FloatOptions): any {
   return preset(options as any);
 }
 
-export { createPreset, float, integer };
+// --- String preset ---
+
+interface StringBaseOptions {
+  maxLength?: number;
+  outOfRange?: "clamp" | "reject";
+}
+
+type StringOptions =
+  | (StringBaseOptions & ArrayOptions)
+  | (StringBaseOptions & DefaultOptions<string>)
+  | (StringBaseOptions & OptionalOptions<string>)
+  | (StringBaseOptions & Partial<BaseOptions>);
+
+function string(): BaseResult<string, string>;
+function string(options: StringBaseOptions): BaseResult<string, string>;
+function string(options: StringBaseOptions & { optional: true }): OptionalResult<string>;
+function string(options: StringBaseOptions & { default: string }): DefaultResult<string>;
+function string(
+  options: StringBaseOptions & { array: true; maxItems?: number },
+): ArrayResult<string>;
+function string(options?: StringOptions): any {
+  const maxLength = options?.maxLength;
+  const outOfRange = options?.outOfRange ?? "clamp";
+
+  const preset = createPreset<string, string>({
+    decode: (value: unknown): string => {
+      const s = String(value);
+      if (maxLength !== undefined && s.length > maxLength) {
+        if (outOfRange === "reject") throw new Error("string too long");
+        return s.slice(0, maxLength);
+      }
+      return s;
+    },
+    defaultValue: "",
+  });
+
+  return preset(options as any);
+}
+
+// --- Boolean preset ---
+
+interface BooleanBaseOptions {
+  // No constraint-specific options for boolean
+}
+
+type BooleanOptions =
+  | (BooleanBaseOptions & ArrayOptions)
+  | (BooleanBaseOptions & DefaultOptions<boolean>)
+  | (BooleanBaseOptions & OptionalOptions<boolean>)
+  | (BooleanBaseOptions & Partial<BaseOptions>);
+
+function boolean(): BaseResult<boolean, boolean>;
+function boolean(options: BooleanBaseOptions): BaseResult<boolean, boolean>;
+function boolean(options: BooleanBaseOptions & { optional: true }): OptionalResult<boolean>;
+function boolean(options: BooleanBaseOptions & { default: boolean }): DefaultResult<boolean>;
+function boolean(
+  options: BooleanBaseOptions & { array: true; maxItems?: number },
+): ArrayResult<boolean>;
+function boolean(options?: BooleanOptions): any {
+  const defaultValue =
+    options && "default" in options && options.default !== undefined ? options.default : false;
+
+  // optional: strict decode
+  if (options && "optional" in options && options.optional === true) {
+    return {
+      decode: (v: unknown) => {
+        if (isNil(v)) return undefined;
+        if (v === "true") return true;
+        if (v === "false") return false;
+        throw new Error("invalid boolean");
+      },
+      encode: (v: boolean | undefined) => {
+        if (isNil(v)) return undefined;
+        return v ? "true" : "false";
+      },
+    };
+  }
+
+  // array: strict decode, filter invalid
+  if (options && "array" in options && options.array === true) {
+    const maxItems = (options as ArrayOptions).maxItems;
+    return {
+      isArray: true as const,
+      decode: (values: Array<unknown>): Array<boolean> => {
+        const result = values.flatMap((v) => {
+          if (v === "true") return [true];
+          if (v === "false") return [false];
+          return [];
+        });
+        return maxItems !== undefined ? result.slice(0, maxItems) : result;
+      },
+      encode: (values: Array<boolean>): Array<string> => values.map((v) => (v ? "true" : "false")),
+    };
+  }
+
+  // base or default: lenient decode, conditional encode
+  return {
+    decode: (v: unknown): boolean => v === "true",
+    defaultValue,
+    encode: (v: boolean): string | undefined => {
+      if (v === defaultValue) return undefined;
+      return v ? "true" : "false";
+    },
+  };
+}
+
+export { boolean, createPreset, float, integer, string };

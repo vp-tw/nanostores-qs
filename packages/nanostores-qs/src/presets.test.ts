@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPreset, float, integer } from "./presets";
+import { boolean, createPreset, float, integer, string } from "./presets";
 
 describe("createPreset", () => {
   const percentage = createPreset({
@@ -315,6 +315,190 @@ describe("float", () => {
       const config = float({ array: true });
       expect(config.isArray).toBe(true);
       expect(config.decode(["1.1", "abc", "3.3"])).toEqual([1.1, 3.3]);
+    });
+  });
+});
+
+describe("string", () => {
+  describe("base (no options)", () => {
+    it("has decode, defaultValue '', and encode", () => {
+      const config = string();
+      expect(config.decode("hello")).toBe("hello");
+      expect(config.defaultValue).toBe("");
+      expect(config.encode("hello")).toBe("hello");
+    });
+
+    it("decode coerces non-string values", () => {
+      const config = string();
+      expect(config.decode(42)).toBe("42");
+      expect(config.decode(true)).toBe("true");
+    });
+  });
+
+  describe("maxLength with clamp (default)", () => {
+    it("truncates strings exceeding maxLength", () => {
+      const config = string({ maxLength: 5 });
+      expect(config.decode("hello world")).toBe("hello");
+    });
+
+    it("does not truncate strings within maxLength", () => {
+      const config = string({ maxLength: 5 });
+      expect(config.decode("hi")).toBe("hi");
+    });
+  });
+
+  describe("maxLength with reject", () => {
+    it("throws on strings exceeding maxLength", () => {
+      const config = string({ maxLength: 5, outOfRange: "reject" });
+      expect(() => config.decode("hello world")).toThrow();
+    });
+
+    it("accepts strings within maxLength", () => {
+      const config = string({ maxLength: 5, outOfRange: "reject" });
+      expect(config.decode("hello")).toBe("hello");
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue", () => {
+      const config = string({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+    });
+
+    it("decode returns undefined for nil", () => {
+      const config = string({ optional: true });
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+    });
+
+    it("decode passes through non-nil values", () => {
+      const config = string({ optional: true });
+      expect(config.decode("hello")).toBe("hello");
+    });
+
+    it("encode returns undefined for nil", () => {
+      const config = string({ optional: true });
+      expect(config.encode(undefined as any)).toBeUndefined();
+    });
+  });
+
+  describe("default", () => {
+    it("uses provided defaultValue", () => {
+      const config = string({ default: "all" });
+      expect(config.defaultValue).toBe("all");
+    });
+  });
+
+  describe("array", () => {
+    it("isArray true, filters nil items", () => {
+      const config = string({ array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["a", "b", "c"])).toEqual(["a", "b", "c"]);
+    });
+  });
+
+  describe("array with maxItems", () => {
+    it("slices to maxItems", () => {
+      const config = string({ array: true, maxItems: 3 });
+      expect(config.decode(["a", "b", "c", "d", "e"])).toEqual(["a", "b", "c"]);
+    });
+  });
+});
+
+describe("boolean", () => {
+  describe("base (no options)", () => {
+    it("decode: 'true' → true", () => {
+      const config = boolean();
+      expect(config.decode("true")).toBe(true);
+    });
+
+    it("decode: 'false' → false", () => {
+      const config = boolean();
+      expect(config.decode("false")).toBe(false);
+    });
+
+    it("decode: 'anything' → false (lenient)", () => {
+      const config = boolean();
+      expect(config.decode("anything")).toBe(false);
+    });
+
+    it("decode: '' → false", () => {
+      const config = boolean();
+      expect(config.decode("")).toBe(false);
+    });
+
+    it("defaultValue is false", () => {
+      const config = boolean();
+      expect(config.defaultValue).toBe(false);
+    });
+
+    it("encode: true → 'true', false → undefined (omit default)", () => {
+      const config = boolean();
+      expect(config.encode(true)).toBe("true");
+      expect(config.encode(false)).toBeUndefined();
+    });
+  });
+
+  describe("default: true", () => {
+    it("defaultValue is true", () => {
+      const config = boolean({ default: true });
+      expect(config.defaultValue).toBe(true);
+    });
+
+    it("encode: false → 'false', true → undefined (omit default)", () => {
+      const config = boolean({ default: true });
+      expect(config.encode(false)).toBe("false");
+      expect(config.encode(true)).toBeUndefined();
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue", () => {
+      const config = boolean({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+    });
+
+    it("decode: 'true' → true", () => {
+      const config = boolean({ optional: true });
+      expect(config.decode("true")).toBe(true);
+    });
+
+    it("decode: 'false' → false", () => {
+      const config = boolean({ optional: true });
+      expect(config.decode("false")).toBe(false);
+    });
+
+    it("decode: 'anything' → throw (strict)", () => {
+      const config = boolean({ optional: true });
+      expect(() => config.decode("anything")).toThrow();
+    });
+
+    it("decode: nil → undefined", () => {
+      const config = boolean({ optional: true });
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+    });
+
+    it("encode: true → 'true', false → 'false', undefined → undefined", () => {
+      const config = boolean({ optional: true });
+      expect(config.encode(true)).toBe("true");
+      expect(config.encode(false)).toBe("false");
+      expect(config.encode(undefined as any)).toBeUndefined();
+    });
+  });
+
+  describe("array", () => {
+    it("isArray true, strict decode filters invalid", () => {
+      const config = boolean({ array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["true", "false", "anything", "true"])).toEqual([true, false, true]);
+    });
+  });
+
+  describe("array with maxItems", () => {
+    it("slices to maxItems", () => {
+      const config = boolean({ array: true, maxItems: 2 });
+      expect(config.decode(["true", "false", "true"])).toEqual([true, false]);
     });
   });
 });

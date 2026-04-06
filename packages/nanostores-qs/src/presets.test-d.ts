@@ -1,5 +1,5 @@
 import { createQsUtils } from "./main";
-import { createPreset, float, integer } from "./presets";
+import { boolean, createPreset, float, integer, string } from "./presets";
 
 const anyObj: any = {};
 const qs = createQsUtils();
@@ -114,6 +114,64 @@ const numberPreset = createPreset({
   const s = qs.createSearchParamStore("n", float({ fixed: 2 }));
   type Result = ReturnType<typeof s.$value.get>;
   type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- string type inference ---
+
+// string() -> string
+(() => {
+  const s = qs.createSearchParamStore("s", string());
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// string({ optional: true }) -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("s", string({ optional: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// string({ array: true }) -> Array<string>
+(() => {
+  const s = qs.createSearchParamStore("s", string({ array: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<string>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- boolean type inference ---
+
+// boolean() -> boolean
+(() => {
+  const s = qs.createSearchParamStore("b", boolean());
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = boolean;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// boolean({ optional: true }) -> boolean | undefined
+(() => {
+  const s = qs.createSearchParamStore("b", boolean({ optional: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = boolean | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// boolean({ default: true }) -> boolean
+(() => {
+  const s = qs.createSearchParamStore("b", boolean({ default: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = boolean;
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();
