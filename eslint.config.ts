@@ -7,6 +7,6 @@ export default vdustr(
     react: true,
   },
   {
-    ignores: [...oxfmtConfig.ignorePatterns, "**/*.astro"],
+    ignores: [...oxfmtConfig.ignorePatterns, "**/*.astro", "docs/plans/**"],
   },
 );
