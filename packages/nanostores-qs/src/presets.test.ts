@@ -41,6 +41,11 @@ describe("createPreset", () => {
       expect("defaultValue" in preset.optional).toBe(false);
     });
 
+    it("decode returns undefined for nil values", () => {
+      expect(preset.optional.decode(undefined)).toBeUndefined();
+      expect(preset.optional.decode(null)).toBeUndefined();
+    });
+
     it("encode returns undefined for nil values", () => {
       expect(preset.optional.encode(undefined as any)).toBeUndefined();
       expect(preset.optional.encode(null as any)).toBeUndefined();

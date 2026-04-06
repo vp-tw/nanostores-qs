@@ -15,7 +15,10 @@ function createPreset<TType, TDefaultValueType = TType>(config: {
   };
 
   const optional = {
-    decode: config.decode,
+    decode: (v: unknown) => {
+      if (isNil(v)) return undefined as unknown as TType;
+      return config.decode(v);
+    },
     encode: (v: TType) => {
       if (isNil(v)) return undefined;
       return encode(v);
