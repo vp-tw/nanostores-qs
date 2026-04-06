@@ -20,7 +20,7 @@ const categoryOptions = ["electronics", "clothing", "books", "sports"] as const;
 
 const filters = qsUtils.createSearchParamsStore({
   search: presets.string(),
-  page: presets.integer({ optional: true, min: 0 }),
+  page: presets.integer({ default: 1, min: 1 }),
   categories: presets.enum(categoryOptions, { array: true }),
 });
 
@@ -29,7 +29,7 @@ export default function MultiParamDemo() {
   const currentSearch = useStore(qsUtils.$search);
 
   const handleSearchChange = (term: string) => {
-    filters.updateAll({ ...values, search: term, page: undefined });
+    filters.updateAll({ ...values, search: term, page: 1 });
   };
 
   return (
@@ -46,15 +46,15 @@ export default function MultiParamDemo() {
             onClear={() => handleSearchChange("")}
           />
           <DemoInput
-            label="page (integer({ optional: true, min: 0 }))"
+            label="page (integer({ default: 1, min: 1 }))"
             type="number"
             placeholder="Page number"
-            value={values.page === undefined ? "" : values.page}
+            value={values.page}
             onChange={(e) => {
               const v = e.currentTarget.value;
-              filters.update("page", v === "" ? undefined : Number(v));
+              filters.update("page", v === "" ? 1 : Number(v));
             }}
-            onClear={() => filters.update("page", undefined)}
+            onClear={() => filters.update("page", 1)}
           />
           <DemoMultiSelect
             label="categories (enum({ array: true }))"
@@ -64,9 +64,7 @@ export default function MultiParamDemo() {
               filters.updateAll({ ...values, categories: v as typeof values.categories })
             }
           />
-          <DemoButton
-            onClick={() => filters.updateAll({ search: "", page: undefined, categories: [] })}
-          >
+          <DemoButton onClick={() => filters.updateAll({ search: "", page: 1, categories: [] })}>
             Reset All
           </DemoButton>
         </DemoColumn>
