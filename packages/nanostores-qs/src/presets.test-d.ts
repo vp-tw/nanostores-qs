@@ -370,3 +370,25 @@ const stringPreset = createPreset({
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();
+
+// --- presets.tuple ---
+
+// tuple -> [string, number]
+(() => {
+  const t = presets.tuple([presets.string, presets.integer]);
+  const s = qs.createSearchParamStore("t", t);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = [string, number];
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// tuple with optional elements -> [string | undefined, number | undefined]
+(() => {
+  const t = presets.tuple([presets.string.optional, presets.integer.optional]);
+  const s = qs.createSearchParamStore("t", t);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = [string | undefined, number | undefined];
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();

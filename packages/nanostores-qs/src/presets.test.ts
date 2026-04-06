@@ -11,6 +11,7 @@ import {
   string,
   ymd,
 } from "./presets";
+import * as presets from "./presets";
 
 describe("createPreset", () => {
   const preset = createPreset({
@@ -344,5 +345,46 @@ describe("presets.hms", () => {
 
   it("array: filters invalid", () => {
     expect(hms.array.decode(["14:30:00", "invalid", "08:00:00"])).toEqual(["14:30:00", "08:00:00"]);
+  });
+});
+
+describe("presets.tuple", () => {
+  it("decodes comma-separated values", () => {
+    const t = presets.tuple([presets.string, presets.integer]);
+    expect(t.decode("hello,42")).toEqual(["hello", 42]);
+  });
+
+  it("default value from element defaults", () => {
+    const t = presets.tuple([presets.string, presets.integer]);
+    expect(t.defaultValue[0]).toBe("");
+    expect(Number.isNaN(t.defaultValue[1])).toBe(true);
+  });
+
+  it("encodes to comma-separated", () => {
+    const t = presets.tuple([presets.string, presets.integer]);
+    expect(t.encode(["hello", 42])).toBe("hello,42");
+  });
+
+  it("custom separator", () => {
+    const t = presets.tuple([presets.string, presets.integer], { separator: ":" });
+    expect(t.decode("hello:42")).toEqual(["hello", 42]);
+    expect(t.encode(["hello", 42])).toBe("hello:42");
+  });
+
+  it("with optional elements", () => {
+    const t = presets.tuple([presets.string.optional, presets.integer.optional]);
+    expect(t.defaultValue).toEqual([undefined, undefined]);
+  });
+
+  it("entire tuple falls back on decode error", () => {
+    const t = presets.tuple([presets.string, presets.integer]);
+    // integer decode of "abc" throws -> entire tuple fails
+    expect(() => t.decode("hello,abc")).toThrow();
+  });
+
+  it("no .optional or .array", () => {
+    const t = presets.tuple([presets.string, presets.integer]);
+    expect("optional" in t).toBe(false);
+    expect("array" in t).toBe(false);
   });
 });

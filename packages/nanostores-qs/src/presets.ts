@@ -1,3 +1,4 @@
+import type { createQsUtils } from "./main";
 import { isNil } from "es-toolkit";
 
 function createPreset<TType, TDefaultValueType = TType>(config: {
@@ -196,8 +197,59 @@ function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
   });
 }
 
+// Type helpers for tuple inference
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+type InferTupleType<TConfigs extends ReadonlyArray<unknown>> = Mutable<{
+  [K in keyof TConfigs]: createQsUtils.InferValueFromItemQueryParamConfig<TConfigs[K]>;
+}>;
+
+type InferTupleDefaults<TConfigs extends ReadonlyArray<unknown>> = Mutable<{
+  [K in keyof TConfigs]: TConfigs[K] extends { defaultValue: infer TDefaultValue }
+    ? TDefaultValue
+    : undefined;
+}>;
+
+interface TupleConfig {
+  decode: (value: unknown) => unknown;
+  defaultValue?: unknown;
+  encode?: (value: any) => string | undefined;
+}
+
+function presetTuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
+  configs: TConfigs,
+  options?: { separator?: string },
+): {
+  decode: (value: unknown) => InferTupleType<TConfigs>;
+  defaultValue: InferTupleDefaults<TConfigs>;
+  encode: (value: InferTupleType<TConfigs>) => string | undefined;
+} {
+  const separator = options?.separator ?? ",";
+
+  const defaultValue = configs.map((c) =>
+    "defaultValue" in c ? c.defaultValue : undefined,
+  ) as InferTupleDefaults<TConfigs>;
+
+  return {
+    decode: (value: unknown): InferTupleType<TConfigs> => {
+      const parts = String(value).split(separator);
+      return configs.map((c, i) => c.decode(parts[i])) as InferTupleType<TConfigs>;
+    },
+    defaultValue,
+    encode: (value: InferTupleType<TConfigs>): string | undefined => {
+      const parts = (value as Array<unknown>).map((v, i) => {
+        const enc = configs[i]!.encode ?? ((val: unknown) => String(val));
+        return enc(v);
+      });
+      if (parts.every((p) => p == null)) return undefined;
+      return parts.map((p) => p ?? "").join(separator);
+    },
+  };
+}
+
 // "enum" is a reserved word in JS, but valid as a named export
 export { presetEnum as enum };
 
+export { presetTuple as tuple };
 export { boolean, createPreset, date, float, hms, integer, string, ymd };
 export type { CreatePresetResult };
