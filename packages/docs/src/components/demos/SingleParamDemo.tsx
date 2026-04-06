@@ -18,7 +18,7 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 0 }));
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 1 }));
 const searchStore = qsUtils.createSearchParamStore("q", presets.string({ optional: true }));
 const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
 const showArchivedStore = qsUtils.createSearchParamStore("archived", presets.boolean());

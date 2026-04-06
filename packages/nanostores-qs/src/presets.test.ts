@@ -36,6 +36,12 @@ describe("createPreset", () => {
       const config = percentage();
       expect(() => config.decode("abc")).toThrow("invalid number");
     });
+
+    it("decode returns defaultValue for nil (absent param)", () => {
+      const config = percentage();
+      expect(config.decode(undefined)).toBe(0);
+      expect(config.decode(null)).toBe(0);
+    });
   });
 
   describe("optional", () => {
@@ -76,6 +82,12 @@ describe("createPreset", () => {
   });
 
   describe("default", () => {
+    it("decode returns custom default for nil (absent param)", () => {
+      const config = percentage({ default: 50 });
+      expect(config.decode(undefined)).toBe(50);
+      expect(config.decode(null)).toBe(50);
+    });
+
     it("overrides defaultValue", () => {
       const config = percentage({ default: 50 });
       expect(config.defaultValue).toBe(50);
@@ -343,6 +355,12 @@ describe("string", () => {
       const config = string();
       expect(config.decode(42)).toBe("42");
       expect(config.decode(true)).toBe("true");
+    });
+
+    it("decode returns '' for nil (absent param), not 'undefined'", () => {
+      const config = string();
+      expect(config.decode(undefined)).toBe("");
+      expect(config.decode(null)).toBe("");
     });
   });
 

@@ -113,9 +113,13 @@ function createPreset<TType, TDefaultValueType = TType>(
 
     // default
     if (options && "default" in options && options.default !== undefined) {
+      const defaultValue = options.default;
       return {
-        decode: config.decode,
-        defaultValue: options.default,
+        decode: (v: unknown) => {
+          if (isNil(v)) return defaultValue;
+          return config.decode(v);
+        },
+        defaultValue,
         encode,
       };
     }
@@ -154,7 +158,10 @@ function createPreset<TType, TDefaultValueType = TType>(
 
     // base (no options or empty options)
     return {
-      decode: config.decode,
+      decode: (v: unknown) => {
+        if (isNil(v)) return config.defaultValue;
+        return config.decode(v);
+      },
       defaultValue: config.defaultValue,
       encode,
     };
