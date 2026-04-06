@@ -1,6 +1,7 @@
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
 import * as presets from "@vp-tw/nanostores-qs/presets";
+import objectInspect from "object-inspect";
 
 import {
   CodePreview,
@@ -29,13 +30,20 @@ export default function SingleParamDemo() {
   const showArchived = useStore(showArchivedStore.$value);
   const currentSearch = useStore(qsUtils.$search);
 
+  const storeValues = {
+    q: search,
+    page,
+    sort,
+    archived: showArchived,
+  };
+
   return (
     <DemoContainer>
       <DemoLabel>Single Parameter Stores with Presets</DemoLabel>
       <DemoRow>
         <DemoColumn>
           <DemoInput
-            label="search (string({ optional: true }))"
+            label="q — string({ optional: true })"
             type="text"
             placeholder="Type to search..."
             value={search ?? ""}
@@ -43,7 +51,7 @@ export default function SingleParamDemo() {
             onClear={() => searchStore.update(undefined)}
           />
           <DemoInput
-            label="page (integer({ default: 1, min: 0 }))"
+            label="page — integer({ default: 1, min: 0 })"
             type="number"
             placeholder="Page number"
             value={page}
@@ -54,20 +62,20 @@ export default function SingleParamDemo() {
             onClear={() => pageStore.update(1)}
           />
           <DemoSelect
-            label="sort (enum)"
+            label="sort — enum(sortOptions)"
             options={sortOptions}
             value={sort}
             onChange={(v) => sortStore.update(v)}
           />
           <DemoCheckbox
-            label="archived (boolean)"
+            label="archived — boolean()"
             checked={showArchived}
             onChange={(v) => showArchivedStore.update(v)}
           />
         </DemoColumn>
         <DemoColumn>
+          <CodePreview label="Store values" value={objectInspect(storeValues, { indent: 2 })} />
           <CodePreview label="window.location.search" value={currentSearch || "(empty)"} />
-          <CodePreview label=".dry() preview" value={pageStore.update.dry(42)} />
         </DemoColumn>
       </DemoRow>
     </DemoContainer>

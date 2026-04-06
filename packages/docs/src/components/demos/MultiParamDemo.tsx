@@ -71,12 +71,8 @@ export default function MultiParamDemo() {
           </DemoButton>
         </DemoColumn>
         <DemoColumn>
-          <CodePreview label="window.location.search" value={currentSearch || "(empty)"} />
           <CodePreview label="$values" value={objectInspect(values, { indent: 2 })} />
-          <CodePreview
-            label=".updateAll.dry() preview"
-            value={filters.updateAll.dry({ ...values, page: 1 })}
-          />
+          <CodePreview label="window.location.search" value={currentSearch || "(empty)"} />
         </DemoColumn>
       </DemoRow>
     </DemoContainer>
