@@ -1,3 +1,5 @@
+import type { createQsUtils } from "./main";
+
 function isNil(value: unknown): value is null | undefined {
   return value === null || value === undefined;
 }
@@ -430,4 +432,87 @@ function hms(options?: PresetOptions<string>): any {
   return preset(options as any);
 }
 
-export { boolean, createPreset, date, float, hms, integer, string, ymd };
+// --- Enum preset ---
+
+function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
+  enumArray: TEnumArray,
+): BaseResult<TEnumArray[number], TEnumArray[0]>;
+function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
+  enumArray: TEnumArray,
+  options: { optional: true },
+): OptionalResult<TEnumArray[number]>;
+function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
+  enumArray: TEnumArray,
+  options: { default: TEnumArray[number] },
+): DefaultResult<TEnumArray[number]>;
+function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
+  enumArray: TEnumArray,
+  options: { array: true; maxItems?: number },
+): ArrayResult<TEnumArray[number]>;
+function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
+  enumArray: TEnumArray,
+  options?: PresetOptions<TEnumArray[number]>,
+): any {
+  const preset = createPreset<TEnumArray[number], TEnumArray[0]>({
+    decode: (value: unknown): TEnumArray[number] => {
+      const s = String(value);
+      if (!enumArray.includes(s)) throw new Error("invalid enum value");
+      return s as TEnumArray[number];
+    },
+    defaultValue: enumArray[0] as TEnumArray[0],
+  });
+
+  return preset(options as any);
+}
+
+// --- Tuple preset ---
+
+type InferTupleType<TConfigs extends ReadonlyArray<unknown>> = {
+  [K in keyof TConfigs]: createQsUtils.InferValueFromItemQueryParamConfig<TConfigs[K]>;
+};
+
+type InferTupleDefaults<TConfigs extends ReadonlyArray<unknown>> = {
+  [K in keyof TConfigs]: TConfigs[K] extends { defaultValue: infer TDefaultValue }
+    ? TDefaultValue
+    : undefined;
+};
+
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+interface TupleConfig {
+  decode: (value: unknown) => unknown;
+  defaultValue?: unknown;
+  encode?: (value: any) => string | undefined;
+}
+
+function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
+  configs: TConfigs,
+): {
+  isArray: true;
+  decode: (value: Array<unknown>) => Mutable<InferTupleType<TConfigs>>;
+  defaultValue: Mutable<InferTupleDefaults<TConfigs>>;
+  encode: (value: Mutable<InferTupleType<TConfigs>>) => Array<string>;
+} {
+  const defaultValue = configs.map((c) =>
+    "defaultValue" in c ? c.defaultValue : undefined,
+  ) as Mutable<InferTupleDefaults<TConfigs>>;
+
+  return {
+    isArray: true,
+    decode: (values: Array<unknown>) => {
+      return configs.map((c, i) => c.decode(values[i])) as Mutable<InferTupleType<TConfigs>>;
+    },
+    defaultValue,
+    encode: (value: Mutable<InferTupleType<TConfigs>>) => {
+      return (value as Array<unknown>).flatMap((v, i) => {
+        const config = configs[i];
+        if (!config) return [];
+        const enc = config.encode ?? ((val: unknown) => String(val));
+        const encoded = enc(v);
+        return isNil(encoded) ? [] : [encoded];
+      });
+    },
+  };
+}
+
+export { boolean, createPreset, date, presetEnum as enum, float, hms, integer, string, tuple, ymd };

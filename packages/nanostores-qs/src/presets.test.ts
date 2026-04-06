@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { boolean, createPreset, date, float, hms, integer, string, ymd } from "./presets";
+import {
+  boolean,
+  createPreset,
+  date,
+  float,
+  hms,
+  integer,
+  enum as presetEnum,
+  string,
+  tuple,
+  ymd,
+} from "./presets";
 
 describe("createPreset", () => {
   const percentage = createPreset({
@@ -701,6 +712,129 @@ describe("hms", () => {
         "14:30:00",
         "08:00:00",
       ]);
+    });
+  });
+});
+
+describe("enum", () => {
+  describe("base (no options)", () => {
+    it("decodes valid enum value", () => {
+      const config = presetEnum(["asc", "desc"]);
+      expect(config.decode("asc")).toBe("asc");
+      expect(config.decode("desc")).toBe("desc");
+    });
+
+    it("defaultValue is first element", () => {
+      const config = presetEnum(["asc", "desc"]);
+      expect(config.defaultValue).toBe("asc");
+    });
+
+    it("encode returns the value as-is", () => {
+      const config = presetEnum(["asc", "desc"]);
+      expect(config.encode("asc")).toBe("asc");
+    });
+  });
+
+  describe("decode throws on invalid", () => {
+    it("throws on value not in enum", () => {
+      const config = presetEnum(["asc", "desc"]);
+      expect(() => config.decode("invalid")).toThrow("invalid enum value");
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue", () => {
+      const config = presetEnum(["asc", "desc"], { optional: true });
+      expect("defaultValue" in config).toBe(false);
+    });
+
+    it("decode returns undefined for nil", () => {
+      const config = presetEnum(["asc", "desc"], { optional: true });
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+    });
+
+    it("decode returns value for valid enum", () => {
+      const config = presetEnum(["asc", "desc"], { optional: true });
+      expect(config.decode("asc")).toBe("asc");
+    });
+  });
+
+  describe("default", () => {
+    it("uses provided default", () => {
+      const config = presetEnum(["asc", "desc"], { default: "desc" });
+      expect(config.defaultValue).toBe("desc");
+    });
+  });
+
+  describe("array", () => {
+    it("isArray true, filters invalid values", () => {
+      const config = presetEnum(["asc", "desc"], { array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["asc", "invalid", "desc"])).toEqual(["asc", "desc"]);
+    });
+  });
+
+  describe("array with maxItems", () => {
+    it("slices to maxItems", () => {
+      const config = presetEnum(["asc", "desc"], { array: true, maxItems: 2 });
+      expect(config.decode(["asc", "desc", "asc"])).toEqual(["asc", "desc"]);
+    });
+  });
+});
+
+describe("tuple", () => {
+  describe("basic [string, integer]", () => {
+    it("decode from array", () => {
+      const config = tuple([string(), integer()]);
+      expect(config.decode(["hello", "42"])).toEqual(["hello", 42]);
+    });
+
+    it("defaultValue is combined defaults", () => {
+      const config = tuple([string(), integer()]);
+      expect(config.defaultValue[0]).toBe("");
+      expect(config.defaultValue[1]).toBeNaN();
+    });
+
+    it("encode maps each element", () => {
+      const config = tuple([string(), integer()]);
+      expect(config.encode(["hello", 42])).toEqual(["hello", "42"]);
+    });
+
+    it("isArray is true", () => {
+      const config = tuple([string(), integer()]);
+      expect(config.isArray).toBe(true);
+    });
+  });
+
+  describe("with optional elements", () => {
+    it("defaultValue is [undefined, undefined]", () => {
+      const config = tuple([string({ optional: true }), integer({ optional: true })]);
+      expect(config.defaultValue).toEqual([undefined, undefined]);
+    });
+  });
+
+  describe("decode error propagation", () => {
+    it("any element throw causes entire tuple to throw", () => {
+      const config = tuple([string(), integer()]);
+      // "abc" will cause integer decode to throw
+      expect(() => config.decode(["hello", "abc"])).toThrow();
+    });
+  });
+
+  describe("encode skips nil values", () => {
+    it("filters out undefined encoded values", () => {
+      const config = tuple([string(), integer()]);
+      // NaN encodes to undefined for integer, so it gets filtered
+      expect(config.encode(["hello", Number.NaN])).toEqual(["hello"]);
+    });
+  });
+
+  describe("no .optional or .array on result", () => {
+    it("result has no optional or array properties", () => {
+      const config = tuple([string(), integer()]);
+      expect("optional" in config).toBe(false);
+      expect("array" in config).toBe(false);
     });
   });
 });

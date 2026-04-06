@@ -1,5 +1,16 @@
 import { createQsUtils } from "./main";
-import { boolean, createPreset, date, float, hms, integer, string, ymd } from "./presets";
+import {
+  boolean,
+  createPreset,
+  date,
+  float,
+  hms,
+  integer,
+  enum as presetEnum,
+  string,
+  tuple,
+  ymd,
+} from "./presets";
 
 const anyObj: any = {};
 const qs = createQsUtils();
@@ -241,6 +252,58 @@ const numberPreset = createPreset({
   const s = qs.createSearchParamStore("t", hms({ optional: true }));
   type Result = ReturnType<typeof s.$value.get>;
   type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- enum type inference ---
+
+// enum(["asc", "desc"]) -> "asc" | "desc"
+(() => {
+  const s = qs.createSearchParamStore("sort", presetEnum(["asc", "desc"]));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = "asc" | "desc";
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// enum(["asc", "desc"], { optional: true }) -> "asc" | "desc" | undefined
+(() => {
+  const s = qs.createSearchParamStore("sort", presetEnum(["asc", "desc"], { optional: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = "asc" | "desc" | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// enum(["asc", "desc"], { array: true }) -> Array<"asc" | "desc">
+(() => {
+  const s = qs.createSearchParamStore("sort", presetEnum(["asc", "desc"], { array: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<"asc" | "desc">;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- tuple type inference ---
+
+// tuple([string(), integer()]) -> [string, number]
+(() => {
+  const s = qs.createSearchParamStore("t", tuple([string(), integer()]));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = [string, number];
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// tuple([string({ optional: true }), integer({ optional: true })]) -> [string | undefined, number | undefined]
+(() => {
+  const s = qs.createSearchParamStore(
+    "t",
+    tuple([string({ optional: true }), integer({ optional: true })]),
+  );
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = [string | undefined, number | undefined];
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();
