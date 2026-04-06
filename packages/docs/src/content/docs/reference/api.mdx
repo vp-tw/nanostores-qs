@@ -37,7 +37,7 @@ const qsUtils = createQsUtils(options?);
 Create a reactive store for a single URL query parameter.
 
 ```ts
-const store = qsUtils.createSearchParamStore("page", presetInt);
+const store = qsUtils.createSearchParamStore("page", integer);
 ```
 
 ### Parameters
@@ -63,7 +63,7 @@ Create a reactive store for multiple URL query parameters.
 
 ```ts
 const store = qsUtils.createSearchParamsStore({
-  page: presetInt,
+  page: integer,
   sort: presetEnum(["newest", "oldest"]),
 });
 ```

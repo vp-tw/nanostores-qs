@@ -1,11 +1,6 @@
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import {
-  presetBoolean,
-  presetEnum,
-  presetInt,
-  presetStringOptional,
-} from "@vp-tw/nanostores-qs/presets";
+import { boolean, integer, enum as presetEnum, string } from "@vp-tw/nanostores-qs/presets";
 
 import {
   CodePreview,
@@ -22,10 +17,10 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
-const pageStore = qsUtils.createSearchParamStore("page", presetInt);
-const searchStore = qsUtils.createSearchParamStore("q", presetStringOptional);
+const pageStore = qsUtils.createSearchParamStore("page", integer);
+const searchStore = qsUtils.createSearchParamStore("q", string.optional);
 const sortStore = qsUtils.createSearchParamStore("sort", presetEnum(sortOptions));
-const showArchivedStore = qsUtils.createSearchParamStore("archived", presetBoolean);
+const showArchivedStore = qsUtils.createSearchParamStore("archived", boolean);
 
 export default function SingleParamDemo() {
   const page = useStore(pageStore.$value);
@@ -40,7 +35,7 @@ export default function SingleParamDemo() {
       <DemoRow>
         <DemoColumn>
           <DemoInput
-            label="search (presetStringOptional)"
+            label="search (string.optional)"
             type="text"
             placeholder="Type to search..."
             value={search ?? ""}
@@ -48,7 +43,7 @@ export default function SingleParamDemo() {
             onClear={() => searchStore.update(undefined)}
           />
           <DemoInput
-            label="page (presetInt)"
+            label="page (integer)"
             type="number"
             placeholder="Page number"
             value={Number.isNaN(page) ? "" : page}
@@ -59,13 +54,13 @@ export default function SingleParamDemo() {
             onClear={() => pageStore.update(Number.NaN)}
           />
           <DemoSelect
-            label="sort (presetEnum)"
+            label="sort (enum)"
             options={sortOptions}
             value={sort}
             onChange={(v) => sortStore.update(v)}
           />
           <DemoCheckbox
-            label="archived (presetBoolean)"
+            label="archived (boolean)"
             checked={showArchived}
             onChange={(v) => showArchivedStore.update(v)}
           />

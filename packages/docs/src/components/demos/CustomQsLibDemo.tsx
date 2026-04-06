@@ -1,6 +1,6 @@
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { presetIntOptional, presetStringOptional } from "@vp-tw/nanostores-qs/presets";
+import { integer, string } from "@vp-tw/nanostores-qs/presets";
 import objectInspect from "object-inspect";
 import { parse, stringify } from "qs";
 
@@ -18,8 +18,8 @@ import {
 // Default: uses URLSearchParams
 const defaultUtils = createQsUtils();
 const defaultStore = defaultUtils.createSearchParamsStore({
-  name: presetStringOptional,
-  age: presetIntOptional,
+  name: string.optional,
+  age: integer.optional,
 });
 
 // Custom: uses qs library
@@ -30,8 +30,8 @@ const qsLibUtils = createQsUtils({
   },
 });
 const qsLibStore = qsLibUtils.createSearchParamsStore({
-  name: presetStringOptional,
-  age: presetIntOptional,
+  name: string.optional,
+  age: integer.optional,
 });
 
 const tabs = ["URLSearchParams", "qs library"] as const;

@@ -1,6 +1,6 @@
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { presetEnumArray, presetIntOptional, presetString } from "@vp-tw/nanostores-qs/presets";
+import { integer, enum as presetEnum, string } from "@vp-tw/nanostores-qs/presets";
 import objectInspect from "object-inspect";
 
 import {
@@ -19,9 +19,9 @@ const qsUtils = createQsUtils();
 const categoryOptions = ["electronics", "clothing", "books", "sports"] as const;
 
 const filters = qsUtils.createSearchParamsStore({
-  search: presetString,
-  page: presetIntOptional,
-  categories: presetEnumArray(categoryOptions),
+  search: string,
+  page: integer.optional,
+  categories: presetEnum(categoryOptions).array,
 });
 
 export default function MultiParamDemo() {
@@ -38,7 +38,7 @@ export default function MultiParamDemo() {
       <DemoRow>
         <DemoColumn>
           <DemoInput
-            label="search (presetString)"
+            label="search (string)"
             type="text"
             placeholder="Search products..."
             value={values.search}
@@ -46,7 +46,7 @@ export default function MultiParamDemo() {
             onClear={() => handleSearchChange("")}
           />
           <DemoInput
-            label="page (presetIntOptional)"
+            label="page (integer.optional)"
             type="number"
             placeholder="Page number"
             value={values.page === undefined ? "" : values.page}
@@ -57,7 +57,7 @@ export default function MultiParamDemo() {
             onClear={() => filters.update("page", undefined)}
           />
           <DemoMultiSelect
-            label="categories (presetEnumArray)"
+            label="categories (enum.array)"
             options={categoryOptions}
             value={[...(values.categories ?? [])]}
             onChange={(v) =>

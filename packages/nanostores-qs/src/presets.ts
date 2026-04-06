@@ -62,7 +62,7 @@ interface CreatePresetResult<TType, TDefaultValueType> {
   };
 }
 
-const string = createPreset({
+const string: CreatePresetResult<string, string> = createPreset({
   decode: (value: unknown): string => String(value),
   defaultValue: "",
 });
@@ -114,7 +114,12 @@ const integerParse = createPreset({
   },
 });
 
-const integer = Object.assign(integerRound, {
+const integer: CreatePresetResult<number, number> & {
+  parse: CreatePresetResult<number, number>;
+  ceil: CreatePresetResult<number, number>;
+  floor: CreatePresetResult<number, number>;
+  round: CreatePresetResult<number, number>;
+} = Object.assign(integerRound, {
   parse: integerParse,
   ceil: createIntegerPreset(Math.ceil),
   floor: createIntegerPreset(Math.floor),
@@ -149,9 +154,11 @@ function fixed(digits: number): CreatePresetResult<number, number> {
   });
 }
 
-const float = Object.assign(floatBase, { fixed });
+const float: CreatePresetResult<number, number> & {
+  fixed: (digits: number) => CreatePresetResult<number, number>;
+} = Object.assign(floatBase, { fixed });
 
-const date = createPreset({
+const date: CreatePresetResult<Date, Date> = createPreset({
   decode: (value: unknown): Date => {
     const d = new Date(String(value));
     if (Number.isNaN(d.getTime())) throw new Error("invalid date");
@@ -165,7 +172,7 @@ const date = createPreset({
 });
 
 const ymdPattern = /^\d{4}-\d{2}-\d{2}$/;
-const ymd = createPreset({
+const ymd: CreatePresetResult<string, string> = createPreset({
   decode: (value: unknown): string => {
     const s = String(value);
     if (!ymdPattern.test(s)) throw new Error("invalid ymd format");
@@ -175,7 +182,7 @@ const ymd = createPreset({
 });
 
 const hmsPattern = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
-const hms = createPreset({
+const hms: CreatePresetResult<string, string> = createPreset({
   decode: (value: unknown): string => {
     const s = String(value);
     if (!hmsPattern.test(s)) throw new Error("invalid hms format");

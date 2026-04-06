@@ -10,14 +10,14 @@ Use `createSearchParamsStore` to manage **multiple** query parameters as a singl
 
 ```tsx
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { presetEnumArray, presetIntOptional, presetString } from "@vp-tw/nanostores-qs/presets";
+import { enum as presetEnum, integer, string } from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
 const filters = qsUtils.createSearchParamsStore({
-  search: presetString,
-  page: presetIntOptional,
-  categories: presetEnumArray(["electronics", "clothing", "books", "sports"]),
+  search: string,
+  page: integer.optional,
+  categories: presetEnum(["electronics", "clothing", "books", "sports"]).array,
 });
 ```
 

@@ -9,7 +9,7 @@ description: How to use @vp-tw/nanostores-qs — reactive, type-safe query strin
 
 ```tsx
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { presetBoolean, presetEnum, presetInt } from "@vp-tw/nanostores-qs/presets";
+import { boolean, integer, enum as presetEnum } from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 ```
@@ -17,7 +17,7 @@ const qsUtils = createQsUtils();
 ## Single Parameter Store
 
 ```tsx
-const pageStore = qsUtils.createSearchParamStore("page", presetInt);
+const pageStore = qsUtils.createSearchParamStore("page", integer);
 
 // Read (React)
 const page = useStore(pageStore.$value); // number (NaN when absent)
@@ -34,8 +34,8 @@ const nextSearch = pageStore.update.dry(100); // "?page=100"
 
 ```tsx
 const filters = qsUtils.createSearchParamsStore({
-  search: presetString,
-  page: presetIntOptional,
+  search: string,
+  page: integer.optional,
   sort: presetEnum(["newest", "oldest", "popular"]),
 });
 
@@ -54,27 +54,45 @@ const preview = filters.updateAll.dry({ ...values, page: 1 });
 
 ## Available Presets
 
-Import from `@vp-tw/nanostores-qs/presets`:
+Import from `@vp-tw/nanostores-qs/presets`. Each preset has `.optional` and `.array` variants:
 
-| Preset                        | Type                     | Default         |
-| ----------------------------- | ------------------------ | --------------- |
-| `presetString`                | `string`                 | `""`            |
-| `presetStringOptional`        | `string \| undefined`    | `undefined`     |
-| `presetStringArray`           | `string[]`               | `[]`            |
-| `presetInt`                   | `number`                 | `NaN`           |
-| `presetIntOptional`           | `number \| undefined`    | `undefined`     |
-| `presetIntArray`              | `number[]`               | `[]`            |
-| `presetFloat`                 | `number`                 | `NaN`           |
-| `presetFloatOptional`         | `number \| undefined`    | `undefined`     |
-| `presetFloatArray`            | `number[]`               | `[]`            |
-| `presetBoolean`               | `boolean`                | `false`         |
-| `presetBooleanOptional`       | `boolean \| undefined`   | `undefined`     |
-| `presetEnum(options)`         | `T[number]`              | First element   |
-| `presetEnumOptional(options)` | `T[number] \| undefined` | `undefined`     |
-| `presetEnumArray(options)`    | `T[number][]`            | `[]`            |
-| `presetDate`                  | `Date`                   | `new Date(NaN)` |
-| `presetDateOptional`          | `Date \| undefined`      | `undefined`     |
-| `presetDateArray`             | `Date[]`                 | `[]`            |
+| Preset                   | Type                     | Default         |
+| ------------------------ | ------------------------ | --------------- |
+| `string`                 | `string`                 | `""`            |
+| `string.optional`        | `string \| undefined`    | `undefined`     |
+| `string.array`           | `string[]`               | `[]`            |
+| `integer`                | `number`                 | `NaN`           |
+| `integer.optional`       | `number \| undefined`    | `undefined`     |
+| `integer.array`          | `number[]`               | `[]`            |
+| `float`                  | `number`                 | `NaN`           |
+| `float.optional`         | `number \| undefined`    | `undefined`     |
+| `float.array`            | `number[]`               | `[]`            |
+| `boolean`                | `boolean`                | `false`         |
+| `boolean.optional`       | `boolean \| undefined`   | `undefined`     |
+| `enum(options)`          | `T[number]`              | First element   |
+| `enum(options).optional` | `T[number] \| undefined` | `undefined`     |
+| `enum(options).array`    | `T[number][]`            | `[]`            |
+| `date`                   | `Date`                   | `new Date(NaN)` |
+| `date.optional`          | `Date \| undefined`      | `undefined`     |
+| `date.array`             | `Date[]`                 | `[]`            |
+| `ymd`                    | `string`                 | `"0000-00-00"`  |
+| `hms`                    | `string`                 | `"00:00:00"`    |
+
+### Integer rounding variants
+
+| Variant         | Description            |
+| --------------- | ---------------------- |
+| `integer`       | `Math.round` (default) |
+| `integer.round` | Same as `integer`      |
+| `integer.ceil`  | `Math.ceil`            |
+| `integer.floor` | `Math.floor`           |
+| `integer.parse` | `parseInt` (truncates) |
+
+### Float precision
+
+```ts
+float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
+```
 
 ## Update Options
 
@@ -104,6 +122,29 @@ router.push(`${pathname}${nextSearch}`);
 **Why `.dry()`?** Calling `update()` mutates the History API directly, bypassing router features (navigation blocking, loaders, transitions). `.dry()` lets your router handle the navigation.
 
 ## Custom Presets
+
+Use `createPreset` for presets with automatic `.optional` and `.array` variants:
+
+```ts
+import { createPreset } from "@vp-tw/nanostores-qs/presets";
+
+const bounded = (min: number, max: number) =>
+  createPreset({
+    decode: (value: unknown) => {
+      const n = Number(value);
+      if (Number.isNaN(n)) throw new Error("invalid");
+      return Math.max(min, Math.min(max, n));
+    },
+    defaultValue: min,
+    encode: (v) => String(v),
+  });
+
+// bounded(1, 100)          — base
+// bounded(1, 100).optional — no defaultValue
+// bounded(1, 100).array    — array variant
+```
+
+Or use `defineSearchParam` for standalone presets (decoupled from createQsUtils):
 
 ```ts
 import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
@@ -136,7 +177,7 @@ const qsUtils = createQsUtils({
 
 ## Key Patterns
 
-1. **Correlated params**: Use `updateAll` when changing one param should reset another (e.g., search → reset page)
+1. **Correlated params**: Use `updateAll` when changing one param should reset another (e.g., search -> reset page)
 2. **Router integration**: Always use `.dry()` + router navigation when your app has route guards/loaders
-3. **Custom presets**: Use `defineSearchParam` for reusable decode/encode logic across stores
-4. **Validation**: Handle in `decode` — return `defaultValue` on invalid input
+3. **Custom presets**: Use `createPreset` for reusable decode/encode logic with automatic `.optional`/`.array` variants
+4. **Validation**: Handle in `decode` — throw to reject invalid input (filtered out in `.array`, falls back to `defaultValue` in base)

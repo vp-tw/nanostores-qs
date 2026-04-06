@@ -10,22 +10,17 @@ Use `createSearchParamStore` to manage one query parameter. Pass a **preset** fo
 
 ```tsx
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import {
-  presetInt,
-  presetStringOptional,
-  presetEnum,
-  presetBoolean,
-} from "@vp-tw/nanostores-qs/presets";
+import { boolean, enum as presetEnum, integer, string } from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
-const pageStore = qsUtils.createSearchParamStore("page", presetInt);
-const searchStore = qsUtils.createSearchParamStore("q", presetStringOptional);
+const pageStore = qsUtils.createSearchParamStore("page", integer);
+const searchStore = qsUtils.createSearchParamStore("q", string.optional);
 const sortStore = qsUtils.createSearchParamStore(
   "sort",
   presetEnum(["newest", "oldest", "popular"]),
 );
-const archivedStore = qsUtils.createSearchParamStore("archived", presetBoolean);
+const archivedStore = qsUtils.createSearchParamStore("archived", boolean);
 ```
 
 ## Reading values
@@ -63,4 +58,4 @@ Try interacting with the controls below — watch the URL update in real time.
 
 ## Default behavior
 
-When a value equals the preset's `defaultValue`, the parameter is removed from the URL to keep it clean. For example, `presetBoolean` removes `archived` when `false`.
+When a value equals the preset's `defaultValue`, the parameter is removed from the URL to keep it clean. For example, `boolean` removes `archived` when `false`.
