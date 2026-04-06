@@ -74,6 +74,46 @@ describe("createPreset", () => {
       expect(noEncode.encode(42 as any)).toBe("42");
     });
   });
+
+  describe("default", () => {
+    it("returns config with custom defaultValue", () => {
+      const withDefault = preset.default(42);
+      expect(withDefault.defaultValue).toBe(42);
+      expect(withDefault.decode("10")).toBe(10);
+      expect(withDefault.encode(10)).toBe("10");
+    });
+
+    it("has no .optional or .array", () => {
+      const withDefault = preset.default(0);
+      expect("optional" in withDefault).toBe(false);
+      expect("array" in withDefault).toBe(false);
+    });
+  });
+});
+
+describe("preset .default() on built-ins", () => {
+  it("integer.default(1)", () => {
+    const d = integer.default(1);
+    expect(d.defaultValue).toBe(1);
+    expect(d.decode("5")).toBe(5);
+  });
+
+  it("integer.ceil.default(0)", () => {
+    const d = integer.ceil.default(0);
+    expect(d.defaultValue).toBe(0);
+    expect(d.decode("3.2")).toBe(4);
+  });
+
+  it("float.fixed(2).default(0)", () => {
+    const d = float.fixed(2).default(0);
+    expect(d.defaultValue).toBe(0);
+    expect(d.decode("3.14")).toBe(3.14);
+  });
+
+  it("string.default('all')", () => {
+    const d = string.default("all");
+    expect(d.defaultValue).toBe("all");
+  });
 });
 
 describe("presets.string", () => {

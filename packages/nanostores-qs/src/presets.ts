@@ -43,7 +43,16 @@ function createPreset<TType, TDefaultValueType = TType>(config: {
     },
   };
 
-  return Object.assign(base, { optional, array }) as CreatePresetResult<TType, TDefaultValueType>;
+  const defaultFn = (value: TType) => ({
+    decode: config.decode,
+    defaultValue: value,
+    encode,
+  });
+
+  return Object.assign(base, { optional, array, default: defaultFn }) as CreatePresetResult<
+    TType,
+    TDefaultValueType
+  >;
 }
 
 // Internal result type — exact object shapes for InferValueFromQueryParamConfig to work
@@ -59,6 +68,11 @@ interface CreatePresetResult<TType, TDefaultValueType> {
     isArray: true;
     decode: (value: Array<unknown>) => Array<TType>;
     encode: (value: Array<TType>) => Array<string>;
+  };
+  default: (value: TType) => {
+    decode: (value: unknown) => TType;
+    defaultValue: TType;
+    encode: (value: TType) => string | undefined;
   };
 }
 

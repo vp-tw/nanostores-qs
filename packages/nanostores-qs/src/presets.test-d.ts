@@ -392,3 +392,23 @@ const stringPreset = createPreset({
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();
+
+// --- .default() type inference ---
+
+// integer.default(1) -> number
+(() => {
+  const s = qs.createSearchParamStore("n", presets.integer.default(1));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// string.default("all") -> string
+(() => {
+  const s = qs.createSearchParamStore("s", presets.string.default("all"));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
