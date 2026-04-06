@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { boolean, createPreset, integer, string } from "./presets";
+import { boolean, createPreset, float, integer, string } from "./presets";
 
 describe("createPreset", () => {
   const preset = createPreset({
@@ -170,5 +170,48 @@ describe("presets.integer.round", () => {
   it("same behavior as integer base", () => {
     expect(integer.round.decode("3.7")).toBe(4);
     expect(integer.round.decode("3.2")).toBe(3);
+  });
+});
+
+describe("presets.float", () => {
+  it("base: parseFloat", () => {
+    expect(float.decode("3.14")).toBe(3.14);
+    expect(float.defaultValue).toBeNaN();
+  });
+
+  it("throws on invalid", () => {
+    expect(() => float.decode("abc")).toThrow();
+  });
+
+  it("encodes", () => {
+    expect(float.encode(3.14)).toBe("3.14");
+    expect(float.encode(Number.NaN)).toBeUndefined();
+  });
+
+  it("optional: no defaultValue", () => {
+    expect("defaultValue" in float.optional).toBe(false);
+  });
+
+  it("array: filters invalid", () => {
+    expect(float.array.decode(["1.5", "abc", "2.7"])).toEqual([1.5, 2.7]);
+  });
+});
+
+describe("presets.float.fixed(2)", () => {
+  const fixed2 = float.fixed(2);
+
+  it("rounds to 2 decimals", () => {
+    expect(fixed2.decode("3.14159")).toBe(3.14);
+    expect(fixed2.decode("3.145")).toBe(3.15);
+  });
+
+  it("encodes with 2 decimals", () => {
+    expect(fixed2.encode(3.1)).toBe("3.10");
+    expect(fixed2.encode(3)).toBe("3.00");
+  });
+
+  it("optional/array work", () => {
+    expect("defaultValue" in fixed2.optional).toBe(false);
+    expect(fixed2.array.decode(["1.5", "abc", "2.7"])).toEqual([1.5, 2.7]);
   });
 });

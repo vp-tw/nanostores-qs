@@ -170,6 +170,62 @@ const stringPreset = createPreset({
   anyObj as Expected satisfies Result;
 })();
 
+// --- presets.float ---
+
+// base -> number
+(() => {
+  const s = qs.createSearchParamStore("f", presets.float);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> number | undefined
+(() => {
+  const s = qs.createSearchParamStore("f", presets.float.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<number>
+(() => {
+  const s = qs.createSearchParamStore("f", presets.float.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<number>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// fixed(2) -> number
+(() => {
+  const s = qs.createSearchParamStore("f", presets.float.fixed(2));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// fixed(2).optional -> number | undefined
+(() => {
+  const s = qs.createSearchParamStore("f", presets.float.fixed(2).optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// fixed(2).array -> Array<number>
+(() => {
+  const s = qs.createSearchParamStore("f", presets.float.fixed(2).array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<number>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
 // --- presets.boolean ---
 
 // base -> boolean

@@ -120,5 +120,35 @@ const integer = Object.assign(integerRound, {
   round: integerRound,
 });
 
-export { boolean, createPreset, integer, string };
+const floatBase = createPreset({
+  decode: (value: unknown): number => {
+    const n = Number.parseFloat(String(value));
+    if (Number.isNaN(n)) throw new Error("invalid float");
+    return n;
+  },
+  defaultValue: Number.NaN,
+  encode: (v) => {
+    if (isNil(v) || Number.isNaN(v)) return undefined;
+    return String(v);
+  },
+});
+
+function fixed(digits: number): CreatePresetResult<number, number> {
+  return createPreset({
+    decode: (value: unknown): number => {
+      const n = Number.parseFloat(String(value));
+      if (Number.isNaN(n)) throw new Error("invalid float");
+      return Number(n.toFixed(digits));
+    },
+    defaultValue: Number.NaN,
+    encode: (v) => {
+      if (isNil(v) || Number.isNaN(v)) return undefined;
+      return v.toFixed(digits);
+    },
+  });
+}
+
+const float = Object.assign(floatBase, { fixed });
+
+export { boolean, createPreset, float, integer, string };
 export type { CreatePresetResult };
