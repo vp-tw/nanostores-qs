@@ -183,5 +183,21 @@ const hms = createPreset({
   defaultValue: "00:00:00",
 });
 
+function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
+  enumArray: TEnumArray,
+): CreatePresetResult<TEnumArray[number], TEnumArray[0]> {
+  return createPreset<TEnumArray[number], TEnumArray[0]>({
+    decode: (value: unknown): TEnumArray[number] => {
+      const s = String(value);
+      if (!enumArray.includes(s)) throw new Error("invalid enum value");
+      return s;
+    },
+    defaultValue: enumArray[0] as TEnumArray[0],
+  });
+}
+
+// "enum" is a reserved word in JS, but valid as a named export
+export { presetEnum as enum };
+
 export { boolean, createPreset, date, float, hms, integer, string, ymd };
 export type { CreatePresetResult };

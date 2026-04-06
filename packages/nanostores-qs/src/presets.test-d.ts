@@ -313,6 +313,35 @@ const stringPreset = createPreset({
   anyObj as Expected satisfies Result;
 })();
 
+// --- presets.enum ---
+
+// enum -> "asc" | "desc"
+(() => {
+  const s = qs.createSearchParamStore("sort", presets.enum(["asc", "desc"]));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = "asc" | "desc";
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// enum.optional -> "asc" | "desc" | undefined
+(() => {
+  const s = qs.createSearchParamStore("sort", presets.enum(["asc", "desc"]).optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = "asc" | "desc" | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// enum.array -> Array<"asc" | "desc">
+(() => {
+  const s = qs.createSearchParamStore("sort", presets.enum(["asc", "desc"]).array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<"asc" | "desc">;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
 // --- presets.hms ---
 
 // base -> string

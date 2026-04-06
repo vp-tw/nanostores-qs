@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { boolean, createPreset, date, float, hms, integer, string, ymd } from "./presets";
+import {
+  boolean,
+  createPreset,
+  date,
+  float,
+  hms,
+  integer,
+  enum as presetEnum,
+  string,
+  ymd,
+} from "./presets";
 
 describe("createPreset", () => {
   const preset = createPreset({
@@ -278,6 +288,36 @@ describe("presets.ymd", () => {
       "2024-01-15",
       "2024-06-01",
     ]);
+  });
+});
+
+describe("presets.enum", () => {
+  const sorting = presetEnum(["asc", "desc"] as const);
+
+  it("base: decodes valid value", () => {
+    expect(sorting.decode("asc")).toBe("asc");
+    expect(sorting.decode("desc")).toBe("desc");
+  });
+
+  it("base: default is first element", () => {
+    expect(sorting.defaultValue).toBe("asc");
+  });
+
+  it("throws on invalid", () => {
+    expect(() => sorting.decode("invalid")).toThrow();
+  });
+
+  it("encodes value as-is", () => {
+    expect(sorting.encode("asc")).toBe("asc");
+    expect(sorting.encode("desc")).toBe("desc");
+  });
+
+  it("optional: no defaultValue", () => {
+    expect("defaultValue" in sorting.optional).toBe(false);
+  });
+
+  it("array: filters invalid", () => {
+    expect(sorting.array.decode(["asc", "invalid", "desc"])).toEqual(["asc", "desc"]);
   });
 });
 
