@@ -254,3 +254,90 @@ const stringPreset = createPreset({
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();
+
+// --- presets.date ---
+
+// base -> Date
+(() => {
+  const s = qs.createSearchParamStore("d", presets.date);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Date;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> Date | undefined
+(() => {
+  const s = qs.createSearchParamStore("d", presets.date.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Date | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<Date>
+(() => {
+  const s = qs.createSearchParamStore("d", presets.date.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<Date>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- presets.ymd ---
+
+// base -> string
+(() => {
+  const s = qs.createSearchParamStore("y", presets.ymd);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("y", presets.ymd.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<string>
+(() => {
+  const s = qs.createSearchParamStore("y", presets.ymd.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<string>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- presets.hms ---
+
+// base -> string
+(() => {
+  const s = qs.createSearchParamStore("h", presets.hms);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("h", presets.hms.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<string>
+(() => {
+  const s = qs.createSearchParamStore("h", presets.hms.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<string>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();

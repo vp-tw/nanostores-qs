@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { boolean, createPreset, float, integer, string } from "./presets";
+import { boolean, createPreset, date, float, hms, integer, string, ymd } from "./presets";
 
 describe("createPreset", () => {
   const preset = createPreset({
@@ -213,5 +213,96 @@ describe("presets.float.fixed(2)", () => {
   it("optional/array work", () => {
     expect("defaultValue" in fixed2.optional).toBe(false);
     expect(fixed2.array.decode(["1.5", "abc", "2.7"])).toEqual([1.5, 2.7]);
+  });
+});
+
+describe("presets.date", () => {
+  it("base: decodes ISO string", () => {
+    const d = date.decode("2024-01-15T00:00:00.000Z");
+    expect(d.toISOString()).toBe("2024-01-15T00:00:00.000Z");
+  });
+
+  it("base: default is Invalid Date", () => {
+    expect(Number.isNaN(date.defaultValue.getTime())).toBe(true);
+  });
+
+  it("throws on invalid", () => {
+    expect(() => date.decode("not-a-date")).toThrow();
+  });
+
+  it("encodes to ISO string", () => {
+    expect(date.encode(new Date("2024-01-15T00:00:00.000Z"))).toBe("2024-01-15T00:00:00.000Z");
+  });
+
+  it("encode returns undefined for invalid date", () => {
+    expect(date.encode(new Date(Number.NaN))).toBeUndefined();
+  });
+
+  it("optional: no defaultValue", () => {
+    expect("defaultValue" in date.optional).toBe(false);
+  });
+
+  it("array: filters invalid", () => {
+    const result = date.array.decode([
+      "2024-01-15T00:00:00.000Z",
+      "invalid",
+      "2024-06-01T00:00:00.000Z",
+    ]);
+    expect(result).toHaveLength(2);
+    expect(result[0]!.toISOString()).toBe("2024-01-15T00:00:00.000Z");
+    expect(result[1]!.toISOString()).toBe("2024-06-01T00:00:00.000Z");
+  });
+});
+
+describe("presets.ymd", () => {
+  it("base: defaultValue", () => {
+    expect(ymd.defaultValue).toBe("0000-00-00");
+  });
+
+  it("decodes valid format", () => {
+    expect(ymd.decode("2024-01-15")).toBe("2024-01-15");
+  });
+
+  it("throws on invalid format", () => {
+    expect(() => ymd.decode("not-a-date")).toThrow();
+    expect(() => ymd.decode("2024/01/15")).toThrow();
+    expect(() => ymd.decode("24-01-15")).toThrow();
+  });
+
+  it("optional: no defaultValue", () => {
+    expect("defaultValue" in ymd.optional).toBe(false);
+  });
+
+  it("array: filters invalid", () => {
+    expect(ymd.array.decode(["2024-01-15", "invalid", "2024-06-01"])).toEqual([
+      "2024-01-15",
+      "2024-06-01",
+    ]);
+  });
+});
+
+describe("presets.hms", () => {
+  it("base: defaultValue", () => {
+    expect(hms.defaultValue).toBe("00:00:00");
+  });
+
+  it("decodes valid format", () => {
+    expect(hms.decode("14:30:00")).toBe("14:30:00");
+    expect(hms.decode("00:00:00")).toBe("00:00:00");
+    expect(hms.decode("23:59:59")).toBe("23:59:59");
+  });
+
+  it("throws on invalid format", () => {
+    expect(() => hms.decode("not-a-time")).toThrow();
+    expect(() => hms.decode("14:30")).toThrow();
+    expect(() => hms.decode("25:00:00")).toThrow();
+  });
+
+  it("optional: no defaultValue", () => {
+    expect("defaultValue" in hms.optional).toBe(false);
+  });
+
+  it("array: filters invalid", () => {
+    expect(hms.array.decode(["14:30:00", "invalid", "08:00:00"])).toEqual(["14:30:00", "08:00:00"]);
   });
 });

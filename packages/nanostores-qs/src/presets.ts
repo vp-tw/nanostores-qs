@@ -150,5 +150,38 @@ function fixed(digits: number): CreatePresetResult<number, number> {
 
 const float = Object.assign(floatBase, { fixed });
 
-export { boolean, createPreset, float, integer, string };
+const date = createPreset({
+  decode: (value: unknown): Date => {
+    const d = new Date(String(value));
+    if (Number.isNaN(d.getTime())) throw new Error("invalid date");
+    return d;
+  },
+  defaultValue: new Date(Number.NaN),
+  encode: (v) => {
+    if (isNil(v) || Number.isNaN(v.getTime())) return undefined;
+    return v.toISOString();
+  },
+});
+
+const ymdPattern = /^\d{4}-\d{2}-\d{2}$/;
+const ymd = createPreset({
+  decode: (value: unknown): string => {
+    const s = String(value);
+    if (!ymdPattern.test(s)) throw new Error("invalid ymd format");
+    return s;
+  },
+  defaultValue: "0000-00-00",
+});
+
+const hmsPattern = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
+const hms = createPreset({
+  decode: (value: unknown): string => {
+    const s = String(value);
+    if (!hmsPattern.test(s)) throw new Error("invalid hms format");
+    return s;
+  },
+  defaultValue: "00:00:00",
+});
+
+export { boolean, createPreset, date, float, hms, integer, string, ymd };
 export type { CreatePresetResult };
