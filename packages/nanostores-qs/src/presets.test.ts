@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { boolean, createPreset, float, integer, string } from "./presets";
+import { boolean, createPreset, date, float, hms, integer, string, ymd } from "./presets";
 
 describe("createPreset", () => {
   const percentage = createPreset({
@@ -499,6 +499,208 @@ describe("boolean", () => {
     it("slices to maxItems", () => {
       const config = boolean({ array: true, maxItems: 2 });
       expect(config.decode(["true", "false", "true"])).toEqual([true, false]);
+    });
+  });
+});
+
+describe("date", () => {
+  describe("base (no options)", () => {
+    it("decodes ISO string to Date", () => {
+      const config = date();
+      const d = config.decode("2024-01-15T10:30:00.000Z");
+      expect(d).toBeInstanceOf(Date);
+      expect(d.toISOString()).toBe("2024-01-15T10:30:00.000Z");
+    });
+
+    it("defaultValue is Invalid Date", () => {
+      const config = date();
+      expect(config.defaultValue).toBeInstanceOf(Date);
+      expect(Number.isNaN(config.defaultValue.getTime())).toBe(true);
+    });
+
+    it("encode returns ISO string", () => {
+      const config = date();
+      const d = new Date("2024-01-15T10:30:00.000Z");
+      expect(config.encode(d)).toBe("2024-01-15T10:30:00.000Z");
+    });
+  });
+
+  describe("decode throws on invalid", () => {
+    it("throws on 'not-a-date'", () => {
+      const config = date();
+      expect(() => config.decode("not-a-date")).toThrow("invalid date");
+    });
+  });
+
+  describe("encode guards against Invalid Date", () => {
+    it("invalid Date → undefined (not RangeError)", () => {
+      const config = date();
+      expect(config.encode(new Date(Number.NaN))).toBeUndefined();
+    });
+
+    it("nil → undefined", () => {
+      const config = date();
+      expect(config.encode(null as any)).toBeUndefined();
+      expect(config.encode(undefined as any)).toBeUndefined();
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue, nil-safe", () => {
+      const config = date({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+    });
+
+    it("decodes valid value", () => {
+      const config = date({ optional: true });
+      const d = config.decode("2024-01-15T10:30:00.000Z");
+      expect(d).toBeInstanceOf(Date);
+      expect(d!.toISOString()).toBe("2024-01-15T10:30:00.000Z");
+    });
+  });
+
+  describe("array", () => {
+    it("filters invalid dates", () => {
+      const config = date({ array: true });
+      expect(config.isArray).toBe(true);
+      const result = config.decode([
+        "2024-01-15T10:30:00.000Z",
+        "not-a-date",
+        "2024-06-01T00:00:00.000Z",
+      ]);
+      expect(result).toHaveLength(2);
+      expect(result[0]!.toISOString()).toBe("2024-01-15T10:30:00.000Z");
+      expect(result[1]!.toISOString()).toBe("2024-06-01T00:00:00.000Z");
+    });
+  });
+});
+
+describe("ymd", () => {
+  describe("base (no options)", () => {
+    it("decodes '2024-01-15' → '2024-01-15'", () => {
+      const config = ymd();
+      expect(config.decode("2024-01-15")).toBe("2024-01-15");
+    });
+
+    it("defaultValue is '0000-00-00'", () => {
+      const config = ymd();
+      expect(config.defaultValue).toBe("0000-00-00");
+    });
+  });
+
+  describe("decode throws on invalid format", () => {
+    it("throws on 'not-a-date'", () => {
+      const config = ymd();
+      expect(() => config.decode("not-a-date")).toThrow("invalid ymd format");
+    });
+
+    it("throws on '2024/01/15'", () => {
+      const config = ymd();
+      expect(() => config.decode("2024/01/15")).toThrow("invalid ymd format");
+    });
+
+    it("throws on '24-01-15'", () => {
+      const config = ymd();
+      expect(() => config.decode("24-01-15")).toThrow("invalid ymd format");
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue", () => {
+      const config = ymd({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+    });
+  });
+
+  describe("default", () => {
+    it("uses custom default", () => {
+      const config = ymd({ default: "2024-01-01" });
+      expect(config.defaultValue).toBe("2024-01-01");
+    });
+  });
+
+  describe("array", () => {
+    it("filters invalid formats", () => {
+      const config = ymd({ array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["2024-01-15", "not-a-date", "2024-06-01"])).toEqual([
+        "2024-01-15",
+        "2024-06-01",
+      ]);
+    });
+  });
+});
+
+describe("hms", () => {
+  describe("base (no options)", () => {
+    it("decodes '14:30:00' → '14:30:00'", () => {
+      const config = hms();
+      expect(config.decode("14:30:00")).toBe("14:30:00");
+    });
+
+    it("defaultValue is '00:00:00'", () => {
+      const config = hms();
+      expect(config.defaultValue).toBe("00:00:00");
+    });
+  });
+
+  describe("valid edge cases", () => {
+    it("accepts '00:00:00'", () => {
+      const config = hms();
+      expect(config.decode("00:00:00")).toBe("00:00:00");
+    });
+
+    it("accepts '23:59:59'", () => {
+      const config = hms();
+      expect(config.decode("23:59:59")).toBe("23:59:59");
+    });
+  });
+
+  describe("decode throws on invalid", () => {
+    it("throws on 'not-a-time'", () => {
+      const config = hms();
+      expect(() => config.decode("not-a-time")).toThrow("invalid hms format");
+    });
+
+    it("throws on '14:30' (missing seconds)", () => {
+      const config = hms();
+      expect(() => config.decode("14:30")).toThrow("invalid hms format");
+    });
+
+    it("throws on '25:00:00' (invalid hour)", () => {
+      const config = hms();
+      expect(() => config.decode("25:00:00")).toThrow("invalid hms format");
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue", () => {
+      const config = hms({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+    });
+  });
+
+  describe("default", () => {
+    it("uses custom default", () => {
+      const config = hms({ default: "08:00:00" });
+      expect(config.defaultValue).toBe("08:00:00");
+    });
+  });
+
+  describe("array", () => {
+    it("filters invalid formats", () => {
+      const config = hms({ array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["14:30:00", "not-a-time", "08:00:00"])).toEqual([
+        "14:30:00",
+        "08:00:00",
+      ]);
     });
   });
 });

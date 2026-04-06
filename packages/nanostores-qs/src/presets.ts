@@ -365,4 +365,69 @@ function boolean(options?: BooleanOptions): any {
   };
 }
 
-export { boolean, createPreset, float, integer, string };
+// --- Date preset ---
+
+function date(): BaseResult<Date, Date>;
+function date(options: { optional: true }): OptionalResult<Date>;
+function date(options: { default: Date }): DefaultResult<Date>;
+function date(options: { array: true; maxItems?: number }): ArrayResult<Date>;
+function date(options?: PresetOptions<Date>): any {
+  const preset = createPreset<Date, Date>({
+    decode: (value: unknown): Date => {
+      const d = new Date(String(value));
+      if (Number.isNaN(d.getTime())) throw new Error("invalid date");
+      return d;
+    },
+    defaultValue: new Date(Number.NaN),
+    encode: (v) => {
+      if (isNil(v) || Number.isNaN(v.getTime())) return undefined;
+      return v.toISOString();
+    },
+  });
+
+  return preset(options as any);
+}
+
+// --- YMD preset ---
+
+const ymdPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function ymd(): BaseResult<string, string>;
+function ymd(options: { optional: true }): OptionalResult<string>;
+function ymd(options: { default: string }): DefaultResult<string>;
+function ymd(options: { array: true; maxItems?: number }): ArrayResult<string>;
+function ymd(options?: PresetOptions<string>): any {
+  const preset = createPreset<string, string>({
+    decode: (value: unknown): string => {
+      const s = String(value);
+      if (!ymdPattern.test(s)) throw new Error("invalid ymd format");
+      return s;
+    },
+    defaultValue: "0000-00-00",
+  });
+
+  return preset(options as any);
+}
+
+// --- HMS preset ---
+
+const hmsPattern = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
+
+function hms(): BaseResult<string, string>;
+function hms(options: { optional: true }): OptionalResult<string>;
+function hms(options: { default: string }): DefaultResult<string>;
+function hms(options: { array: true; maxItems?: number }): ArrayResult<string>;
+function hms(options?: PresetOptions<string>): any {
+  const preset = createPreset<string, string>({
+    decode: (value: unknown): string => {
+      const s = String(value);
+      if (!hmsPattern.test(s)) throw new Error("invalid hms format");
+      return s;
+    },
+    defaultValue: "00:00:00",
+  });
+
+  return preset(options as any);
+}
+
+export { boolean, createPreset, date, float, hms, integer, string, ymd };

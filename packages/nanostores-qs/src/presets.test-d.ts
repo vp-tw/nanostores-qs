@@ -1,5 +1,5 @@
 import { createQsUtils } from "./main";
-import { boolean, createPreset, float, integer, string } from "./presets";
+import { boolean, createPreset, date, float, hms, integer, string, ymd } from "./presets";
 
 const anyObj: any = {};
 const qs = createQsUtils();
@@ -172,6 +172,75 @@ const numberPreset = createPreset({
   const s = qs.createSearchParamStore("b", boolean({ default: true }));
   type Result = ReturnType<typeof s.$value.get>;
   type Expected = boolean;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- date type inference ---
+
+// date() -> Date
+(() => {
+  const s = qs.createSearchParamStore("d", date());
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Date;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// date({ optional: true }) -> Date | undefined
+(() => {
+  const s = qs.createSearchParamStore("d", date({ optional: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Date | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// date({ array: true }) -> Array<Date>
+(() => {
+  const s = qs.createSearchParamStore("d", date({ array: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<Date>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- ymd type inference ---
+
+// ymd() -> string
+(() => {
+  const s = qs.createSearchParamStore("d", ymd());
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// ymd({ optional: true }) -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("d", ymd({ optional: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- hms type inference ---
+
+// hms() -> string
+(() => {
+  const s = qs.createSearchParamStore("t", hms());
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// hms({ optional: true }) -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("t", hms({ optional: true }));
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();
