@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPreset } from "./presets";
+import { createPreset, float, integer } from "./presets";
 
 describe("createPreset", () => {
   const percentage = createPreset({
@@ -136,6 +136,185 @@ describe("createPreset", () => {
     it("fallback encode works in array mode", () => {
       const config = noEncode({ array: true });
       expect(config.encode(["a", "b"])).toEqual(["a", "b"]);
+    });
+  });
+});
+
+describe("integer", () => {
+  describe("base (no options)", () => {
+    it("has decode, defaultValue NaN, and encode", () => {
+      const config = integer();
+      expect(config.decode("42")).toBe(42);
+      expect(config.defaultValue).toBeNaN();
+      expect(config.encode(42)).toBe("42");
+    });
+
+    it("decode rounds by default: '3.7' → 4, '3.2' → 3", () => {
+      const config = integer();
+      expect(config.decode("3.7")).toBe(4);
+      expect(config.decode("3.2")).toBe(3);
+    });
+
+    it("throws on invalid input", () => {
+      const config = integer();
+      expect(() => config.decode("abc")).toThrow();
+    });
+
+    it("encode: NaN → undefined, 42 → '42'", () => {
+      const config = integer();
+      expect(config.encode(Number.NaN)).toBeUndefined();
+      expect(config.encode(42)).toBe("42");
+    });
+  });
+
+  describe("round: 'ceil'", () => {
+    it("rounds up: '3.2' → 4, '-1.5' → -1", () => {
+      const config = integer({ round: "ceil" });
+      expect(config.decode("3.2")).toBe(4);
+      expect(config.decode("-1.5")).toBe(-1);
+    });
+  });
+
+  describe("round: 'floor'", () => {
+    it("rounds down: '3.7' → 3, '-1.5' → -2", () => {
+      const config = integer({ round: "floor" });
+      expect(config.decode("3.7")).toBe(3);
+      expect(config.decode("-1.5")).toBe(-2);
+    });
+  });
+
+  describe("round: 'parse'", () => {
+    it("uses parseInt truncation: '3.7' → 3", () => {
+      const config = integer({ round: "parse" });
+      expect(config.decode("3.7")).toBe(3);
+    });
+  });
+
+  describe("default min/max are safe integers", () => {
+    it("clamps values beyond safe integer range", () => {
+      const config = integer();
+      expect(config.decode("1e20")).toBe(Number.MAX_SAFE_INTEGER);
+      expect(config.decode("-1e20")).toBe(Number.MIN_SAFE_INTEGER);
+    });
+  });
+
+  describe("min/max with clamp (default)", () => {
+    it("clamps to range", () => {
+      const config = integer({ min: 0, max: 100 });
+      expect(config.decode("-5")).toBe(0);
+      expect(config.decode("200")).toBe(100);
+      expect(config.decode("50")).toBe(50);
+    });
+  });
+
+  describe("min/max with reject", () => {
+    it("throws on out of range", () => {
+      const config = integer({ min: 0, max: 100, outOfRange: "reject" });
+      expect(() => config.decode("-5")).toThrow();
+      expect(() => config.decode("200")).toThrow();
+      expect(config.decode("50")).toBe(50);
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue, nil-safe decode/encode", () => {
+      const config = integer({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode(undefined)).toBeUndefined();
+      expect(config.decode("42")).toBe(42);
+      expect(config.encode(undefined as any)).toBeUndefined();
+      expect(config.encode(42)).toBe("42");
+    });
+  });
+
+  describe("default", () => {
+    it("uses provided defaultValue", () => {
+      const config = integer({ default: 1 });
+      expect(config.defaultValue).toBe(1);
+    });
+  });
+
+  describe("array", () => {
+    it("isArray true, filters invalid items", () => {
+      const config = integer({ array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["1", "abc", "3"])).toEqual([1, 3]);
+    });
+  });
+
+  describe("array with maxItems", () => {
+    it("slices to maxItems", () => {
+      const config = integer({ array: true, maxItems: 3 });
+      expect(config.decode(["1", "2", "3", "4", "5"])).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe("combined options", () => {
+    it("round + min + default work together", () => {
+      const config = integer({ round: "ceil", min: 0, default: 0 });
+      expect(config.decode("3.2")).toBe(4);
+      expect(config.decode("-5.5")).toBe(0);
+      expect(config.defaultValue).toBe(0);
+    });
+  });
+});
+
+describe("float", () => {
+  describe("base (no options)", () => {
+    it("decodes '3.14' → 3.14, defaultValue NaN", () => {
+      const config = float();
+      expect(config.decode("3.14")).toBe(3.14);
+      expect(config.defaultValue).toBeNaN();
+    });
+
+    it("throws on invalid input", () => {
+      const config = float();
+      expect(() => config.decode("abc")).toThrow();
+    });
+
+    it("encode: NaN → undefined, 3.14 → '3.14'", () => {
+      const config = float();
+      expect(config.encode(Number.NaN)).toBeUndefined();
+      expect(config.encode(3.14)).toBe("3.14");
+    });
+  });
+
+  describe("fixed", () => {
+    it("decode rounds to fixed decimals: '3.14159' → 3.14", () => {
+      const config = float({ fixed: 2 });
+      expect(config.decode("3.14159")).toBe(3.14);
+    });
+
+    it("encode pads to fixed decimals: 3.1 → '3.10'", () => {
+      const config = float({ fixed: 2 });
+      expect(config.encode(3.1)).toBe("3.10");
+    });
+  });
+
+  describe("min/max with fixed", () => {
+    it("clamps after fixed rounding", () => {
+      const config = float({ min: 0, max: 1, fixed: 2 });
+      expect(config.decode("-0.5")).toBe(0);
+      expect(config.decode("1.5")).toBe(1);
+      expect(config.decode("0.456")).toBe(0.46);
+    });
+  });
+
+  describe("optional", () => {
+    it("has no defaultValue", () => {
+      const config = float({ optional: true });
+      expect("defaultValue" in config).toBe(false);
+      expect(config.decode(null)).toBeUndefined();
+      expect(config.decode("3.14")).toBe(3.14);
+    });
+  });
+
+  describe("array", () => {
+    it("filters invalid items", () => {
+      const config = float({ array: true });
+      expect(config.isArray).toBe(true);
+      expect(config.decode(["1.1", "abc", "3.3"])).toEqual([1.1, 3.3]);
     });
   });
 });

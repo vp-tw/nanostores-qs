@@ -161,4 +161,102 @@ function createPreset<TType, TDefaultValueType = TType>(
   return presetFn as CreatePresetReturn<TType, TDefaultValueType>;
 }
 
-export { createPreset };
+// --- Integer preset ---
+
+interface IntegerBaseOptions {
+  round?: "ceil" | "floor" | "parse" | "round";
+  min?: number;
+  max?: number;
+  outOfRange?: "clamp" | "reject";
+}
+
+type IntegerOptions =
+  | (IntegerBaseOptions & ArrayOptions)
+  | (IntegerBaseOptions & DefaultOptions<number>)
+  | (IntegerBaseOptions & OptionalOptions<number>)
+  | (IntegerBaseOptions & Partial<BaseOptions>);
+
+function integer(): BaseResult<number, number>;
+function integer(options: IntegerBaseOptions): BaseResult<number, number>;
+function integer(options: IntegerBaseOptions & { optional: true }): OptionalResult<number>;
+function integer(options: IntegerBaseOptions & { default: number }): DefaultResult<number>;
+function integer(
+  options: IntegerBaseOptions & { array: true; maxItems?: number },
+): ArrayResult<number>;
+function integer(options?: IntegerOptions): any {
+  const round = options?.round ?? "round";
+  const min = options?.min ?? Number.MIN_SAFE_INTEGER;
+  const max = options?.max ?? Number.MAX_SAFE_INTEGER;
+  const outOfRange = options?.outOfRange ?? "clamp";
+
+  const preset = createPreset<number, number>({
+    decode: (value: unknown): number => {
+      const n =
+        round === "parse" ? Number.parseInt(String(value), 10) : Number.parseFloat(String(value));
+      if (Number.isNaN(n)) throw new Error("invalid integer");
+      const rounded = round === "parse" ? n : Math[round](n);
+      if (outOfRange === "reject") {
+        if (rounded < min || rounded > max) throw new Error("out of range");
+      }
+      return Math.max(min, Math.min(max, rounded));
+    },
+    defaultValue: Number.NaN,
+    encode: (v) => {
+      if (isNil(v) || Number.isNaN(v)) return undefined;
+      return String(v);
+    },
+  });
+
+  return preset(options as any);
+}
+
+// --- Float preset ---
+
+interface FloatBaseOptions {
+  fixed?: number;
+  min?: number;
+  max?: number;
+  outOfRange?: "clamp" | "reject";
+}
+
+type FloatOptions =
+  | (FloatBaseOptions & ArrayOptions)
+  | (FloatBaseOptions & DefaultOptions<number>)
+  | (FloatBaseOptions & OptionalOptions<number>)
+  | (FloatBaseOptions & Partial<BaseOptions>);
+
+function float(): BaseResult<number, number>;
+function float(options: FloatBaseOptions): BaseResult<number, number>;
+function float(options: FloatBaseOptions & { optional: true }): OptionalResult<number>;
+function float(options: FloatBaseOptions & { default: number }): DefaultResult<number>;
+function float(options: FloatBaseOptions & { array: true; maxItems?: number }): ArrayResult<number>;
+function float(options?: FloatOptions): any {
+  const fixed = options?.fixed;
+  const min = options?.min ?? Number.MIN_SAFE_INTEGER;
+  const max = options?.max ?? Number.MAX_SAFE_INTEGER;
+  const outOfRange = options?.outOfRange ?? "clamp";
+
+  const preset = createPreset<number, number>({
+    decode: (value: unknown): number => {
+      let n = Number.parseFloat(String(value));
+      if (Number.isNaN(n)) throw new Error("invalid float");
+      if (fixed !== undefined) {
+        n = Number(n.toFixed(fixed));
+      }
+      if (outOfRange === "reject") {
+        if (n < min || n > max) throw new Error("out of range");
+      }
+      return Math.max(min, Math.min(max, n));
+    },
+    defaultValue: Number.NaN,
+    encode: (v) => {
+      if (isNil(v) || Number.isNaN(v)) return undefined;
+      if (fixed !== undefined) return v.toFixed(fixed);
+      return String(v);
+    },
+  });
+
+  return preset(options as any);
+}
+
+export { createPreset, float, integer };
