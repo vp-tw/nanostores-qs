@@ -18,8 +18,8 @@ import {
 // Default: uses URLSearchParams
 const defaultUtils = createQsUtils();
 const defaultStore = defaultUtils.createSearchParamsStore({
-  name: presets.string.optional,
-  age: presets.integer.optional,
+  name: presets.string({ optional: true }),
+  age: presets.integer({ optional: true }),
 });
 
 // Custom: uses qs library
@@ -30,8 +30,8 @@ const qsLibUtils = createQsUtils({
   },
 });
 const qsLibStore = qsLibUtils.createSearchParamsStore({
-  name: presets.string.optional,
-  age: presets.integer.optional,
+  name: presets.string({ optional: true }),
+  age: presets.integer({ optional: true }),
 });
 
 const tabs = ["URLSearchParams", "qs library"] as const;

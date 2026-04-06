@@ -14,13 +14,13 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer.default(1));
-const searchStore = qsUtils.createSearchParamStore("q", presets.string.optional);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
+const searchStore = qsUtils.createSearchParamStore("q", presets.string({ optional: true }));
 const sortStore = qsUtils.createSearchParamStore(
   "sort",
   presets.enum(["newest", "oldest", "popular"]),
 );
-const archivedStore = qsUtils.createSearchParamStore("archived", presets.boolean);
+const archivedStore = qsUtils.createSearchParamStore("archived", presets.boolean());
 ```
 
 ## Reading values
@@ -56,25 +56,25 @@ Try interacting with the controls below — watch the URL update in real time.
   <SingleParamDemo client:load />
 </DemoWrapper>
 
-## Custom defaults with `.default()`
+## Custom defaults
 
-Use `.default(value)` to override a type's inherent default. For example, `presets.integer` defaults to `NaN`, but a page number should default to `1`:
+Use the `default` option to override a type's inherent default. For example, `presets.integer()` defaults to `NaN`, but a page number should default to `1`:
 
 ```ts
-// Without .default() — page is NaN when absent
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+// Without default — page is NaN when absent
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer());
 
-// With .default() — page is 1 when absent
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer.default(1));
+// With default — page is 1 when absent
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
 ```
 
-`.default()` also works with rounding variants and float precision:
+The `default` option works alongside other options:
 
 ```ts
-presets.integer.ceil.default(0); // Math.ceil, default 0
-presets.float.fixed(2).default(0); // 2 decimal places, default 0
+presets.integer({ round: "ceil", default: 0 }); // Math.ceil, default 0
+presets.float({ fixed: 2, default: 0 }); // 2 decimal places, default 0
 ```
 
 ## Default behavior
 
-When a value equals the preset's `defaultValue`, the parameter is removed from the URL to keep it clean. For example, `boolean` removes `archived` when `false`.
+When a value equals the preset's `defaultValue`, the parameter is removed from the URL to keep it clean. For example, `boolean()` removes `archived` when `false`.

@@ -3,123 +3,171 @@ title: Presets Reference
 description: Complete reference for all built-in presets
 ---
 
-All presets are imported from `@vp-tw/nanostores-qs/presets`.
+All presets are imported from `@vp-tw/nanostores-qs/presets`. Every preset is a **function** that accepts an options object.
 
 ```ts
 import * as presets from "@vp-tw/nanostores-qs/presets";
 ```
 
-## String presets
+## Common options
 
-| Preset                    | Value Type            | Default     | URL behavior              |
-| ------------------------- | --------------------- | ----------- | ------------------------- |
-| `presets.string`          | `string`              | `""`        | Omitted when empty        |
-| `presets.string.optional` | `string \| undefined` | `undefined` | Omitted when undefined    |
-| `presets.string.array`    | `string[]`            | `[]`        | Multiple same-name params |
+All built-in presets accept these options:
 
-## Number presets
+| Option     | Type     | Description                                      |
+| ---------- | -------- | ------------------------------------------------ |
+| `optional` | `true`   | Value becomes `T \| undefined` (no defaultValue) |
+| `default`  | `T`      | Override the type's inherent default             |
+| `array`    | `true`   | Array variant using multiple same-name params    |
+| `maxItems` | `number` | Cap on array items (only with `array: true`)     |
 
-| Preset                     | Value Type            | Default     | URL behavior                    |
-| -------------------------- | --------------------- | ----------- | ------------------------------- |
-| `presets.integer`          | `number`              | `NaN`       | Integer, omitted when NaN       |
-| `presets.integer.optional` | `number \| undefined` | `undefined` | Integer, omitted when undefined |
-| `presets.integer.array`    | `number[]`            | `[]`        | Filters invalid values          |
-| `presets.float`            | `number`              | `NaN`       | Float, omitted when NaN         |
-| `presets.float.optional`   | `number \| undefined` | `undefined` | Float, omitted when undefined   |
-| `presets.float.array`      | `number[]`            | `[]`        | Filters invalid values          |
+These options are **mutually exclusive** — pass exactly one of `optional`, `default`, or `array` (or none for the base variant).
 
-### Integer rounding variants
+## `presets.string(options?)`
 
-| Preset                  | Description                 |
-| ----------------------- | --------------------------- |
-| `presets.integer`       | Uses `Math.round` (default) |
-| `presets.integer.round` | Same as `presets.integer`   |
-| `presets.integer.ceil`  | Uses `Math.ceil`            |
-| `presets.integer.floor` | Uses `Math.floor`           |
-| `presets.integer.parse` | Uses `parseInt` (truncates) |
+| Call                                 | Value Type            | Default     |
+| ------------------------------------ | --------------------- | ----------- |
+| `presets.string()`                   | `string`              | `""`        |
+| `presets.string({ optional: true })` | `string \| undefined` | `undefined` |
+| `presets.string({ default: "all" })` | `string`              | `"all"`     |
+| `presets.string({ array: true })`    | `string[]`            | `[]`        |
 
-### Float precision
+### String-specific options
+
+| Option       | Type                  | Default   | Description                              |
+| ------------ | --------------------- | --------- | ---------------------------------------- |
+| `maxLength`  | `number`              | —         | Maximum string length                    |
+| `outOfRange` | `"clamp" \| "reject"` | `"clamp"` | Truncate or reject strings exceeding max |
+
+## `presets.integer(options?)`
+
+| Call                                  | Value Type            | Default     |
+| ------------------------------------- | --------------------- | ----------- |
+| `presets.integer()`                   | `number`              | `NaN`       |
+| `presets.integer({ optional: true })` | `number \| undefined` | `undefined` |
+| `presets.integer({ default: 1 })`     | `number`              | `1`         |
+| `presets.integer({ array: true })`    | `number[]`            | `[]`        |
+
+### Integer-specific options
+
+| Option       | Type                                      | Default                   | Description                                  |
+| ------------ | ----------------------------------------- | ------------------------- | -------------------------------------------- |
+| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`                 | Rounding mode (`"parse"` uses `parseInt`)    |
+| `min`        | `number`                                  | `Number.MIN_SAFE_INTEGER` | Minimum allowed value                        |
+| `max`        | `number`                                  | `Number.MAX_SAFE_INTEGER` | Maximum allowed value                        |
+| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`                 | Clamp to range or reject out-of-range values |
+
+When `outOfRange` is `"reject"`, out-of-range values fall back to `defaultValue` (or `undefined` for optional).
 
 ```ts
-presets.float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
+// Integer with rounding and constraints
+presets.integer({ round: "ceil" }); // Math.ceil
+presets.integer({ round: "floor", min: 0 }); // Math.floor, min 0
+presets.integer({ round: "parse" }); // parseInt (truncates)
+presets.integer({ min: 1, max: 100, default: 1 }); // clamped 1-100
+presets.integer({ min: 1, max: 100, outOfRange: "reject" }); // reject out-of-range
 ```
 
-## Boolean presets
+## `presets.float(options?)`
 
-| Preset                     | Value Type             | Default     | URL behavior                         |
-| -------------------------- | ---------------------- | ----------- | ------------------------------------ |
-| `presets.boolean`          | `boolean`              | `false`     | `"true"` present, omitted when false |
-| `presets.boolean.optional` | `boolean \| undefined` | `undefined` | `"true"`/`"false"` or omitted        |
+| Call                                | Value Type            | Default     |
+| ----------------------------------- | --------------------- | ----------- |
+| `presets.float()`                   | `number`              | `NaN`       |
+| `presets.float({ optional: true })` | `number \| undefined` | `undefined` |
+| `presets.float({ default: 0 })`     | `number`              | `0`         |
+| `presets.float({ array: true })`    | `number[]`            | `[]`        |
 
-## Enum presets
+### Float-specific options
 
-| Preset                           | Value Type               | Default       | URL behavior                    |
-| -------------------------------- | ------------------------ | ------------- | ------------------------------- |
-| `presets.enum(options)`          | `T[number]`              | First element | Falls back to first for invalid |
-| `presets.enum(options).optional` | `T[number] \| undefined` | `undefined`   | Undefined for invalid           |
-| `presets.enum(options).array`    | `T[number][]`            | `[]`          | Filters invalid values          |
-
-### Enum usage
+| Option       | Type                  | Default                   | Description                                  |
+| ------------ | --------------------- | ------------------------- | -------------------------------------------- |
+| `fixed`      | `number`              | —                         | Decimal places (uses `toFixed(n)`)           |
+| `min`        | `number`              | `Number.MIN_SAFE_INTEGER` | Minimum allowed value                        |
+| `max`        | `number`              | `Number.MAX_SAFE_INTEGER` | Maximum allowed value                        |
+| `outOfRange` | `"clamp" \| "reject"` | `"clamp"`                 | Clamp to range or reject out-of-range values |
 
 ```ts
-import * as presets from "@vp-tw/nanostores-qs/presets";
+presets.float({ fixed: 2 }); // 2 decimal places, e.g. 3.14
+presets.float({ fixed: 2, default: 0 }); // 2 decimal places, default 0
+presets.float({ min: 0, max: 1 }); // clamped 0-1
+```
 
+## `presets.boolean(options?)`
+
+| Call                                  | Value Type             | Default     |
+| ------------------------------------- | ---------------------- | ----------- |
+| `presets.boolean()`                   | `boolean`              | `false`     |
+| `presets.boolean({ optional: true })` | `boolean \| undefined` | `undefined` |
+| `presets.boolean({ default: true })`  | `boolean`              | `true`      |
+| `presets.boolean({ array: true })`    | `boolean[]`            | `[]`        |
+
+### Encode behavior
+
+- **Base** (`boolean()`): `"true"` decodes to `true`, anything else to `false`. Encodes: value matching `defaultValue` is omitted from URL.
+- **`boolean({ default: true })`**: Since `true` is the default, `true` is omitted and `false` appears in the URL — the encode logic flips compared to `boolean()`.
+- **Optional** (`boolean({ optional: true })`): Strict decode — `"true"` -> `true`, `"false"` -> `false`, anything else throws. Both values appear in URL; omitted means `undefined`.
+- **Array** (`boolean({ array: true })`): Strict per-item decode, invalid items filtered out.
+
+## `presets.enum(enumArray, options?)`
+
+```ts
 const sortOptions = ["newest", "oldest", "popular"] as const;
-
-// Required enum — always one of the options
-const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
-
-// Optional enum — can be undefined
-const filterStore = qsUtils.createSearchParamStore("filter", presets.enum(sortOptions).optional);
-
-// Array of enums — filter invalid
-const tagsStore = qsUtils.createSearchParamStore("tags", presets.enum(sortOptions).array);
 ```
 
-## Date presets
+| Call                                                | Value Type                          | Default     |
+| --------------------------------------------------- | ----------------------------------- | ----------- |
+| `presets.enum(sortOptions)`                         | `"newest" \| "oldest" \| "popular"` | `"newest"`  |
+| `presets.enum(sortOptions, { optional: true })`     | `... \| undefined`                  | `undefined` |
+| `presets.enum(sortOptions, { default: "popular" })` | same union                          | `"popular"` |
+| `presets.enum(sortOptions, { array: true })`        | `Array<...>`                        | `[]`        |
 
-| Preset                  | Value Type          | Default         | URL behavior                     |
-| ----------------------- | ------------------- | --------------- | -------------------------------- |
-| `presets.date`          | `Date`              | `new Date(NaN)` | ISO string, omitted when invalid |
-| `presets.date.optional` | `Date \| undefined` | `undefined`     | Undefined for invalid            |
-| `presets.date.array`    | `Date[]`            | `[]`            | Filters invalid dates            |
+The first element of `enumArray` is the inherent default. Invalid values throw (fall back to default in base, filtered out in array).
 
-### Date usage
+## `presets.date(options?)`
+
+| Call                               | Value Type          | Default         |
+| ---------------------------------- | ------------------- | --------------- |
+| `presets.date()`                   | `Date`              | `new Date(NaN)` |
+| `presets.date({ optional: true })` | `Date \| undefined` | `undefined`     |
+| `presets.date({ array: true })`    | `Date[]`            | `[]`            |
+
+Decode: `new Date(String(value))`, throws if `getTime()` is `NaN`.
+Encode: `value.toISOString()`. Guards against Invalid Date — returns `undefined` if the date is invalid, preventing `RangeError` from `toISOString()`.
+
+## `presets.ymd(options?)`
+
+| Call                              | Value Type            | Default        |
+| --------------------------------- | --------------------- | -------------- |
+| `presets.ymd()`                   | `string`              | `"0000-00-00"` |
+| `presets.ymd({ optional: true })` | `string \| undefined` | `undefined`    |
+| `presets.ymd({ array: true })`    | `string[]`            | `[]`           |
+
+Format: `YYYY-MM-DD`. Decode validates format with regex only (syntactic validation) — it does not check whether the date is a real calendar date. For example, `2024-02-30` passes validation.
+
+## `presets.hms(options?)`
+
+| Call                              | Value Type            | Default      |
+| --------------------------------- | --------------------- | ------------ |
+| `presets.hms()`                   | `string`              | `"00:00:00"` |
+| `presets.hms({ optional: true })` | `string \| undefined` | `undefined`  |
+| `presets.hms({ array: true })`    | `string[]`            | `[]`         |
+
+Format: `HH:mm:ss`. Decode validates format via regex.
+
+## `presets.tuple(configs)`
+
+Combines multiple preset configs into a single array parameter. No `optional`, `default`, or `array` modifiers.
 
 ```ts
-const startDate = qsUtils.createSearchParamStore("start", presets.date.optional);
-// URL: ?start=2024-01-15T00:00:00.000Z
+presets.tuple([presets.string(), presets.integer()]);
+// type: [string, number], default: ["", NaN]
+// URL: ?param=hello&param=42
 ```
 
-## Additional presets
-
-| Preset                 | Value Type            | Default        | URL behavior          |
-| ---------------------- | --------------------- | -------------- | --------------------- |
-| `presets.ymd`          | `string`              | `"0000-00-00"` | YYYY-MM-DD format     |
-| `presets.ymd.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
-| `presets.hms`          | `string`              | `"00:00:00"`   | HH:MM:SS format       |
-| `presets.hms.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
-
-## The `.default(value)` modifier
-
-All `PresetGroup` presets (string, integer, float, boolean, enum, date, ymd, hms, and custom presets from `createPreset`) support `.default(value)` to override the type's inherent default.
-
-`.default(value)` is a **terminal modifier** like `.optional` and `.array` — it returns a plain config object with no further chaining.
-
-```ts
-presets.integer.default(1); // number, default 1 instead of NaN
-presets.integer.ceil.default(0); // number, uses Math.ceil, default 0
-presets.float.fixed(2).default(0); // number, 2 decimal places, default 0
-presets.string.default("all"); // string, default "all" instead of ""
-presets.boolean.default(true); // boolean, default true instead of false
-presets.enum(["a", "b"]).default("b"); // enum, default "b" instead of first element
-```
-
-When the URL parameter is missing, the store returns your custom default instead of the type's inherent one (e.g., `1` instead of `NaN` for integer).
+Decode: decodes each element with its config's decode. If any element throws, the entire tuple falls back to its combined `defaultValue`.
 
 ## Creating custom presets
 
-Use `createPreset` to build your own preset with the same `.optional`, `.array`, and `.default()` modifiers:
+Use `createPreset` to build your own preset function with the same options API:
 
 ```ts
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
@@ -130,10 +178,12 @@ const myPreset = createPreset({
   encode: (v) => String(v),
 });
 
-// myPreset              — base (defaultValue: 0)
-// myPreset.optional     — no defaultValue
-// myPreset.array        — array variant
-// myPreset.default(42)  — custom default
+// myPreset()                    — base (defaultValue: 0)
+// myPreset({ optional: true })  — no defaultValue
+// myPreset({ array: true })     — array variant
+// myPreset({ default: 42 })     — custom default
 ```
 
-See also [Custom Presets](/advanced/custom-presets/) for creating reusable presets with `createPreset`.
+Note: `createPreset` presets do not support `outOfRange` — handle range checking in your `decode` function instead.
+
+See also [Custom Presets](/advanced/custom-presets/) for more examples.

@@ -15,10 +15,10 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 const qsUtils = createQsUtils();
 
 const filters = qsUtils.createSearchParamsStore({
-  search: presets.string,
-  page: presets.integer.default(1),
-  limit: presets.integer.default(10),
-  categories: presets.enum(["electronics", "clothing", "books", "sports"]).array,
+  search: presets.string(),
+  page: presets.integer({ default: 1 }),
+  limit: presets.integer({ default: 10 }),
+  categories: presets.enum(["electronics", "clothing", "books", "sports"], { array: true }),
 });
 ```
 

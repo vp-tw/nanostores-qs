@@ -39,7 +39,7 @@ Create a reactive store for a single URL query parameter.
 ```ts
 import * as presets from "@vp-tw/nanostores-qs/presets";
 
-const store = qsUtils.createSearchParamStore("page", presets.integer);
+const store = qsUtils.createSearchParamStore("page", presets.integer());
 ```
 
 ### Parameters
@@ -65,7 +65,7 @@ Create a reactive store for multiple URL query parameters.
 
 ```ts
 const store = qsUtils.createSearchParamsStore({
-  page: presets.integer,
+  page: presets.integer(),
   sort: presets.enum(["newest", "oldest"]),
 });
 ```

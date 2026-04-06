@@ -19,9 +19,9 @@ const qsUtils = createQsUtils();
 const categoryOptions = ["electronics", "clothing", "books", "sports"] as const;
 
 const filters = qsUtils.createSearchParamsStore({
-  search: presets.string,
-  page: presets.integer.optional,
-  categories: presets.enum(categoryOptions).array,
+  search: presets.string(),
+  page: presets.integer({ optional: true }),
+  categories: presets.enum(categoryOptions, { array: true }),
 });
 
 export default function MultiParamDemo() {
@@ -46,7 +46,7 @@ export default function MultiParamDemo() {
             onClear={() => handleSearchChange("")}
           />
           <DemoInput
-            label="page (integer.optional)"
+            label="page (integer({ optional: true }))"
             type="number"
             placeholder="Page number"
             value={values.page === undefined ? "" : values.page}
@@ -57,7 +57,7 @@ export default function MultiParamDemo() {
             onClear={() => filters.update("page", undefined)}
           />
           <DemoMultiSelect
-            label="categories (enum.array)"
+            label="categories (enum({ array: true }))"
             options={categoryOptions}
             value={[...(values.categories ?? [])]}
             onChange={(v) =>

@@ -42,9 +42,13 @@ function zodEnum<T extends [string, ...string[]]>(schema: z.ZodEnum<T>) {
   });
 }
 
-// Usage — gets .optional and .array automatically
+// Usage — call with options like built-in presets
 const StatusSchema = z.enum(["active", "inactive", "pending"]);
-const statusStore = qsUtils.createSearchParamStore("status", zodEnum(StatusSchema));
+const statusStore = qsUtils.createSearchParamStore("status", zodEnum(StatusSchema)());
+const optionalStatus = qsUtils.createSearchParamStore(
+  "status",
+  zodEnum(StatusSchema)({ optional: true }),
+);
 ```
 
 ## Validation strategy

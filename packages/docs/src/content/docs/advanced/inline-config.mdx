@@ -44,7 +44,7 @@ const filters = qsUtils.createSearchParamsStore((def) => ({
 
 | Scenario                              | Approach                                            |
 | ------------------------------------- | --------------------------------------------------- |
-| Standard type (int, enum, boolean...) | Use a built-in preset                               |
+| Standard type (int, enum, boolean...) | Use a built-in preset (e.g. `presets.integer()`)    |
 | Custom logic, used in one place       | Inline `def()` callback                             |
 | Custom logic, reused across stores    | Create a [custom preset](/advanced/custom-presets/) |
 

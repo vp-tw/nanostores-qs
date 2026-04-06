@@ -3,7 +3,7 @@ title: Custom Presets
 description: Create reusable custom presets with createPreset
 ---
 
-Use `createPreset` from `@vp-tw/nanostores-qs/presets` to build your own presets. Every preset created with `createPreset` automatically gets `.optional` and `.array` variants.
+Use `createPreset` from `@vp-tw/nanostores-qs/presets` to build your own preset functions. A preset created with `createPreset` returns a function that accepts `{ optional }`, `{ default }`, or `{ array }` options — the same API as built-in presets.
 
 ```ts
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
@@ -22,15 +22,16 @@ const percentage = createPreset({
   encode: (v) => String(v),
 });
 
-// percentage          — base (defaultValue: 0)
-// percentage.optional — no defaultValue
-// percentage.array    — array variant
-const progressStore = qsUtils.createSearchParamStore("progress", percentage);
+// percentage()                    — base (defaultValue: 0)
+// percentage({ optional: true })  — no defaultValue
+// percentage({ array: true })     — array variant
+// percentage({ default: 50 })     — custom default
+const progressStore = qsUtils.createSearchParamStore("progress", percentage());
 ```
 
 ## Comma-separated array
 
-A single URL parameter representing an array (vs `.array` which uses multiple same-name parameters):
+A single URL parameter representing an array (vs `{ array: true }` which uses multiple same-name parameters):
 
 ```ts
 const commaSeparated = createPreset({
@@ -43,7 +44,7 @@ const commaSeparated = createPreset({
 });
 
 // URL: ?tags=react,typescript,nanostores
-const tagsStore = qsUtils.createSearchParamStore("tags", commaSeparated);
+const tagsStore = qsUtils.createSearchParamStore("tags", commaSeparated());
 ```
 
 ## JSON object
@@ -65,7 +66,7 @@ const json = <T>(defaultValue: T) =>
   });
 
 // URL: ?filter=%7B%22status%22%3A%22active%22%7D
-const filterStore = qsUtils.createSearchParamStore("filter", json({ status: "active" }));
+const filterStore = qsUtils.createSearchParamStore("filter", json({ status: "active" })());
 ```
 
 ## decimal.js integration
@@ -83,6 +84,11 @@ const decimal = createPreset<Decimal>({
   defaultValue: new Decimal(0),
   encode: (v) => v.toString(),
 });
+
+// decimal()                    — Decimal (default: 0)
+// decimal({ optional: true })  — Decimal | undefined
+// decimal({ array: true })     — Decimal[]
+const priceStore = qsUtils.createSearchParamStore("price", decimal());
 ```
 
 ## Zod v4 integration
@@ -102,14 +108,13 @@ const tabStore = qsUtils.createSearchParamStore("tab", {
 
 ## Preset anatomy
 
-A preset created by `createPreset` returns an object with:
+A preset created by `createPreset` returns a **function** that accepts options:
 
-- **`decode`**: `(rawValue: unknown) => T` — convert URL string to typed value; throw to reject
-- **`defaultValue`**: `T` — the value when the parameter is missing from the URL
-- **`encode`**: `(value: T) => string | undefined` — convert typed value back; return `undefined` to omit from URL
-- **`.optional`** — omits `defaultValue`, making the type `T | undefined`
-- **`.array`** — array variant using multiple same-name parameters
-- **`.default(value)`** — override `defaultValue` with a custom value
+- **No options** `()` — base config with `decode`, `defaultValue`, and `encode`
+- **`{ optional: true }`** — omits `defaultValue`, making the type `T | undefined`
+- **`{ array: true }`** — array variant using multiple same-name parameters
+- **`{ default: value }`** — override `defaultValue` with a custom value
+- **`{ array: true, maxItems: n }`** — array with a cap on items
 
 ```ts
 const percentage = createPreset({
@@ -123,7 +128,9 @@ const percentage = createPreset({
 });
 
 // Override the default from 0 to 50
-const brightnessStore = qsUtils.createSearchParamStore("brightness", percentage.default(50));
+const brightnessStore = qsUtils.createSearchParamStore("brightness", percentage({ default: 50 }));
 ```
+
+Note: presets created with `createPreset` do not support `outOfRange` — that option is specific to the built-in `integer()` and `float()` presets. Handle range checking in your `decode` function instead.
 
 Presets are **standalone** — they work with any `createQsUtils` instance, making them shareable across your app.

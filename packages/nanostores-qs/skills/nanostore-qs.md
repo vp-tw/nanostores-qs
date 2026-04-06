@@ -17,7 +17,7 @@ const qsUtils = createQsUtils();
 ## Single Parameter Store
 
 ```tsx
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer());
 
 // Read (React)
 const page = useStore(pageStore.$value); // number (NaN when absent)
@@ -34,8 +34,8 @@ const nextSearch = pageStore.update.dry(100); // "?page=100"
 
 ```tsx
 const filters = qsUtils.createSearchParamsStore({
-  search: presets.string,
-  page: presets.integer.optional,
+  search: presets.string(),
+  page: presets.integer({ optional: true }),
   sort: presets.enum(["newest", "oldest", "popular"]),
 });
 
@@ -54,55 +54,61 @@ const preview = filters.updateAll.dry({ ...values, page: 1 });
 
 ## Available Presets
 
-`import * as presets from "@vp-tw/nanostores-qs/presets"`. Each preset has `.optional`, `.array`, and `.default(value)` modifiers:
+`import * as presets from "@vp-tw/nanostores-qs/presets"`. All presets are functions that accept an options object:
 
-| Preset                           | Type                     | Default         |
-| -------------------------------- | ------------------------ | --------------- |
-| `presets.string`                 | `string`                 | `""`            |
-| `presets.string.optional`        | `string \| undefined`    | `undefined`     |
-| `presets.string.array`           | `string[]`               | `[]`            |
-| `presets.integer`                | `number`                 | `NaN`           |
-| `presets.integer.optional`       | `number \| undefined`    | `undefined`     |
-| `presets.integer.array`          | `number[]`               | `[]`            |
-| `presets.float`                  | `number`                 | `NaN`           |
-| `presets.float.optional`         | `number \| undefined`    | `undefined`     |
-| `presets.float.array`            | `number[]`               | `[]`            |
-| `presets.boolean`                | `boolean`                | `false`         |
-| `presets.boolean.optional`       | `boolean \| undefined`   | `undefined`     |
-| `presets.enum(options)`          | `T[number]`              | First element   |
-| `presets.enum(options).optional` | `T[number] \| undefined` | `undefined`     |
-| `presets.enum(options).array`    | `T[number][]`            | `[]`            |
-| `presets.date`                   | `Date`                   | `new Date(NaN)` |
-| `presets.date.optional`          | `Date \| undefined`      | `undefined`     |
-| `presets.date.array`             | `Date[]`                 | `[]`            |
-| `presets.ymd`                    | `string`                 | `"0000-00-00"`  |
-| `presets.hms`                    | `string`                 | `"00:00:00"`    |
+| Preset                                      | Type                     | Default         |
+| ------------------------------------------- | ------------------------ | --------------- |
+| `presets.string()`                          | `string`                 | `""`            |
+| `presets.string({ optional: true })`        | `string \| undefined`    | `undefined`     |
+| `presets.string({ array: true })`           | `string[]`               | `[]`            |
+| `presets.integer()`                         | `number`                 | `NaN`           |
+| `presets.integer({ optional: true })`       | `number \| undefined`    | `undefined`     |
+| `presets.integer({ array: true })`          | `number[]`               | `[]`            |
+| `presets.float()`                           | `number`                 | `NaN`           |
+| `presets.float({ optional: true })`         | `number \| undefined`    | `undefined`     |
+| `presets.float({ array: true })`            | `number[]`               | `[]`            |
+| `presets.boolean()`                         | `boolean`                | `false`         |
+| `presets.boolean({ optional: true })`       | `boolean \| undefined`   | `undefined`     |
+| `presets.enum(options)`                     | `T[number]`              | First element   |
+| `presets.enum(options, { optional: true })` | `T[number] \| undefined` | `undefined`     |
+| `presets.enum(options, { array: true })`    | `T[number][]`            | `[]`            |
+| `presets.date()`                            | `Date`                   | `new Date(NaN)` |
+| `presets.date({ optional: true })`          | `Date \| undefined`      | `undefined`     |
+| `presets.date({ array: true })`             | `Date[]`                 | `[]`            |
+| `presets.ymd()`                             | `string`                 | `"0000-00-00"`  |
+| `presets.hms()`                             | `string`                 | `"00:00:00"`    |
 
-### Integer rounding variants
+### Integer-specific options
 
-| Variant                 | Description               |
-| ----------------------- | ------------------------- |
-| `presets.integer`       | `Math.round` (default)    |
-| `presets.integer.round` | Same as `presets.integer` |
-| `presets.integer.ceil`  | `Math.ceil`               |
-| `presets.integer.floor` | `Math.floor`              |
-| `presets.integer.parse` | `parseInt` (truncates)    |
-
-### Float precision
+| Option       | Type                                      | Default      | Description              |
+| ------------ | ----------------------------------------- | ------------ | ------------------------ |
+| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`    | Rounding mode            |
+| `min`        | `number`                                  | Min safe int | Minimum allowed value    |
+| `max`        | `number`                                  | Max safe int | Maximum allowed value    |
+| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`    | Clamp to range or reject |
 
 ```ts
-presets.float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
+presets.integer({ round: "ceil" }); // Math.ceil
+presets.integer({ round: "ceil", default: 0 }); // Math.ceil, default 0
+presets.integer({ min: 1, max: 100, default: 1 }); // clamped 1-100
 ```
 
-### `.default(value)` modifier
-
-Override the type's inherent default with a custom value. Terminal modifier (no further chaining):
+### Float-specific options
 
 ```ts
-presets.integer.default(1); // number, default 1 instead of NaN
-presets.integer.ceil.default(0); // number, uses Math.ceil, default 0
-presets.float.fixed(2).default(0); // number, 2 decimal places, default 0
-presets.string.default("all"); // string, default "all" instead of ""
+presets.float({ fixed: 2 }); // 2 decimal places
+presets.float({ fixed: 2, default: 0 }); // 2 decimal places, default 0
+```
+
+### Custom defaults
+
+Use the `default` option to override the type's inherent default:
+
+```ts
+presets.integer({ default: 1 }); // number, default 1 instead of NaN
+presets.string({ default: "all" }); // string, default "all" instead of ""
+presets.boolean({ default: true }); // boolean, default true instead of false
+presets.enum(["a", "b"], { default: "b" }); // enum, default "b" instead of "a"
 ```
 
 ## Update Options
@@ -134,7 +140,7 @@ router.push(`${pathname}${nextSearch}`);
 
 ## Custom Presets
 
-Use `createPreset` for presets with automatic `.optional` and `.array` variants:
+Use `createPreset` for presets with the same function-based options API:
 
 ```ts
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
@@ -150,10 +156,10 @@ const bounded = (min: number, max: number) =>
     encode: (v) => String(v),
   });
 
-// bounded(1, 100)             — base
-// bounded(1, 100).optional    — no defaultValue
-// bounded(1, 100).array       — array variant
-// bounded(1, 100).default(50) — custom default
+// bounded(1, 100)()                    — base
+// bounded(1, 100)({ optional: true })  — no defaultValue
+// bounded(1, 100)({ array: true })     — array variant
+// bounded(1, 100)({ default: 50 })     — custom default
 ```
 
 ## Custom QS Library
@@ -173,6 +179,6 @@ const qsUtils = createQsUtils({
 
 1. **Correlated params**: Use `updateAll` when changing one param should reset another (e.g., search -> reset page)
 2. **Router integration**: Always use `.dry()` + router navigation when your app has route guards/loaders
-3. **Custom presets**: Use `createPreset` for reusable decode/encode logic with automatic `.optional`/`.array`/`.default()` modifiers
-4. **Custom defaults**: Use `.default(value)` when the type's inherent default isn't appropriate (e.g., `presets.integer.default(1)` for page numbers)
-5. **Validation**: Handle in `decode` — throw to reject invalid input (filtered out in `.array`, falls back to `defaultValue` in base)
+3. **Custom presets**: Use `createPreset` for reusable decode/encode logic with automatic `{ optional }` / `{ array }` / `{ default }` options
+4. **Custom defaults**: Use `{ default: value }` when the type's inherent default isn't appropriate (e.g., `presets.integer({ default: 1 })` for page numbers)
+5. **Validation**: Handle in `decode` — throw to reject invalid input (filtered out in `{ array: true }`, falls back to `defaultValue` in base)
