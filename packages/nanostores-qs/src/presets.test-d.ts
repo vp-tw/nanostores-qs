@@ -1,4 +1,5 @@
 import { createQsUtils } from "./main";
+import * as presets from "./presets";
 import { createPreset } from "./presets";
 
 const anyObj: any = {};
@@ -71,6 +72,64 @@ const stringPreset = createPreset({
   const s = qs.createSearchParamStore("s", stringPreset.array);
   type Result = ReturnType<typeof s.$value.get>;
   type Expected = Array<string>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- presets.string ---
+
+// base -> string
+(() => {
+  const s = qs.createSearchParamStore("s", presets.string);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("s", presets.string.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<string>
+(() => {
+  const s = qs.createSearchParamStore("s", presets.string.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<string>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// --- presets.boolean ---
+
+// base -> boolean
+(() => {
+  const s = qs.createSearchParamStore("b", presets.boolean);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = boolean;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> boolean | undefined
+(() => {
+  const s = qs.createSearchParamStore("b", presets.boolean.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = boolean | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<boolean>
+(() => {
+  const s = qs.createSearchParamStore("b", presets.boolean.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<boolean>;
   anyObj as Result satisfies Expected;
   anyObj as Expected satisfies Result;
 })();

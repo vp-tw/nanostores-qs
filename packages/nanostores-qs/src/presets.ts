@@ -61,5 +61,28 @@ interface CreatePresetResult<TType, TDefaultValueType> {
   };
 }
 
-export { createPreset };
+const string = createPreset({
+  decode: (value: unknown): string => String(value),
+  defaultValue: "",
+});
+
+const booleanStrict = createPreset({
+  decode: (value: unknown): boolean => {
+    if (value === "true") return true;
+    if (value === "false") return false;
+    throw new Error("invalid boolean");
+  },
+  defaultValue: false,
+  encode: (v) => (v ? "true" : undefined),
+});
+
+// Override base decode to be lenient: "true" → true, anything else → false
+const boolean: CreatePresetResult<boolean, boolean> = {
+  ...booleanStrict,
+  decode: (value: unknown): boolean => value === "true",
+  optional: booleanStrict.optional,
+  array: booleanStrict.array,
+};
+
+export { boolean, createPreset, string };
 export type { CreatePresetResult };
