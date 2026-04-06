@@ -1,282 +1,164 @@
-import type { createQsUtils } from "./main";
-import { isNil } from "es-toolkit";
-
-function createPreset<TType, TDefaultValueType = TType>(config: {
-  decode: (value: unknown) => TType;
-  defaultValue: TDefaultValueType;
-  encode?: (value: TType) => string | undefined;
-}): CreatePresetResult<TType, TDefaultValueType> {
-  const encode = config.encode ?? ((v: TType) => String(v));
-
-  const base = {
-    decode: config.decode,
-    defaultValue: config.defaultValue,
-    encode,
-  };
-
-  const optional = {
-    decode: (v: unknown) => {
-      if (isNil(v)) return undefined as unknown as TType;
-      return config.decode(v);
-    },
-    encode: (v: TType) => {
-      if (isNil(v)) return undefined;
-      return encode(v);
-    },
-  };
-
-  const array = {
-    isArray: true as const,
-    decode: (values: Array<unknown>): Array<TType> => {
-      return values.flatMap((v) => {
-        try {
-          return [config.decode(v)];
-        } catch {
-          return [];
-        }
-      });
-    },
-    encode: (values: Array<TType>): Array<string> => {
-      return values.flatMap((v) => {
-        if (isNil(v)) return [];
-        try {
-          const encoded = encode(v);
-          return isNil(encoded) ? [] : [encoded];
-        } catch {
-          return [];
-        }
-      });
-    },
-  };
-
-  const defaultFn = (value: TType) => ({
-    decode: config.decode,
-    defaultValue: value,
-    encode,
-  });
-
-  return Object.assign(base, { optional, array, default: defaultFn }) as CreatePresetResult<
-    TType,
-    TDefaultValueType
-  >;
+function isNil(value: unknown): value is null | undefined {
+  return value === null || value === undefined;
 }
 
-// Internal result type — exact object shapes for InferValueFromQueryParamConfig to work
-interface CreatePresetResult<TType, TDefaultValueType> {
+// --- Shared option types with `never` exclusivity ---
+
+interface BaseOptions {
+  optional?: never;
+  default?: never;
+  array?: never;
+  maxItems?: never;
+}
+
+interface OptionalOptions<_TType> {
+  optional: true;
+  default?: never;
+  array?: never;
+  maxItems?: never;
+}
+
+interface DefaultOptions<TType> {
+  optional?: never;
+  default: TType;
+  array?: never;
+  maxItems?: never;
+}
+
+interface ArrayOptions {
+  optional?: never;
+  default?: never;
+  array: true;
+  maxItems?: number;
+}
+
+type PresetOptions<TType> =
+  | Partial<BaseOptions>
+  | OptionalOptions<TType>
+  | DefaultOptions<TType>
+  | ArrayOptions;
+
+// --- Return types ---
+
+interface BaseResult<TType, TDefaultValueType> {
   decode: (value: unknown) => TType;
   defaultValue: TDefaultValueType;
   encode: (value: TType) => string | undefined;
-  optional: {
-    decode: (value: unknown) => TType;
-    encode: (value: TType) => string | undefined;
-  };
-  array: {
-    isArray: true;
-    decode: (value: Array<unknown>) => Array<TType>;
-    encode: (value: Array<TType>) => Array<string>;
-  };
-  default: (value: TType) => {
-    decode: (value: unknown) => TType;
-    defaultValue: TType;
-    encode: (value: TType) => string | undefined;
-  };
 }
 
-const string: CreatePresetResult<string, string> = createPreset({
-  decode: (value: unknown): string => String(value),
-  defaultValue: "",
-});
-
-const booleanStrict = createPreset({
-  decode: (value: unknown): boolean => {
-    if (value === "true") return true;
-    if (value === "false") return false;
-    throw new Error("invalid boolean");
-  },
-  defaultValue: false,
-  encode: (v) => (v ? "true" : undefined),
-});
-
-// Override base decode to be lenient: "true" → true, anything else → false
-const boolean: CreatePresetResult<boolean, boolean> = {
-  ...booleanStrict,
-  decode: (value: unknown): boolean => value === "true",
-  optional: booleanStrict.optional,
-  array: booleanStrict.array,
-};
-
-function createIntegerPreset(roundFn: (n: number) => number): CreatePresetResult<number, number> {
-  return createPreset({
-    decode: (value: unknown): number => {
-      const n = Number.parseFloat(String(value));
-      if (Number.isNaN(n)) throw new Error("invalid integer");
-      return roundFn(n);
-    },
-    defaultValue: Number.NaN,
-    encode: (v) => {
-      if (isNil(v) || Number.isNaN(v)) return undefined;
-      return String(v);
-    },
-  });
+interface OptionalResult<TType> {
+  decode: (value: unknown) => TType | undefined;
+  encode: (value: TType | undefined) => string | undefined;
 }
 
-const integerRound = createIntegerPreset(Math.round);
-const integerParse = createPreset({
-  decode: (value: unknown): number => {
-    const n = Number.parseInt(String(value), 10);
-    if (Number.isNaN(n)) throw new Error("invalid integer");
-    return n;
-  },
-  defaultValue: Number.NaN,
-  encode: (v) => {
-    if (isNil(v) || Number.isNaN(v)) return undefined;
-    return String(v);
-  },
-});
-
-const integer: CreatePresetResult<number, number> & {
-  parse: CreatePresetResult<number, number>;
-  ceil: CreatePresetResult<number, number>;
-  floor: CreatePresetResult<number, number>;
-  round: CreatePresetResult<number, number>;
-} = Object.assign(integerRound, {
-  parse: integerParse,
-  ceil: createIntegerPreset(Math.ceil),
-  floor: createIntegerPreset(Math.floor),
-  round: integerRound,
-});
-
-const floatBase = createPreset({
-  decode: (value: unknown): number => {
-    const n = Number.parseFloat(String(value));
-    if (Number.isNaN(n)) throw new Error("invalid float");
-    return n;
-  },
-  defaultValue: Number.NaN,
-  encode: (v) => {
-    if (isNil(v) || Number.isNaN(v)) return undefined;
-    return String(v);
-  },
-});
-
-function fixed(digits: number): CreatePresetResult<number, number> {
-  return createPreset({
-    decode: (value: unknown): number => {
-      const n = Number.parseFloat(String(value));
-      if (Number.isNaN(n)) throw new Error("invalid float");
-      return Number(n.toFixed(digits));
-    },
-    defaultValue: Number.NaN,
-    encode: (v) => {
-      if (isNil(v) || Number.isNaN(v)) return undefined;
-      return v.toFixed(digits);
-    },
-  });
+interface DefaultResult<TType> {
+  decode: (value: unknown) => TType;
+  defaultValue: TType;
+  encode: (value: TType) => string | undefined;
 }
 
-const float: CreatePresetResult<number, number> & {
-  fixed: (digits: number) => CreatePresetResult<number, number>;
-} = Object.assign(floatBase, { fixed });
-
-const date: CreatePresetResult<Date, Date> = createPreset({
-  decode: (value: unknown): Date => {
-    const d = new Date(String(value));
-    if (Number.isNaN(d.getTime())) throw new Error("invalid date");
-    return d;
-  },
-  defaultValue: new Date(Number.NaN),
-  encode: (v) => {
-    if (isNil(v) || Number.isNaN(v.getTime())) return undefined;
-    return v.toISOString();
-  },
-});
-
-const ymdPattern = /^\d{4}-\d{2}-\d{2}$/;
-const ymd: CreatePresetResult<string, string> = createPreset({
-  decode: (value: unknown): string => {
-    const s = String(value);
-    if (!ymdPattern.test(s)) throw new Error("invalid ymd format");
-    return s;
-  },
-  defaultValue: "0000-00-00",
-});
-
-const hmsPattern = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
-const hms: CreatePresetResult<string, string> = createPreset({
-  decode: (value: unknown): string => {
-    const s = String(value);
-    if (!hmsPattern.test(s)) throw new Error("invalid hms format");
-    return s;
-  },
-  defaultValue: "00:00:00",
-});
-
-function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
-  enumArray: TEnumArray,
-): CreatePresetResult<TEnumArray[number], TEnumArray[0]> {
-  return createPreset<TEnumArray[number], TEnumArray[0]>({
-    decode: (value: unknown): TEnumArray[number] => {
-      const s = String(value);
-      if (!enumArray.includes(s)) throw new Error("invalid enum value");
-      return s;
-    },
-    defaultValue: enumArray[0] as TEnumArray[0],
-  });
+interface ArrayResult<TType> {
+  isArray: true;
+  decode: (value: Array<unknown>) => Array<TType>;
+  encode: (value: Array<TType>) => Array<string>;
 }
 
-// Type helpers for tuple inference
-type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+// --- Config input ---
 
-type InferTupleType<TConfigs extends ReadonlyArray<unknown>> = Mutable<{
-  [K in keyof TConfigs]: createQsUtils.InferValueFromItemQueryParamConfig<TConfigs[K]>;
-}>;
-
-type InferTupleDefaults<TConfigs extends ReadonlyArray<unknown>> = Mutable<{
-  [K in keyof TConfigs]: TConfigs[K] extends { defaultValue: infer TDefaultValue }
-    ? TDefaultValue
-    : undefined;
-}>;
-
-interface TupleConfig {
-  decode: (value: unknown) => unknown;
-  defaultValue?: unknown;
-  encode?: (value: any) => string | undefined;
+interface CreatePresetConfig<TType, TDefaultValueType> {
+  decode: (value: unknown) => TType;
+  defaultValue: TDefaultValueType;
+  encode?: (value: TType) => string | undefined;
 }
 
-function presetTuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
-  configs: TConfigs,
-  options?: { separator?: string },
-): {
-  decode: (value: unknown) => InferTupleType<TConfigs>;
-  defaultValue: InferTupleDefaults<TConfigs>;
-  encode: (value: InferTupleType<TConfigs>) => string | undefined;
-} {
-  const separator = options?.separator ?? ",";
+// --- Overloaded return type ---
 
-  const defaultValue = configs.map((c) =>
-    "defaultValue" in c ? c.defaultValue : undefined,
-  ) as InferTupleDefaults<TConfigs>;
-
-  return {
-    decode: (value: unknown): InferTupleType<TConfigs> => {
-      const parts = String(value).split(separator);
-      return configs.map((c, i) => c.decode(parts[i])) as InferTupleType<TConfigs>;
-    },
-    defaultValue,
-    encode: (value: InferTupleType<TConfigs>): string | undefined => {
-      const parts = (value as Array<unknown>).map((v, i) => {
-        const enc = configs[i]!.encode ?? ((val: unknown) => String(val));
-        return enc(v);
-      });
-      if (parts.every((p) => p == null)) return undefined;
-      return parts.map((p) => p ?? "").join(separator);
-    },
-  };
+interface CreatePresetReturn<TType, TDefaultValueType> {
+  (): BaseResult<TType, TDefaultValueType>;
+  (options: { optional: true }): OptionalResult<TType>;
+  <TDefault extends TType>(options: { default: TDefault }): DefaultResult<TType>;
+  (options: { array: true; maxItems?: number }): ArrayResult<TType>;
+  (
+    options?: PresetOptions<TType>,
+  ):
+    | BaseResult<TType, TDefaultValueType>
+    | OptionalResult<TType>
+    | DefaultResult<TType>
+    | ArrayResult<TType>;
 }
 
-// "enum" is a reserved word in JS, but valid as a named export
-export { presetEnum as enum };
+// --- Factory ---
 
-export { presetTuple as tuple };
-export { boolean, createPreset, date, float, hms, integer, string, ymd };
-export type { CreatePresetResult };
+function createPreset<TType, TDefaultValueType = TType>(
+  config: CreatePresetConfig<TType, TDefaultValueType>,
+): CreatePresetReturn<TType, TDefaultValueType> {
+  const encode = config.encode ?? ((v: TType) => String(v));
+
+  function presetFn(options?: PresetOptions<TType>): any {
+    // optional
+    if (options && "optional" in options && options.optional === true) {
+      return {
+        decode: (v: unknown) => {
+          if (isNil(v)) return undefined;
+          return config.decode(v);
+        },
+        encode: (v: TType | undefined) => {
+          if (isNil(v)) return undefined;
+          return encode(v);
+        },
+      };
+    }
+
+    // default
+    if (options && "default" in options && options.default !== undefined) {
+      return {
+        decode: config.decode,
+        defaultValue: options.default,
+        encode,
+      };
+    }
+
+    // array
+    if (options && "array" in options && options.array === true) {
+      const maxItems = (options as ArrayOptions).maxItems;
+      return {
+        isArray: true as const,
+        decode: (values: Array<unknown>): Array<TType> => {
+          const result = values.flatMap((v) => {
+            try {
+              return [config.decode(v)];
+            } catch {
+              return [];
+            }
+          });
+          if (maxItems !== undefined) {
+            return result.slice(0, maxItems);
+          }
+          return result;
+        },
+        encode: (values: Array<TType>): Array<string> => {
+          return values.flatMap((v) => {
+            if (isNil(v)) return [];
+            try {
+              const encoded = encode(v);
+              return isNil(encoded) ? [] : [encoded];
+            } catch {
+              return [];
+            }
+          });
+        },
+      };
+    }
+
+    // base (no options or empty options)
+    return {
+      decode: config.decode,
+      defaultValue: config.defaultValue,
+      encode,
+    };
+  }
+
+  return presetFn as CreatePresetReturn<TType, TDefaultValueType>;
+}
+
+export { createPreset };
