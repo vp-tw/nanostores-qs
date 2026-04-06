@@ -12,22 +12,22 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
-// Single parameter with a preset
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+// Single parameter with a preset — defaults to 1 instead of NaN
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer.default(1));
 
 // Multiple parameters with presets
 const filters = qsUtils.createSearchParamsStore({
-  page: presets.integer,
+  page: presets.integer.default(1),
   sort: presets.enum(["newest", "oldest", "popular"]),
   showArchived: presets.boolean,
 });
 
 function Filters() {
-  const page = useStore(pageStore.$value); // number (NaN when absent)
+  const page = useStore(pageStore.$value); // number (1 when absent)
   const values = useStore(filters.$values); // { page, sort, showArchived }
   return (
     <div>
-      <p>Page: {Number.isNaN(page) ? "—" : page}</p>
+      <p>Page: {page}</p>
       <button
         type="button"
         onClick={() => filters.updateAll({ ...values, page: 1, sort: "popular" })}

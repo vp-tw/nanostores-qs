@@ -109,5 +109,21 @@ A preset created by `createPreset` returns an object with:
 - **`encode`**: `(value: T) => string | undefined` — convert typed value back; return `undefined` to omit from URL
 - **`.optional`** — omits `defaultValue`, making the type `T | undefined`
 - **`.array`** — array variant using multiple same-name parameters
+- **`.default(value)`** — override `defaultValue` with a custom value
+
+```ts
+const percentage = createPreset({
+  decode: (value: unknown): number => {
+    const n = Number(value);
+    if (Number.isNaN(n) || n < 0 || n > 100) throw new Error("invalid percentage");
+    return n;
+  },
+  defaultValue: 0,
+  encode: (v) => String(v),
+});
+
+// Override the default from 0 to 50
+const brightnessStore = qsUtils.createSearchParamStore("brightness", percentage.default(50));
+```
 
 Presets are **standalone** — they work with any `createQsUtils` instance, making them shareable across your app.

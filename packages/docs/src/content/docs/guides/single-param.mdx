@@ -14,7 +14,7 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer.default(1));
 const searchStore = qsUtils.createSearchParamStore("q", presets.string.optional);
 const sortStore = qsUtils.createSearchParamStore(
   "sort",
@@ -28,7 +28,7 @@ const archivedStore = qsUtils.createSearchParamStore("archived", presets.boolean
 ```tsx
 import { useStore } from "@nanostores/react";
 
-const page = useStore(pageStore.$value); // number (NaN when absent)
+const page = useStore(pageStore.$value); // number (1 when absent)
 const search = useStore(searchStore.$value); // string | undefined
 ```
 
@@ -55,6 +55,25 @@ Try interacting with the controls below — watch the URL update in real time.
 <DemoWrapper source="packages/docs/src/components/demos/SingleParamDemo.tsx">
   <SingleParamDemo client:load />
 </DemoWrapper>
+
+## Custom defaults with `.default()`
+
+Use `.default(value)` to override a type's inherent default. For example, `presets.integer` defaults to `NaN`, but a page number should default to `1`:
+
+```ts
+// Without .default() — page is NaN when absent
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+
+// With .default() — page is 1 when absent
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer.default(1));
+```
+
+`.default()` also works with rounding variants and float precision:
+
+```ts
+presets.integer.ceil.default(0); // Math.ceil, default 0
+presets.float.fixed(2).default(0); // 2 decimal places, default 0
+```
 
 ## Default behavior
 

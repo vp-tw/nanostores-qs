@@ -54,7 +54,7 @@ const preview = filters.updateAll.dry({ ...values, page: 1 });
 
 ## Available Presets
 
-`import * as presets from "@vp-tw/nanostores-qs/presets"`. Each preset has `.optional` and `.array` variants:
+`import * as presets from "@vp-tw/nanostores-qs/presets"`. Each preset has `.optional`, `.array`, and `.default(value)` modifiers:
 
 | Preset                           | Type                     | Default         |
 | -------------------------------- | ------------------------ | --------------- |
@@ -92,6 +92,17 @@ const preview = filters.updateAll.dry({ ...values, page: 1 });
 
 ```ts
 presets.float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
+```
+
+### `.default(value)` modifier
+
+Override the type's inherent default with a custom value. Terminal modifier (no further chaining):
+
+```ts
+presets.integer.default(1); // number, default 1 instead of NaN
+presets.integer.ceil.default(0); // number, uses Math.ceil, default 0
+presets.float.fixed(2).default(0); // number, 2 decimal places, default 0
+presets.string.default("all"); // string, default "all" instead of ""
 ```
 
 ## Update Options
@@ -139,9 +150,10 @@ const bounded = (min: number, max: number) =>
     encode: (v) => String(v),
   });
 
-// bounded(1, 100)          — base
-// bounded(1, 100).optional — no defaultValue
-// bounded(1, 100).array    — array variant
+// bounded(1, 100)             — base
+// bounded(1, 100).optional    — no defaultValue
+// bounded(1, 100).array       — array variant
+// bounded(1, 100).default(50) — custom default
 ```
 
 ## Custom QS Library
@@ -161,5 +173,6 @@ const qsUtils = createQsUtils({
 
 1. **Correlated params**: Use `updateAll` when changing one param should reset another (e.g., search -> reset page)
 2. **Router integration**: Always use `.dry()` + router navigation when your app has route guards/loaders
-3. **Custom presets**: Use `createPreset` for reusable decode/encode logic with automatic `.optional`/`.array` variants
-4. **Validation**: Handle in `decode` — throw to reject invalid input (filtered out in `.array`, falls back to `defaultValue` in base)
+3. **Custom presets**: Use `createPreset` for reusable decode/encode logic with automatic `.optional`/`.array`/`.default()` modifiers
+4. **Custom defaults**: Use `.default(value)` when the type's inherent default isn't appropriate (e.g., `presets.integer.default(1)` for page numbers)
+5. **Validation**: Handle in `decode` — throw to reject invalid input (filtered out in `.array`, falls back to `defaultValue` in base)

@@ -16,7 +16,8 @@ const qsUtils = createQsUtils();
 
 const filters = qsUtils.createSearchParamsStore({
   search: presets.string,
-  page: presets.integer.optional,
+  page: presets.integer.default(1),
+  limit: presets.integer.default(10),
   categories: presets.enum(["electronics", "clothing", "books", "sports"]).array,
 });
 ```
@@ -25,13 +26,14 @@ const filters = qsUtils.createSearchParamsStore({
 
 ```tsx
 const values = useStore(filters.$values);
-// { search: string, page: number | undefined, categories: Array<...> }
+// { search: string, page: number, limit: number, categories: Array<...> }
 ```
 
 ## Updating a single field
 
 ```tsx
 filters.update("page", 2);
+filters.update("limit", 25);
 ```
 
 ## Updating all fields atomically
@@ -42,7 +44,7 @@ Use `updateAll` for **correlated parameters** — e.g., resetting page when sear
 filters.updateAll({
   ...filters.$values.get(),
   search: "headphones",
-  page: undefined, // reset page on new search
+  page: 1, // reset page on new search
 });
 ```
 
@@ -70,6 +72,6 @@ When `search` changes, reset `page` to avoid showing page 5 of a new search:
 
 ```tsx
 function onSearchChange(term: string) {
-  filters.updateAll({ ...filters.$values.get(), search: term, page: undefined });
+  filters.updateAll({ ...filters.$values.get(), search: term, page: 1 });
 }
 ```

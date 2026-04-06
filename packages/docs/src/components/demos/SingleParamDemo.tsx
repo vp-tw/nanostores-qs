@@ -17,7 +17,7 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer.default(1));
 const searchStore = qsUtils.createSearchParamStore("q", presets.string.optional);
 const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
 const showArchivedStore = qsUtils.createSearchParamStore("archived", presets.boolean);
@@ -43,15 +43,15 @@ export default function SingleParamDemo() {
             onClear={() => searchStore.update(undefined)}
           />
           <DemoInput
-            label="page (integer)"
+            label="page (integer.default(1))"
             type="number"
             placeholder="Page number"
-            value={Number.isNaN(page) ? "" : page}
+            value={page}
             onChange={(e) => {
               const v = e.currentTarget.value;
-              pageStore.update(v === "" ? Number.NaN : Number(v));
+              pageStore.update(v === "" ? 1 : Number(v));
             }}
-            onClear={() => pageStore.update(Number.NaN)}
+            onClear={() => pageStore.update(1)}
           />
           <DemoSelect
             label="sort (enum)"

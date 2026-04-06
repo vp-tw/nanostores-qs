@@ -100,9 +100,26 @@ const startDate = qsUtils.createSearchParamStore("start", presets.date.optional)
 | `presets.hms`          | `string`              | `"00:00:00"`   | HH:MM:SS format       |
 | `presets.hms.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
 
+## The `.default(value)` modifier
+
+All `PresetGroup` presets (string, integer, float, boolean, enum, date, ymd, hms, and custom presets from `createPreset`) support `.default(value)` to override the type's inherent default.
+
+`.default(value)` is a **terminal modifier** like `.optional` and `.array` — it returns a plain config object with no further chaining.
+
+```ts
+presets.integer.default(1); // number, default 1 instead of NaN
+presets.integer.ceil.default(0); // number, uses Math.ceil, default 0
+presets.float.fixed(2).default(0); // number, 2 decimal places, default 0
+presets.string.default("all"); // string, default "all" instead of ""
+presets.boolean.default(true); // boolean, default true instead of false
+presets.enum(["a", "b"]).default("b"); // enum, default "b" instead of first element
+```
+
+When the URL parameter is missing, the store returns your custom default instead of the type's inherent one (e.g., `1` instead of `NaN` for integer).
+
 ## Creating custom presets
 
-Use `createPreset` to build your own preset with the same `.optional` and `.array` variants:
+Use `createPreset` to build your own preset with the same `.optional`, `.array`, and `.default()` modifiers:
 
 ```ts
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
@@ -113,9 +130,10 @@ const myPreset = createPreset({
   encode: (v) => String(v),
 });
 
-// myPreset           — base (defaultValue: 0)
-// myPreset.optional  — no defaultValue
-// myPreset.array     — array variant
+// myPreset              — base (defaultValue: 0)
+// myPreset.optional     — no defaultValue
+// myPreset.array        — array variant
+// myPreset.default(42)  — custom default
 ```
 
 See also [Custom Presets](/advanced/custom-presets/) for creating reusable presets with `createPreset`.
