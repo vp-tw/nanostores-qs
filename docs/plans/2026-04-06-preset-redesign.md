@@ -1,216 +1,259 @@
-# Preset API Redesign
+# Preset API Redesign (v2)
 
-Redesign flat preset exports (`presetInt`, `presetIntOptional`, `presetIntArray`) into grouped presets with `.optional` / `.array` modifiers, plus a `createPreset` factory for custom presets.
+Redesign presets as function calls with options. All configuration (optional, default, array, constraints) via a single options object. No property chaining. Zero external dependencies — presets module uses its own utilities.
 
 ## Usage
-
-All presets accessed via namespace import to avoid name collisions (`string`, `boolean` shadow TS types):
 
 ```ts
 import * as presets from "@vp-tw/nanostores-qs/presets";
 
-createSearchParamStore("count", presets.integer); // number (default NaN)
-createSearchParamStore("count", presets.integer.optional); // number | undefined
-createSearchParamStore("count", presets.integer.array); // Array<number>
+createSearchParamStore("page", presets.integer({ default: 1 }));
+createSearchParamStore("q", presets.string({ optional: true }));
+createSearchParamStore("sort", presets.enum(["asc", "desc"]));
+createSearchParamStore("tags", presets.enum(["a", "b", "c"], { array: true }));
 ```
 
-## Core Types
+## Options Design
 
-### `Preset<TDescriptor>`
+### Mutual Exclusivity
 
-Maps a descriptor object to the config shape consumed by `createSearchParamStore`. The existing `InferValueFromQueryParamConfig` infers value types from `decode` return type + `defaultValue` presence.
+`optional`, `default`, and `array` are mutually exclusive. Enforced via `never` overrides:
 
 ```ts
-type Preset<
-  TDescriptor extends {
-    type: unknown;
-    defaultValueType?: unknown;
-    isArray?: boolean;
-  },
-> = TDescriptor extends { isArray: true }
-  ? {
-      isArray: true;
-      decode: (value: Array<unknown>) => Array<TDescriptor["type"]>;
-    }
-  : TDescriptor extends { defaultValueType: infer TDefaultValueType }
-    ? undefined extends TDefaultValueType
-      ? { decode: (value: unknown) => TDescriptor["type"] }
-      : { decode: (value: unknown) => TDescriptor["type"]; defaultValue: TDefaultValueType }
-    : { decode: (value: unknown) => TDescriptor["type"] };
+type IntegerOptions =
+  | (IntegerBaseOptions & { optional?: never; default?: never; array?: never })
+  | (IntegerBaseOptions & { optional: true; default?: never; array?: never })
+  | (IntegerBaseOptions & { default: number; optional?: never; array?: never })
+  | (IntegerBaseOptions & { array: true; maxItems?: number; optional?: never; default?: never });
 ```
 
-### `PresetGroup<TType, TDefaultValueType>`
+- No modifier — uses preset's inherent default (e.g., `NaN` for integer)
+- `optional: true` — value can be `undefined`, no `defaultValue` in config
+- `default: T` — custom default value
+- `array: true` — `Array<T>`, default `[]`
 
-A preset with `.optional` and `.array` modifiers. Returned by `createPreset`.
+### `outOfRange`
+
+Controls constraint violation behavior. Available on presets with constraints (integer, float, string):
+
+- `"clamp"` (default) — silently correct (clamp numbers, truncate strings, slice arrays)
+- `"reject"` — throw → falls back to `defaultValue` (or `undefined` for optional)
+
+### Nil Handling in Optional
+
+`main.ts` spreads `defaultItemConfig` (which includes `defaultValue: undefined`) onto all configs. This means `"defaultValue" in config` is always `true` after the spread, and the nil short-circuit in the decode path never triggers.
+
+**Solution:** Preset functions wrap optional decode and encode with nil checks:
+
+- Optional decode: if value is nil, return `undefined` without calling the user decode
+- Optional encode: if value is nil, return `undefined` without calling the user encode
+
+This is handled by internal `isNil` utility (no external dependency):
 
 ```ts
-type PresetGroup<TType, TDefaultValueType = TType> = Preset<{
-  type: TType;
-  defaultValueType: TDefaultValueType;
-}> & {
-  optional: Preset<{ type: TType }>;
-  array: Preset<{ type: TType; isArray: true }>;
-};
+function isNil(value: unknown): value is null | undefined {
+  return value === null || value === undefined;
+}
 ```
-
-## `createPreset<TType, TDefaultValueType>` Factory
-
-Creates a `PresetGroup` from a decode/defaultValue/encode config. The `decode` function should **throw on invalid input** -- the library's existing try-catch mechanism handles fallback:
-
-- **base**: `decode` throw -> library catch -> `defaultValue`
-- **optional**: `decode` throw -> library catch -> `undefined` (no `defaultValue`)
-- **array**: per-item `decode` throw -> filter out invalid items
-
-```ts
-function createPreset<TType, TDefaultValueType = TType>(config: {
-  decode: (value: unknown) => TType;
-  defaultValue: TDefaultValueType;
-  encode?: (value: TType) => string | undefined;
-}): PresetGroup<TType, TDefaultValueType>;
-```
-
-Generated variants:
-
-- **base**: `{ decode, defaultValue, encode }`
-- **optional**: `{ decode, encode }` -- no `defaultValue`
-- **array**: `{ isArray: true, decode: wrapDecode, encode: wrapEncode }`
-  - `wrapDecode`: `(values) => values.flatMap(v => { try { return [decode(v)] } catch { return [] } })`
-  - `wrapEncode`: `(values) => values.flatMap(v => { try { return [encode(v)] } catch { return [] } })`
-
-Default `encode` when not provided: `(v) => String(v)`.
 
 ## Built-in Presets
 
-### `presets.string` -- `PresetGroup<string>`
-
-| Variant                   | Default     | Type                  |
-| ------------------------- | ----------- | --------------------- |
-| `presets.string`          | `""`        | `string`              |
-| `presets.string.optional` | `undefined` | `string \| undefined` |
-| `presets.string.array`    | `[]`        | `Array<string>`       |
-
-### `presets.boolean` -- `PresetGroup<boolean>`
-
-| Variant                    | Default     | Type                   |
-| -------------------------- | ----------- | ---------------------- |
-| `presets.boolean`          | `false`     | `boolean`              |
-| `presets.boolean.optional` | `undefined` | `boolean \| undefined` |
-| `presets.boolean.array`    | `[]`        | `Array<boolean>`       |
-
-Decode: `"true"` -> `true`, anything else -> `false`.
-Encode: `true` -> `"true"`, `false` -> `undefined` (omit from URL).
-Optional decode: `"true"` -> `true`, `"false"` -> `false`, anything else -> throw.
-
-### `presets.integer` -- `PresetGroup<number>` + rounding variants
-
-Default rounding mode is `round`. All variants have `.optional` and `.array`.
-
-| Variant                 | Decode                                                  | Default |
-| ----------------------- | ------------------------------------------------------- | ------- |
-| `presets.integer`       | `parseFloat` + `Math.round`                             | `NaN`   |
-| `presets.integer.parse` | `parseInt(v, 10)`                                       | `NaN`   |
-| `presets.integer.ceil`  | `parseFloat` + `Math.ceil`                              | `NaN`   |
-| `presets.integer.floor` | `parseFloat` + `Math.floor`                             | `NaN`   |
-| `presets.integer.round` | `parseFloat` + `Math.round` (same as `presets.integer`) | `NaN`   |
-
-Each rounding variant is a `PresetGroup<number>`:
+### `presets.integer(options?)`
 
 ```ts
-presets.integer.ceil.optional; // number | undefined
-presets.integer.parse.array; // Array<number>
+presets.integer(); // number, default NaN
+presets.integer({ default: 1 }); // number, default 1
+presets.integer({ optional: true }); // number | undefined
+presets.integer({ array: true }); // Array<number>
+presets.integer({ min: 0, max: 100 }); // clamped
+presets.integer({ min: 0, max: 100, outOfRange: "reject" }); // throws on out-of-range
+presets.integer({ round: "ceil" }); // Math.ceil
+presets.integer({ round: "floor", min: 0, default: 0 }); // combined
+presets.integer({ array: true, maxItems: 5, min: 0 }); // array + constraints
 ```
 
-Order is fixed: **rounding mode -> optional/array**. `integer.optional.ceil` is not supported.
+| Option       | Type                                      | Default                   |
+| ------------ | ----------------------------------------- | ------------------------- |
+| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`                 |
+| `min`        | `number`                                  | `Number.MIN_SAFE_INTEGER` |
+| `max`        | `number`                                  | `Number.MAX_SAFE_INTEGER` |
+| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`                 |
 
-### `presets.float` -- `PresetGroup<number>` + `fixed(n)` variant
+- `"round"` / `"ceil"` / `"floor"`: `parseFloat` + `Math` method
+- `"parse"`: `parseInt(value, 10)` (truncates toward zero, e.g., `"3.9"` → `3`)
+- Decode: parse → round → clamp/reject to `[min, max]`
+- Encode: `NaN`/nil → `undefined` (omit), else `String(value)`
 
-| Variant                  | Decode                                | Default |
-| ------------------------ | ------------------------------------- | ------- |
-| `presets.float`          | `parseFloat`                          | `NaN`   |
-| `presets.float.fixed(n)` | `parseFloat` + `Number(v.toFixed(n))` | `NaN`   |
-
-`float.fixed(n)` returns a `PresetGroup<number>`. Encode uses `v.toFixed(n)`.
+### `presets.float(options?)`
 
 ```ts
-presets.float.fixed(2).optional; // number | undefined
-presets.float.fixed(2).array; // Array<number>
+presets.float(); // number, default NaN
+presets.float({ fixed: 2 }); // 2 decimal places
+presets.float({ fixed: 2, min: 0, max: 1 }); // clamped
+presets.float({ optional: true }); // number | undefined
 ```
 
-### `presets.date` -- `PresetGroup<Date>`
+| Option       | Type                  | Default                   |
+| ------------ | --------------------- | ------------------------- |
+| `fixed`      | `number`              | (none — full precision)   |
+| `min`        | `number`              | `Number.MIN_SAFE_INTEGER` |
+| `max`        | `number`              | `Number.MAX_SAFE_INTEGER` |
+| `outOfRange` | `"clamp" \| "reject"` | `"clamp"`                 |
 
-| Variant                 | Default         | Type                |
-| ----------------------- | --------------- | ------------------- |
-| `presets.date`          | `new Date(NaN)` | `Date`              |
-| `presets.date.optional` | `undefined`     | `Date \| undefined` |
-| `presets.date.array`    | `[]`            | `Array<Date>`       |
+- Decode: `parseFloat` → `fixed` ? `Number(v.toFixed(n))` (rounding, not just formatting) → clamp/reject
+- Encode: `NaN`/nil → `undefined`, else `fixed` ? `toFixed(n)` : `String(value)`
 
-Decode: `new Date(String(value))`, throw if `getTime()` is `NaN`.
-Encode: `value.toISOString()`.
-
-### `presets.ymd` -- `PresetGroup<string>`
-
-| Variant                | Default        | Type                  |
-| ---------------------- | -------------- | --------------------- |
-| `presets.ymd`          | `"0000-00-00"` | `string`              |
-| `presets.ymd.optional` | `undefined`    | `string \| undefined` |
-| `presets.ymd.array`    | `[]`           | `Array<string>`       |
-
-Format: `YYYY-MM-DD`. Decode validates format, throws on invalid.
-
-### `presets.hms` -- `PresetGroup<string>`
-
-| Variant                | Default      | Type                  |
-| ---------------------- | ------------ | --------------------- |
-| `presets.hms`          | `"00:00:00"` | `string`              |
-| `presets.hms.optional` | `undefined`  | `string \| undefined` |
-| `presets.hms.array`    | `[]`         | `Array<string>`       |
-
-Format: `HH:mm:ss`. Decode validates format, throws on invalid.
-
-### `presets.enum(enumArray)` -- factory returning `PresetGroup`
+### `presets.string(options?)`
 
 ```ts
-presets.enum(["asc", "desc"]); // "asc" | "desc" (default "asc")
-presets.enum(["asc", "desc"]).optional; // "asc" | "desc" | undefined
-presets.enum(["asc", "desc"]).array; // Array<"asc" | "desc">
+presets.string(); // string, default ""
+presets.string({ maxLength: 10 }); // truncated
+presets.string({ maxLength: 10, outOfRange: "reject" }); // throws → default ""
+presets.string({ optional: true }); // string | undefined
 ```
 
-Signature:
+| Option       | Type                  | Default   |
+| ------------ | --------------------- | --------- |
+| `maxLength`  | `number`              | (none)    |
+| `outOfRange` | `"clamp" \| "reject"` | `"clamp"` |
+
+- Decode: `String(value)` → truncate/reject if `maxLength` exceeded
+- `"clamp"`: `value.slice(0, maxLength)`
+- `"reject"`: throw → `defaultValue` (or `undefined` for optional)
+
+### `presets.boolean(options?)`
 
 ```ts
-presets.enum: <const TEnumArray extends ReadonlyArray<string>>(
-  enumArray: TEnumArray
-) => PresetGroup<TEnumArray[number], TEnumArray[0]>
+presets.boolean(); // boolean, default false
+presets.boolean({ default: true }); // default true
+presets.boolean({ optional: true }); // boolean | undefined
 ```
 
-Decode: throw if value not in `enumArray`. Array variant filters out non-enum values.
+No constraint options.
 
-### `presets.tuple(configs)` -- composite preset
+Decode:
 
-Combines multiple preset configs into a single comma-separated query parameter. No `.optional` or `.array` modifiers.
+- Base: `"true"` → `true`, else → `false`
+- Optional: `"true"` → `true`, `"false"` → `false`, else → throw
+
+Encode is **conditional on defaultValue** to ensure the non-default value appears in URL:
+
+- `defaultValue === false` (default): `true` → `"true"`, `false` → `undefined` (omit)
+- `defaultValue === true`: `false` → `"false"`, `true` → `undefined` (omit)
+- Optional: `true` → `"true"`, `false` → `"false"`, `undefined` → `undefined`
+
+### `presets.date(options?)`
 
 ```ts
-presets.tuple([presets.string, presets.integer]);
-// type: [string, number], default: ["", NaN]
-// URL: ?param=hello,42
-
-presets.tuple([presets.string.optional, presets.integer.optional]);
-// type: [string | undefined, number | undefined], default: [undefined, undefined]
+presets.date(); // Date, default Invalid Date
+presets.date({ optional: true }); // Date | undefined
+presets.date({ array: true }); // Array<Date>
 ```
 
-Signature:
+No constraint options. Decode: `new Date(String(value))`, throw if `getTime()` is `NaN`.
+
+Encode: Invalid Date/nil → `undefined` (omit), else `toISOString()`.
+
+### `presets.ymd(options?)`
 
 ```ts
-presets.tuple: <const TConfigs extends ReadonlyArray<Preset<any>>>(
+presets.ymd(); // string, default "0000-00-00"
+presets.ymd({ optional: true }); // string | undefined
+presets.ymd({ default: "2024-01-01" });
+```
+
+Format: `YYYY-MM-DD`. Syntactic validation only (`/^\d{4}-\d{2}-\d{2}$/`). Throws on invalid format.
+
+### `presets.hms(options?)`
+
+```ts
+presets.hms(); // string, default "00:00:00"
+presets.hms({ optional: true }); // string | undefined
+presets.hms({ default: "08:00:00" });
+```
+
+Format: `HH:mm:ss`. Validates hour 00-23, minute/second 00-59 (`/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/`). Throws on invalid format.
+
+### `presets.enum(enumArray, options?)`
+
+```ts
+presets.enum(["asc", "desc"]); // "asc" | "desc", default "asc"
+presets.enum(["asc", "desc"], { optional: true }); // "asc" | "desc" | undefined
+presets.enum(["asc", "desc"], { array: true }); // Array<"asc" | "desc">
+presets.enum(["asc", "desc"], { default: "desc" }); // default "desc"
+```
+
+`default` option type is constrained to `TEnumArray[number]`.
+
+Decode: throw if value not in array. Encode: `String(value)`.
+
+### `presets.tuple(configs)`
+
+```ts
+function tuple<const TConfigs extends ReadonlyArray<PresetConfig>>(
   configs: TConfigs,
-  options?: { separator?: string }
-) => Preset<{
-  type: InferTupleType<TConfigs>;
-  defaultValueType: InferTupleDefaults<TConfigs>;
-}>
+): {
+  isArray: true;
+  decode: (value: Array<unknown>) => InferTupleType<TConfigs>;
+  defaultValue: InferTupleDefaults<TConfigs>;
+  encode: (value: InferTupleType<TConfigs>) => Array<string>;
+};
 ```
 
-Tuple type helpers:
+```ts
+presets.tuple([presets.string(), presets.integer()]);
+// isArray: true
+// type: [string, number], default: ["", NaN]
+// URL: ?param=hello&param=42
+```
+
+- `isArray: true` — qs library parses to array, tuple decodes positionally
+- No options parameter (no optional/array/default)
+- Decode: map each element with its preset's decode. Any throw → entire tuple fails to combined `defaultValue`
+- Encode: map each element with its preset's encode, return `Array<string>`
+
+Array encode per element: call element's `encode`, filter nil results.
+
+### Array Variants
+
+When `array: true`, the config returned has `isArray: true`:
+
+- Decode: per-item decode with try-catch, invalid items filtered out
+- Encode: per-item encode, nil results filtered out, returns `Array<string>`
+- `maxItems` with `"clamp"`: `array.slice(0, maxItems)` after decode
+- `maxItems` with `"reject"`: throw if array length exceeds → fallback to `[]`
+
+## Type System
+
+### Options Type (per preset, with `never` exclusivity)
+
+```ts
+type IntegerOptions =
+  | (IntegerBaseOptions & { optional?: never; default?: never; array?: never })
+  | (IntegerBaseOptions & { optional: true; default?: never; array?: never })
+  | (IntegerBaseOptions & { default: number; optional?: never; array?: never })
+  | (IntegerBaseOptions & { array: true; maxItems?: number; optional?: never; default?: never });
+
+interface IntegerBaseOptions {
+  round?: "round" | "ceil" | "floor" | "parse";
+  min?: number;
+  max?: number;
+  outOfRange?: "clamp" | "reject";
+}
+```
+
+### Return Type (conditional on options)
+
+```ts
+// No modifier → { decode, defaultValue, encode }
+// optional: true → { decode, encode }  (no defaultValue)
+// default: T → { decode, defaultValue, encode }
+// array: true → { isArray: true, decode, encode }
+```
+
+Inferred via conditional types so `InferValueFromQueryParamConfig` works correctly.
+
+### Tuple Type Inference
 
 ```ts
 type InferTupleType<TConfigs extends ReadonlyArray<unknown>> = {
@@ -224,61 +267,77 @@ type InferTupleDefaults<TConfigs extends ReadonlyArray<unknown>> = {
 };
 ```
 
-Default separator: `","`. Customizable via options.
-
-Decode: split string by separator, decode each element with its config's decode. If any element's decode throws, the entire tuple falls back to its combined `defaultValue`.
-
-Encode: encode each element, join with separator.
-
-## Export Structure
-
-`createPreset` is exported from the presets entry point:
+## `createPreset` Factory
 
 ```ts
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
-import * as presets from "@vp-tw/nanostores-qs/presets";
+
+const percentage = createPreset({
+  decode: (value: unknown) => {
+    const n = Number(value);
+    if (Number.isNaN(n) || n < 0 || n > 100) throw new Error("invalid");
+    return n;
+  },
+  defaultValue: 0,
+  encode: (v) => String(v),
+});
+
+// Returns a function accepting shared options (optional, default, array, maxItems):
+createSearchParamStore("progress", percentage());
+createSearchParamStore("progress", percentage({ default: 50 }));
+createSearchParamStore("progress", percentage({ optional: true }));
+createSearchParamStore("progress", percentage({ array: true }));
 ```
+
+`createPreset` returns a function that accepts shared options (`optional`, `default`, `array`, `maxItems`). Custom constraint options (like min/max for percentage) are baked into the decode — `outOfRange` is not passed through.
 
 ## Documentation Strategy
 
-Presets are the **primary usage pattern** in all docs and demos. Plain config and `createPreset` are documented as **advanced usage**.
+Presets are the **primary usage pattern**. `createPreset` and plain config are **advanced usage**.
 
 ### Primary (presets):
 
 ```ts
 import * as presets from "@vp-tw/nanostores-qs/presets";
 
-const count = qsUtils.createSearchParamStore("count", presets.integer);
+const page = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
 const sort = qsUtils.createSearchParamStore("sort", presets.enum(["asc", "desc"]));
 ```
 
-### Advanced (custom preset with `createPreset`):
+### Advanced (createPreset / decimal.js):
 
 ```ts
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
 import { Decimal } from "decimal.js";
 
 const decimal = createPreset<Decimal>({
-  decode: (v) => new Decimal(String(v)),
+  decode: (v) => {
+    const d = new Decimal(String(v));
+    if (!d.isFinite()) throw new Error("invalid");
+    return d;
+  },
   defaultValue: new Decimal(0),
   encode: (v) => v.toString(),
 });
 ```
 
-### Advanced (plain config / zod integration):
+### Advanced (plain config / zod v4):
 
 ```ts
+import { z } from "zod";
+
+const tabSchema = z.enum(["home", "settings", "profile"]);
 const tab = qsUtils.createSearchParamStore("tab", {
-  decode: TabSchema.parse,
-  defaultValue: TabSchema.options[0],
+  decode: (v) => tabSchema.parse(String(v)),
+  defaultValue: "home" satisfies z.infer<typeof tabSchema>,
 });
 ```
 
 ## Verification Plan
 
-1. Rewrite `presets.ts` with new grouped API
-2. Rewrite `presets.test.ts` — all preset variants with decode/encode/error cases
-3. Rewrite `presets.test-d.ts` — type-level tests for all inferred types
+1. Rewrite `presets.ts` — function-based API, zero external dependencies
+2. Rewrite `presets.test.ts` — all presets, all option combinations, constraints, edge cases
+3. Rewrite `presets.test-d.ts` — type inference for all option variants
 4. Run full CI: lint, typecheck, tests
-5. Update README and Astro docs to use preset-first examples
-6. Update demo to showcase presets as primary usage
+5. Update docs and demos
+6. Browser test with agent-browser
