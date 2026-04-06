@@ -20,7 +20,7 @@ const categoryOptions = ["electronics", "clothing", "books", "sports"] as const;
 
 const filters = qsUtils.createSearchParamsStore({
   search: presets.string(),
-  page: presets.integer({ optional: true }),
+  page: presets.integer({ optional: true, min: 0 }),
   categories: presets.enum(categoryOptions, { array: true }),
 });
 
@@ -46,7 +46,7 @@ export default function MultiParamDemo() {
             onClear={() => handleSearchChange("")}
           />
           <DemoInput
-            label="page (integer({ optional: true }))"
+            label="page (integer({ optional: true, min: 0 }))"
             type="number"
             placeholder="Page number"
             value={values.page === undefined ? "" : values.page}

@@ -17,7 +17,7 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 0 }));
 const searchStore = qsUtils.createSearchParamStore("q", presets.string({ optional: true }));
 const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
 const showArchivedStore = qsUtils.createSearchParamStore("archived", presets.boolean());
@@ -43,7 +43,7 @@ export default function SingleParamDemo() {
             onClear={() => searchStore.update(undefined)}
           />
           <DemoInput
-            label="page (integer({ default: 1 }))"
+            label="page (integer({ default: 1, min: 0 }))"
             type="number"
             placeholder="Page number"
             value={page}

@@ -14,7 +14,7 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 0 }));
 const searchStore = qsUtils.createSearchParamStore("q", presets.string({ optional: true }));
 const sortStore = qsUtils.createSearchParamStore(
   "sort",
@@ -62,10 +62,10 @@ Use the `default` option to override a type's inherent default. For example, `pr
 
 ```ts
 // Without default — page is NaN when absent
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer());
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ min: 0 }));
 
 // With default — page is 1 when absent
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 0 }));
 ```
 
 The `default` option works alongside other options:

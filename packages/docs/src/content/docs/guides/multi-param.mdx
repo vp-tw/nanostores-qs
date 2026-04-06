@@ -16,8 +16,8 @@ const qsUtils = createQsUtils();
 
 const filters = qsUtils.createSearchParamsStore({
   search: presets.string(),
-  page: presets.integer({ default: 1 }),
-  limit: presets.integer({ default: 10 }),
+  page: presets.integer({ default: 1, min: 0 }),
+  limit: presets.integer({ default: 10, min: 1, max: 100 }),
   categories: presets.enum(["electronics", "clothing", "books", "sports"], { array: true }),
 });
 ```

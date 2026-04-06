@@ -13,11 +13,11 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 const qsUtils = createQsUtils();
 
 // Single parameter with a preset — defaults to 1 instead of NaN
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 0 }));
 
 // Multiple parameters with presets
 const filters = qsUtils.createSearchParamsStore({
-  page: presets.integer({ default: 1 }),
+  page: presets.integer({ default: 1, min: 0 }),
   sort: presets.enum(["newest", "oldest", "popular"]),
   showArchived: presets.boolean(),
 });

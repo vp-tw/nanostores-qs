@@ -17,10 +17,10 @@ const qsUtils = createQsUtils();
 ## Single Parameter Store
 
 ```tsx
-const pageStore = qsUtils.createSearchParamStore("page", presets.integer());
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 0 }));
 
 // Read (React)
-const page = useStore(pageStore.$value); // number (NaN when absent)
+const page = useStore(pageStore.$value); // number (1 when absent)
 
 // Update URL
 pageStore.update(42); // pushState
@@ -35,7 +35,7 @@ const nextSearch = pageStore.update.dry(100); // "?page=100"
 ```tsx
 const filters = qsUtils.createSearchParamsStore({
   search: presets.string(),
-  page: presets.integer({ optional: true }),
+  page: presets.integer({ optional: true, min: 0 }),
   sort: presets.enum(["newest", "oldest", "popular"]),
 });
 
@@ -105,7 +105,7 @@ presets.float({ fixed: 2, default: 0 }); // 2 decimal places, default 0
 Use the `default` option to override the type's inherent default:
 
 ```ts
-presets.integer({ default: 1 }); // number, default 1 instead of NaN
+presets.integer({ default: 1, min: 0 }); // number, default 1 instead of NaN
 presets.string({ default: "all" }); // string, default "all" instead of ""
 presets.boolean({ default: true }); // boolean, default true instead of false
 presets.enum(["a", "b"], { default: "b" }); // enum, default "b" instead of "a"
@@ -180,5 +180,5 @@ const qsUtils = createQsUtils({
 1. **Correlated params**: Use `updateAll` when changing one param should reset another (e.g., search -> reset page)
 2. **Router integration**: Always use `.dry()` + router navigation when your app has route guards/loaders
 3. **Custom presets**: Use `createPreset` for reusable decode/encode logic with automatic `{ optional }` / `{ array }` / `{ default }` options
-4. **Custom defaults**: Use `{ default: value }` when the type's inherent default isn't appropriate (e.g., `presets.integer({ default: 1 })` for page numbers)
+4. **Custom defaults**: Use `{ default: value }` when the type's inherent default isn't appropriate (e.g., `presets.integer({ default: 1, min: 0 })` for page numbers)
 5. **Validation**: Handle in `decode` — throw to reject invalid input (filtered out in `{ array: true }`, falls back to `defaultValue` in base)
