@@ -41,6 +41,11 @@ describe("createPreset", () => {
       expect("defaultValue" in preset.optional).toBe(false);
     });
 
+    it("encode returns undefined for nil values", () => {
+      expect(preset.optional.encode(undefined as any)).toBeUndefined();
+      expect(preset.optional.encode(null as any)).toBeUndefined();
+    });
+
     it("has encode", () => {
       expect(preset.optional.encode(42)).toBe("42");
     });
@@ -126,6 +131,10 @@ describe("presets.string", () => {
   it("optional: no defaultValue", () => {
     expect("defaultValue" in string.optional).toBe(false);
     expect(string.optional.decode("hello")).toBe("hello");
+  });
+
+  it("optional: encode undefined returns undefined, not 'undefined'", () => {
+    expect(string.optional.encode(undefined as any)).toBeUndefined();
   });
 
   it("array: filters nil", () => {
