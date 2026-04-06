@@ -6,99 +6,99 @@ description: Complete reference for all built-in presets
 All presets are imported from `@vp-tw/nanostores-qs/presets`.
 
 ```ts
-import { integer, enum as presetEnum, boolean } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 ```
 
 ## String presets
 
-| Preset            | Value Type            | Default     | URL behavior              |
-| ----------------- | --------------------- | ----------- | ------------------------- |
-| `string`          | `string`              | `""`        | Omitted when empty        |
-| `string.optional` | `string \| undefined` | `undefined` | Omitted when undefined    |
-| `string.array`    | `string[]`            | `[]`        | Multiple same-name params |
+| Preset                    | Value Type            | Default     | URL behavior              |
+| ------------------------- | --------------------- | ----------- | ------------------------- |
+| `presets.string`          | `string`              | `""`        | Omitted when empty        |
+| `presets.string.optional` | `string \| undefined` | `undefined` | Omitted when undefined    |
+| `presets.string.array`    | `string[]`            | `[]`        | Multiple same-name params |
 
 ## Number presets
 
-| Preset             | Value Type            | Default     | URL behavior                    |
-| ------------------ | --------------------- | ----------- | ------------------------------- |
-| `integer`          | `number`              | `NaN`       | Integer, omitted when NaN       |
-| `integer.optional` | `number \| undefined` | `undefined` | Integer, omitted when undefined |
-| `integer.array`    | `number[]`            | `[]`        | Filters invalid values          |
-| `float`            | `number`              | `NaN`       | Float, omitted when NaN         |
-| `float.optional`   | `number \| undefined` | `undefined` | Float, omitted when undefined   |
-| `float.array`      | `number[]`            | `[]`        | Filters invalid values          |
+| Preset                     | Value Type            | Default     | URL behavior                    |
+| -------------------------- | --------------------- | ----------- | ------------------------------- |
+| `presets.integer`          | `number`              | `NaN`       | Integer, omitted when NaN       |
+| `presets.integer.optional` | `number \| undefined` | `undefined` | Integer, omitted when undefined |
+| `presets.integer.array`    | `number[]`            | `[]`        | Filters invalid values          |
+| `presets.float`            | `number`              | `NaN`       | Float, omitted when NaN         |
+| `presets.float.optional`   | `number \| undefined` | `undefined` | Float, omitted when undefined   |
+| `presets.float.array`      | `number[]`            | `[]`        | Filters invalid values          |
 
 ### Integer rounding variants
 
-| Preset          | Description                 |
-| --------------- | --------------------------- |
-| `integer`       | Uses `Math.round` (default) |
-| `integer.round` | Same as `integer`           |
-| `integer.ceil`  | Uses `Math.ceil`            |
-| `integer.floor` | Uses `Math.floor`           |
-| `integer.parse` | Uses `parseInt` (truncates) |
+| Preset                  | Description                 |
+| ----------------------- | --------------------------- |
+| `presets.integer`       | Uses `Math.round` (default) |
+| `presets.integer.round` | Same as `presets.integer`   |
+| `presets.integer.ceil`  | Uses `Math.ceil`            |
+| `presets.integer.floor` | Uses `Math.floor`           |
+| `presets.integer.parse` | Uses `parseInt` (truncates) |
 
 ### Float precision
 
 ```ts
-float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
+presets.float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
 ```
 
 ## Boolean presets
 
-| Preset             | Value Type             | Default     | URL behavior                         |
-| ------------------ | ---------------------- | ----------- | ------------------------------------ |
-| `boolean`          | `boolean`              | `false`     | `"true"` present, omitted when false |
-| `boolean.optional` | `boolean \| undefined` | `undefined` | `"true"`/`"false"` or omitted        |
+| Preset                     | Value Type             | Default     | URL behavior                         |
+| -------------------------- | ---------------------- | ----------- | ------------------------------------ |
+| `presets.boolean`          | `boolean`              | `false`     | `"true"` present, omitted when false |
+| `presets.boolean.optional` | `boolean \| undefined` | `undefined` | `"true"`/`"false"` or omitted        |
 
 ## Enum presets
 
-| Preset                   | Value Type               | Default       | URL behavior                    |
-| ------------------------ | ------------------------ | ------------- | ------------------------------- |
-| `enum(options)`          | `T[number]`              | First element | Falls back to first for invalid |
-| `enum(options).optional` | `T[number] \| undefined` | `undefined`   | Undefined for invalid           |
-| `enum(options).array`    | `T[number][]`            | `[]`          | Filters invalid values          |
+| Preset                           | Value Type               | Default       | URL behavior                    |
+| -------------------------------- | ------------------------ | ------------- | ------------------------------- |
+| `presets.enum(options)`          | `T[number]`              | First element | Falls back to first for invalid |
+| `presets.enum(options).optional` | `T[number] \| undefined` | `undefined`   | Undefined for invalid           |
+| `presets.enum(options).array`    | `T[number][]`            | `[]`          | Filters invalid values          |
 
 ### Enum usage
 
 ```ts
-import { enum as presetEnum } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
 // Required enum — always one of the options
-const sortStore = qsUtils.createSearchParamStore("sort", presetEnum(sortOptions));
+const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
 
 // Optional enum — can be undefined
-const filterStore = qsUtils.createSearchParamStore("filter", presetEnum(sortOptions).optional);
+const filterStore = qsUtils.createSearchParamStore("filter", presets.enum(sortOptions).optional);
 
 // Array of enums — filter invalid
-const tagsStore = qsUtils.createSearchParamStore("tags", presetEnum(sortOptions).array);
+const tagsStore = qsUtils.createSearchParamStore("tags", presets.enum(sortOptions).array);
 ```
 
 ## Date presets
 
-| Preset          | Value Type          | Default         | URL behavior                     |
-| --------------- | ------------------- | --------------- | -------------------------------- |
-| `date`          | `Date`              | `new Date(NaN)` | ISO string, omitted when invalid |
-| `date.optional` | `Date \| undefined` | `undefined`     | Undefined for invalid            |
-| `date.array`    | `Date[]`            | `[]`            | Filters invalid dates            |
+| Preset                  | Value Type          | Default         | URL behavior                     |
+| ----------------------- | ------------------- | --------------- | -------------------------------- |
+| `presets.date`          | `Date`              | `new Date(NaN)` | ISO string, omitted when invalid |
+| `presets.date.optional` | `Date \| undefined` | `undefined`     | Undefined for invalid            |
+| `presets.date.array`    | `Date[]`            | `[]`            | Filters invalid dates            |
 
 ### Date usage
 
 ```ts
-const startDate = qsUtils.createSearchParamStore("start", date.optional);
+const startDate = qsUtils.createSearchParamStore("start", presets.date.optional);
 // URL: ?start=2024-01-15T00:00:00.000Z
 ```
 
 ## Additional presets
 
-| Preset         | Value Type            | Default        | URL behavior          |
-| -------------- | --------------------- | -------------- | --------------------- |
-| `ymd`          | `string`              | `"0000-00-00"` | YYYY-MM-DD format     |
-| `ymd.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
-| `hms`          | `string`              | `"00:00:00"`   | HH:MM:SS format       |
-| `hms.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
+| Preset                 | Value Type            | Default        | URL behavior          |
+| ---------------------- | --------------------- | -------------- | --------------------- |
+| `presets.ymd`          | `string`              | `"0000-00-00"` | YYYY-MM-DD format     |
+| `presets.ymd.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
+| `presets.hms`          | `string`              | `"00:00:00"`   | HH:MM:SS format       |
+| `presets.hms.optional` | `string \| undefined` | `undefined`    | Undefined for invalid |
 
 ## Creating custom presets
 
@@ -118,4 +118,4 @@ const myPreset = createPreset({
 // myPreset.array     — array variant
 ```
 
-See also [Custom Presets](/advanced/custom-presets/) for creating reusable presets with `defineSearchParam`.
+See also [Custom Presets](/advanced/custom-presets/) for creating reusable presets with `createPreset`.

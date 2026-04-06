@@ -9,7 +9,7 @@ description: How to use @vp-tw/nanostores-qs — reactive, type-safe query strin
 
 ```tsx
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { boolean, integer, enum as presetEnum } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 ```
@@ -17,7 +17,7 @@ const qsUtils = createQsUtils();
 ## Single Parameter Store
 
 ```tsx
-const pageStore = qsUtils.createSearchParamStore("page", integer);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
 
 // Read (React)
 const page = useStore(pageStore.$value); // number (NaN when absent)
@@ -34,9 +34,9 @@ const nextSearch = pageStore.update.dry(100); // "?page=100"
 
 ```tsx
 const filters = qsUtils.createSearchParamsStore({
-  search: string,
-  page: integer.optional,
-  sort: presetEnum(["newest", "oldest", "popular"]),
+  search: presets.string,
+  page: presets.integer.optional,
+  sort: presets.enum(["newest", "oldest", "popular"]),
 });
 
 // Read all values
@@ -54,44 +54,44 @@ const preview = filters.updateAll.dry({ ...values, page: 1 });
 
 ## Available Presets
 
-Import from `@vp-tw/nanostores-qs/presets`. Each preset has `.optional` and `.array` variants:
+`import * as presets from "@vp-tw/nanostores-qs/presets"`. Each preset has `.optional` and `.array` variants:
 
-| Preset                   | Type                     | Default         |
-| ------------------------ | ------------------------ | --------------- |
-| `string`                 | `string`                 | `""`            |
-| `string.optional`        | `string \| undefined`    | `undefined`     |
-| `string.array`           | `string[]`               | `[]`            |
-| `integer`                | `number`                 | `NaN`           |
-| `integer.optional`       | `number \| undefined`    | `undefined`     |
-| `integer.array`          | `number[]`               | `[]`            |
-| `float`                  | `number`                 | `NaN`           |
-| `float.optional`         | `number \| undefined`    | `undefined`     |
-| `float.array`            | `number[]`               | `[]`            |
-| `boolean`                | `boolean`                | `false`         |
-| `boolean.optional`       | `boolean \| undefined`   | `undefined`     |
-| `enum(options)`          | `T[number]`              | First element   |
-| `enum(options).optional` | `T[number] \| undefined` | `undefined`     |
-| `enum(options).array`    | `T[number][]`            | `[]`            |
-| `date`                   | `Date`                   | `new Date(NaN)` |
-| `date.optional`          | `Date \| undefined`      | `undefined`     |
-| `date.array`             | `Date[]`                 | `[]`            |
-| `ymd`                    | `string`                 | `"0000-00-00"`  |
-| `hms`                    | `string`                 | `"00:00:00"`    |
+| Preset                           | Type                     | Default         |
+| -------------------------------- | ------------------------ | --------------- |
+| `presets.string`                 | `string`                 | `""`            |
+| `presets.string.optional`        | `string \| undefined`    | `undefined`     |
+| `presets.string.array`           | `string[]`               | `[]`            |
+| `presets.integer`                | `number`                 | `NaN`           |
+| `presets.integer.optional`       | `number \| undefined`    | `undefined`     |
+| `presets.integer.array`          | `number[]`               | `[]`            |
+| `presets.float`                  | `number`                 | `NaN`           |
+| `presets.float.optional`         | `number \| undefined`    | `undefined`     |
+| `presets.float.array`            | `number[]`               | `[]`            |
+| `presets.boolean`                | `boolean`                | `false`         |
+| `presets.boolean.optional`       | `boolean \| undefined`   | `undefined`     |
+| `presets.enum(options)`          | `T[number]`              | First element   |
+| `presets.enum(options).optional` | `T[number] \| undefined` | `undefined`     |
+| `presets.enum(options).array`    | `T[number][]`            | `[]`            |
+| `presets.date`                   | `Date`                   | `new Date(NaN)` |
+| `presets.date.optional`          | `Date \| undefined`      | `undefined`     |
+| `presets.date.array`             | `Date[]`                 | `[]`            |
+| `presets.ymd`                    | `string`                 | `"0000-00-00"`  |
+| `presets.hms`                    | `string`                 | `"00:00:00"`    |
 
 ### Integer rounding variants
 
-| Variant         | Description            |
-| --------------- | ---------------------- |
-| `integer`       | `Math.round` (default) |
-| `integer.round` | Same as `integer`      |
-| `integer.ceil`  | `Math.ceil`            |
-| `integer.floor` | `Math.floor`           |
-| `integer.parse` | `parseInt` (truncates) |
+| Variant                 | Description               |
+| ----------------------- | ------------------------- |
+| `presets.integer`       | `Math.round` (default)    |
+| `presets.integer.round` | Same as `presets.integer` |
+| `presets.integer.ceil`  | `Math.ceil`               |
+| `presets.integer.floor` | `Math.floor`              |
+| `presets.integer.parse` | `parseInt` (truncates)    |
 
 ### Float precision
 
 ```ts
-float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
+presets.float.fixed(2); // e.g., 3.14 — encodes with toFixed(2)
 ```
 
 ## Update Options
@@ -142,24 +142,6 @@ const bounded = (min: number, max: number) =>
 // bounded(1, 100)          — base
 // bounded(1, 100).optional — no defaultValue
 // bounded(1, 100).array    — array variant
-```
-
-Or use `defineSearchParam` for standalone presets (decoupled from createQsUtils):
-
-```ts
-import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
-
-const presetBoundedInt = (min: number, max: number) =>
-  defineSearchParam({
-    decode: (value) => {
-      const int = Number.parseInt(String(value), 10);
-      if (Number.isNaN(int)) return undefined;
-      return Math.max(min, Math.min(max, int));
-    },
-  }).setEncode((value) => {
-    if (value == null) return undefined;
-    return String(Math.max(min, Math.min(max, value)));
-  });
 ```
 
 ## Custom QS Library

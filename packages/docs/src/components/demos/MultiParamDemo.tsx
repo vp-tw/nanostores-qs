@@ -1,6 +1,6 @@
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { integer, enum as presetEnum, string } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 import objectInspect from "object-inspect";
 
 import {
@@ -19,9 +19,9 @@ const qsUtils = createQsUtils();
 const categoryOptions = ["electronics", "clothing", "books", "sports"] as const;
 
 const filters = qsUtils.createSearchParamsStore({
-  search: string,
-  page: integer.optional,
-  categories: presetEnum(categoryOptions).array,
+  search: presets.string,
+  page: presets.integer.optional,
+  categories: presets.enum(categoryOptions).array,
 });
 
 export default function MultiParamDemo() {

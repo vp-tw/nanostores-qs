@@ -8,18 +8,18 @@ description: Get started with @vp-tw/nanostores-qs in minutes
 ```tsx
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { boolean, enum as presetEnum, integer } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
 // Single parameter with a preset
-const pageStore = qsUtils.createSearchParamStore("page", integer);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
 
 // Multiple parameters with presets
 const filters = qsUtils.createSearchParamsStore({
-  page: integer,
-  sort: presetEnum(["newest", "oldest", "popular"]),
-  showArchived: boolean,
+  page: presets.integer,
+  sort: presets.enum(["newest", "oldest", "popular"]),
+  showArchived: presets.boolean,
 });
 
 function Filters() {

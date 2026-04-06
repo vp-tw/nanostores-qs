@@ -10,17 +10,17 @@ Use `createSearchParamStore` to manage one query parameter. Pass a **preset** fo
 
 ```tsx
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { boolean, enum as presetEnum, integer, string } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 
 const qsUtils = createQsUtils();
 
-const pageStore = qsUtils.createSearchParamStore("page", integer);
-const searchStore = qsUtils.createSearchParamStore("q", string.optional);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+const searchStore = qsUtils.createSearchParamStore("q", presets.string.optional);
 const sortStore = qsUtils.createSearchParamStore(
   "sort",
-  presetEnum(["newest", "oldest", "popular"]),
+  presets.enum(["newest", "oldest", "popular"]),
 );
-const archivedStore = qsUtils.createSearchParamStore("archived", boolean);
+const archivedStore = qsUtils.createSearchParamStore("archived", presets.boolean);
 ```
 
 ## Reading values

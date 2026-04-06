@@ -1,6 +1,6 @@
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
-import { boolean, integer, enum as presetEnum, string } from "@vp-tw/nanostores-qs/presets";
+import * as presets from "@vp-tw/nanostores-qs/presets";
 
 import {
   CodePreview,
@@ -17,10 +17,10 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
-const pageStore = qsUtils.createSearchParamStore("page", integer);
-const searchStore = qsUtils.createSearchParamStore("q", string.optional);
-const sortStore = qsUtils.createSearchParamStore("sort", presetEnum(sortOptions));
-const showArchivedStore = qsUtils.createSearchParamStore("archived", boolean);
+const pageStore = qsUtils.createSearchParamStore("page", presets.integer);
+const searchStore = qsUtils.createSearchParamStore("q", presets.string.optional);
+const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
+const showArchivedStore = qsUtils.createSearchParamStore("archived", presets.boolean);
 
 export default function SingleParamDemo() {
   const page = useStore(pageStore.$value);

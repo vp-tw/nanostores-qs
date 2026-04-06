@@ -24,26 +24,27 @@ const sort = qsUtils.createSearchParamStore("sort", {
 
 ## Custom preset with Zod
 
-Combine `defineSearchParam` with Zod for reusable validated presets:
+Combine `createPreset` with Zod for reusable validated presets:
 
 ```ts
-import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
+import { createPreset } from "@vp-tw/nanostores-qs/presets";
 import { z } from "zod";
 
-function presetZodEnum<T extends [string, ...string[]]>(schema: z.ZodEnum<T>) {
+function zodEnum<T extends [string, ...string[]]>(schema: z.ZodEnum<T>) {
   const options = schema.options;
-  return defineSearchParam({
+  return createPreset({
     decode: (v) => {
       const result = schema.safeParse(v);
-      return result.success ? result.data : options[0];
+      if (!result.success) throw new Error("invalid enum value");
+      return result.data;
     },
     defaultValue: options[0],
   });
 }
 
-// Usage
+// Usage — gets .optional and .array automatically
 const StatusSchema = z.enum(["active", "inactive", "pending"]);
-const statusStore = qsUtils.createSearchParamStore("status", presetZodEnum(StatusSchema));
+const statusStore = qsUtils.createSearchParamStore("status", zodEnum(StatusSchema));
 ```
 
 ## Validation strategy
