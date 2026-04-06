@@ -1,35 +1,76 @@
-import type { CreatePresetResult } from "./presets";
-
+import { createQsUtils } from "./main";
 import { createPreset } from "./presets";
 
-// createPreset returns the correct type
+const anyObj: any = {};
+const qs = createQsUtils();
+
+// --- createPreset type inference via createSearchParamStore ---
+
+const numberPreset = createPreset({
+  decode: (v: unknown) => {
+    const n = Number(v);
+    if (Number.isNaN(n)) throw new Error("invalid");
+    return n;
+  },
+  defaultValue: 0,
+});
+
+// base -> number
 (() => {
-  const preset = createPreset({
-    decode: (value: unknown): number => Number(value),
-    defaultValue: 0,
-    encode: (v) => String(v),
-  });
+  const s = qs.createSearchParamStore("n", numberPreset);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
 
-  // Base has decode, defaultValue, and encode
-  preset satisfies {
-    decode: (value: unknown) => number;
-    defaultValue: number;
-    encode: (value: number) => string | undefined;
-  };
+// optional -> number | undefined
+(() => {
+  const s = qs.createSearchParamStore("n", numberPreset.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
 
-  // Optional has decode and encode but no defaultValue
-  preset.optional satisfies {
-    decode: (value: unknown) => number;
-    encode: (value: number) => string | undefined;
-  };
+// array -> Array<number>
+(() => {
+  const s = qs.createSearchParamStore("n", numberPreset.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<number>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
 
-  // Array has isArray: true, decode, and encode
-  preset.array satisfies {
-    isArray: true;
-    decode: (value: Array<unknown>) => Array<number>;
-    encode: (value: Array<number>) => Array<string>;
-  };
+// string preset
+const stringPreset = createPreset({
+  decode: (v: unknown) => String(v),
+  defaultValue: "",
+});
 
-  // Full result type
-  preset satisfies CreatePresetResult<number, number>;
+// base -> string
+(() => {
+  const s = qs.createSearchParamStore("s", stringPreset);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> string | undefined
+(() => {
+  const s = qs.createSearchParamStore("s", stringPreset.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = string | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<string>
+(() => {
+  const s = qs.createSearchParamStore("s", stringPreset.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<string>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
 })();
