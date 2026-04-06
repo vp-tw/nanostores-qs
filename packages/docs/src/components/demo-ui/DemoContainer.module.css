@@ -8,6 +8,13 @@
   gap: var(--demo-spacing-lg);
 }
 
+/* Reset Starlight's adjacent sibling margin inside demo containers */
+.container
+  :not(a, strong, em, del, span, input, code, br)
+  + :not(a, strong, em, del, span, input, code, br, :where(.not-content *)) {
+  margin-top: 0;
+}
+
 .label {
   font-size: 0.75rem;
   color: var(--demo-text-muted);
