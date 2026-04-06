@@ -105,6 +105,71 @@ const stringPreset = createPreset({
   anyObj as Expected satisfies Result;
 })();
 
+// --- presets.integer ---
+
+// base -> number
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// optional -> number | undefined
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// array -> Array<number>
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<number>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// parse -> number
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer.parse);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// parse.optional -> number | undefined
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer.parse.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// ceil.optional -> number | undefined
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer.ceil.optional);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = number | undefined;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
+// floor.array -> Array<number>
+(() => {
+  const s = qs.createSearchParamStore("i", presets.integer.floor.array);
+  type Result = ReturnType<typeof s.$value.get>;
+  type Expected = Array<number>;
+  anyObj as Result satisfies Expected;
+  anyObj as Expected satisfies Result;
+})();
+
 // --- presets.boolean ---
 
 // base -> boolean

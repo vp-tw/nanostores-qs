@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { boolean, createPreset, string } from "./presets";
+import { boolean, createPreset, integer, string } from "./presets";
 
 describe("createPreset", () => {
   const preset = createPreset({
@@ -106,5 +106,69 @@ describe("presets.boolean", () => {
 
   it("array: filters invalid", () => {
     expect(boolean.array.decode(["true", "invalid", "false"])).toEqual([true, false]);
+  });
+});
+
+describe("presets.integer", () => {
+  it("base: rounds by default", () => {
+    expect(integer.decode("3.7")).toBe(4);
+    expect(integer.decode("3.2")).toBe(3);
+    expect(integer.defaultValue).toBeNaN();
+  });
+
+  it("base: throws on invalid", () => {
+    expect(() => integer.decode("abc")).toThrow();
+  });
+
+  it("base: encodes", () => {
+    expect(integer.encode(42)).toBe("42");
+    expect(integer.encode(Number.NaN)).toBeUndefined();
+  });
+
+  it("optional: no defaultValue", () => {
+    expect("defaultValue" in integer.optional).toBe(false);
+    expect(integer.optional.decode("5")).toBe(5);
+  });
+
+  it("array: filters invalid", () => {
+    expect(integer.array.decode(["1", "abc", "3.7"])).toEqual([1, 4]);
+  });
+});
+
+describe("presets.integer.parse", () => {
+  it("uses parseInt", () => {
+    expect(integer.parse.decode("3.7")).toBe(3);
+    expect(integer.parse.decode("10")).toBe(10);
+  });
+
+  it("throws on invalid", () => {
+    expect(() => integer.parse.decode("abc")).toThrow();
+  });
+
+  it("optional/array work", () => {
+    expect("defaultValue" in integer.parse.optional).toBe(false);
+    expect(integer.parse.array.decode(["1", "abc", "3.7"])).toEqual([1, 3]);
+  });
+});
+
+describe("presets.integer.ceil", () => {
+  it("uses Math.ceil", () => {
+    expect(integer.ceil.decode("3.2")).toBe(4);
+    expect(integer.ceil.decode("3.7")).toBe(4);
+    expect(integer.ceil.decode("-1.5")).toBe(-1);
+  });
+});
+
+describe("presets.integer.floor", () => {
+  it("uses Math.floor", () => {
+    expect(integer.floor.decode("3.7")).toBe(3);
+    expect(integer.floor.decode("-1.5")).toBe(-2);
+  });
+});
+
+describe("presets.integer.round", () => {
+  it("same behavior as integer base", () => {
+    expect(integer.round.decode("3.7")).toBe(4);
+    expect(integer.round.decode("3.2")).toBe(3);
   });
 });

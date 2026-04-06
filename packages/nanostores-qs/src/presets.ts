@@ -84,5 +84,41 @@ const boolean: CreatePresetResult<boolean, boolean> = {
   array: booleanStrict.array,
 };
 
-export { boolean, createPreset, string };
+function createIntegerPreset(roundFn: (n: number) => number): CreatePresetResult<number, number> {
+  return createPreset({
+    decode: (value: unknown): number => {
+      const n = Number.parseFloat(String(value));
+      if (Number.isNaN(n)) throw new Error("invalid integer");
+      return roundFn(n);
+    },
+    defaultValue: Number.NaN,
+    encode: (v) => {
+      if (isNil(v) || Number.isNaN(v)) return undefined;
+      return String(v);
+    },
+  });
+}
+
+const integerRound = createIntegerPreset(Math.round);
+const integerParse = createPreset({
+  decode: (value: unknown): number => {
+    const n = Number.parseInt(String(value), 10);
+    if (Number.isNaN(n)) throw new Error("invalid integer");
+    return n;
+  },
+  defaultValue: Number.NaN,
+  encode: (v) => {
+    if (isNil(v) || Number.isNaN(v)) return undefined;
+    return String(v);
+  },
+});
+
+const integer = Object.assign(integerRound, {
+  parse: integerParse,
+  ceil: createIntegerPreset(Math.ceil),
+  floor: createIntegerPreset(Math.floor),
+  round: integerRound,
+});
+
+export { boolean, createPreset, integer, string };
 export type { CreatePresetResult };
