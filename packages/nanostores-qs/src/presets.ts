@@ -127,7 +127,7 @@ function createPreset<TValue, TDefaultValue = TValue, TResolved = TValue>(
     resolve?: (value: TValue) => TResolved;
   },
 ): CreatePresetReturn<TValue, TDefaultValue, TResolved> {
-  const encode = config.encode ?? ((v: TValue) => String(v));
+  const encode = config.encode ?? ((v: TValue) => (isNil(v) ? undefined : String(v)));
   const resolve = config.resolve;
 
   function presetFn(options?: PresetOptions<TValue>): any {
