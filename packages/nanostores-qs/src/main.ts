@@ -285,6 +285,15 @@ namespace createQsUtils {
     ? TResolved
     : TValue;
 
+  /**
+   * Force TypeScript to eagerly evaluate a type, expanding conditional types
+   * and type aliases in IDE hover tooltips.
+   *
+   * Without: `InferValueFromSearchParamConfig<BaseResult<boolean, boolean>>`
+   * With:    `boolean`
+   */
+  export type Resolve<T> = T extends infer U ? U : never;
+
   // --- Consumer-facing config types ---
 
   export interface StoreConfigDescriptor {
