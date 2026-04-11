@@ -521,6 +521,20 @@ export function TupleDemo() {
               }}
             />
             <VBtn
+              label="1 param → [1.5, NaN]"
+              onClick={() => {
+                setInput("?coord=1.5");
+                tuple2Store.update([1.5, Number.NaN]);
+              }}
+            />
+            <VBtn
+              label="3 params → [1.5, 2.3]"
+              onClick={() => {
+                setInput("?coord=1.5&coord=2.3&coord=99");
+                tuple2Store.update([1.5, 2.3]);
+              }}
+            />
+            <VBtn
               label="clear"
               onClick={() => {
                 setInput("(empty)");
