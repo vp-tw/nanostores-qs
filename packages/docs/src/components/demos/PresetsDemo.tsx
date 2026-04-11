@@ -37,15 +37,6 @@ function VBtn({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-/**
- * Build a raw qs string from key=value pairs (what URL looks like before decode).
- * Only includes non-empty values.
- */
-function rawQs(params: Record<string, string | undefined>): string {
-  const parts = Object.entries(params).flatMap(([k, v]) => (v !== undefined ? [`${k}=${v}`] : []));
-  return parts.length > 0 ? `?${parts.join("&")}` : "(empty)";
-}
-
 // --- String ---
 
 const strUtils = createQsUtils();
@@ -94,7 +85,7 @@ export function StringDemo() {
   );
 }
 
-// --- Integer (buttons) ---
+// --- Integer (simulated URL input → real decode) ---
 
 const intUtils = createQsUtils();
 const intStore = intUtils.createSearchParamsStore({
@@ -110,9 +101,11 @@ export function IntegerDemo() {
   const search = useStore(intUtils.$search);
   const [input, setInput] = useState("(empty)");
 
-  function set(raw: Record<string, string | undefined>, updates: Partial<typeof v>) {
-    setInput(rawQs(raw));
-    intStore.updateAll({ ...v, ...updates });
+  /** Simulate a raw URL string — the preset decode handles it. */
+  function sim(params: Record<string, string>) {
+    const qs = new URLSearchParams(params).toString();
+    setInput(qs ? `?${qs}` : "(empty)");
+    intUtils._$internalSearch.set(qs ? `?${qs}` : "");
   }
 
   return (
@@ -120,33 +113,33 @@ export function IntegerDemo() {
       <DemoRow>
         <DemoColumn>
           <ValueButtons label="integer() — round">
-            <VBtn label="3.7" onClick={() => set({ round: "3.7" }, { round: 4 })} />
-            <VBtn label="3.2" onClick={() => set({ round: "3.2" }, { round: 3 })} />
-            <VBtn label="-5" onClick={() => set({ round: "-5" }, { round: -5 })} />
-            <VBtn label="abc" onClick={() => set({ round: "abc" }, { round: Number.NaN })} />
-            <VBtn label="clear" onClick={() => set({}, { round: Number.NaN })} />
+            <VBtn label="3.7" onClick={() => sim({ round: "3.7" })} />
+            <VBtn label="3.2" onClick={() => sim({ round: "3.2" })} />
+            <VBtn label="-5" onClick={() => sim({ round: "-5" })} />
+            <VBtn label="abc" onClick={() => sim({ round: "abc" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label='integer({ round: "ceil" })'>
-            <VBtn label="3.2" onClick={() => set({ ceil: "3.2" }, { ceil: 4 })} />
-            <VBtn label="-1.5" onClick={() => set({ ceil: "-1.5" }, { ceil: -1 })} />
-            <VBtn label="clear" onClick={() => set({}, { ceil: Number.NaN })} />
+            <VBtn label="3.2" onClick={() => sim({ ceil: "3.2" })} />
+            <VBtn label="-1.5" onClick={() => sim({ ceil: "-1.5" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label='integer({ round: "parse" })'>
-            <VBtn label="3.9" onClick={() => set({ parse: "3.9" }, { parse: 3 })} />
-            <VBtn label="10" onClick={() => set({ parse: "10" }, { parse: 10 })} />
-            <VBtn label="clear" onClick={() => set({}, { parse: Number.NaN })} />
+            <VBtn label="3.9" onClick={() => sim({ parse: "3.9" })} />
+            <VBtn label="10" onClick={() => sim({ parse: "10" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label="integer({ min: 0, max: 100 }) — clamp">
-            <VBtn label="50" onClick={() => set({ clamped: "50" }, { clamped: 50 })} />
-            <VBtn label="-5" onClick={() => set({ clamped: "-5" }, { clamped: 0 })} />
-            <VBtn label="200" onClick={() => set({ clamped: "200" }, { clamped: 100 })} />
-            <VBtn label="clear" onClick={() => set({}, { clamped: Number.NaN })} />
+            <VBtn label="50" onClick={() => sim({ clamped: "50" })} />
+            <VBtn label="-5" onClick={() => sim({ clamped: "-5" })} />
+            <VBtn label="200" onClick={() => sim({ clamped: "200" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label='integer({ ..., outOfRange: "reject" })'>
-            <VBtn label="50" onClick={() => set({ reject: "50" }, { reject: 50 })} />
-            <VBtn label="-5" onClick={() => set({ reject: "-5" }, { reject: Number.NaN })} />
-            <VBtn label="200" onClick={() => set({ reject: "200" }, { reject: Number.NaN })} />
-            <VBtn label="clear" onClick={() => set({}, { reject: Number.NaN })} />
+            <VBtn label="50" onClick={() => sim({ reject: "50" })} />
+            <VBtn label="-5" onClick={() => sim({ reject: "-5" })} />
+            <VBtn label="200" onClick={() => sim({ reject: "200" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
         </DemoColumn>
         <DemoColumn>
@@ -159,7 +152,7 @@ export function IntegerDemo() {
   );
 }
 
-// --- Float (buttons) ---
+// --- Float (simulated URL input → real decode) ---
 
 const floatUtils = createQsUtils();
 const floatStore = floatUtils.createSearchParamsStore({
@@ -173,9 +166,10 @@ export function FloatDemo() {
   const search = useStore(floatUtils.$search);
   const [input, setInput] = useState("(empty)");
 
-  function set(raw: Record<string, string | undefined>, updates: Partial<typeof v>) {
-    setInput(rawQs(raw));
-    floatStore.updateAll({ ...v, ...updates });
+  function sim(params: Record<string, string>) {
+    const qs = new URLSearchParams(params).toString();
+    setInput(qs ? `?${qs}` : "(empty)");
+    floatUtils._$internalSearch.set(qs ? `?${qs}` : "");
   }
 
   return (
@@ -183,21 +177,21 @@ export function FloatDemo() {
       <DemoRow>
         <DemoColumn>
           <ValueButtons label="float()">
-            <VBtn label="3.14159" onClick={() => set({ base: "3.14159" }, { base: 3.14159 })} />
-            <VBtn label="-2.5" onClick={() => set({ base: "-2.5" }, { base: -2.5 })} />
-            <VBtn label="abc" onClick={() => set({ base: "abc" }, { base: Number.NaN })} />
-            <VBtn label="clear" onClick={() => set({}, { base: Number.NaN })} />
+            <VBtn label="3.14159" onClick={() => sim({ base: "3.14159" })} />
+            <VBtn label="-2.5" onClick={() => sim({ base: "-2.5" })} />
+            <VBtn label="abc" onClick={() => sim({ base: "abc" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label="float({ fixed: 2 })">
-            <VBtn label="3.14159" onClick={() => set({ fixed2: "3.14159" }, { fixed2: 3.14 })} />
-            <VBtn label="3.145" onClick={() => set({ fixed2: "3.145" }, { fixed2: 3.15 })} />
-            <VBtn label="clear" onClick={() => set({}, { fixed2: Number.NaN })} />
+            <VBtn label="3.14159" onClick={() => sim({ fixed2: "3.14159" })} />
+            <VBtn label="3.145" onClick={() => sim({ fixed2: "3.145" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label="float({ fixed: 2, min: 0, max: 1 })">
-            <VBtn label="0.75" onClick={() => set({ clamped: "0.75" }, { clamped: 0.75 })} />
-            <VBtn label="1.5" onClick={() => set({ clamped: "1.5" }, { clamped: 1 })} />
-            <VBtn label="-0.5" onClick={() => set({ clamped: "-0.5" }, { clamped: 0 })} />
-            <VBtn label="clear" onClick={() => set({}, { clamped: Number.NaN })} />
+            <VBtn label="0.75" onClick={() => sim({ clamped: "0.75" })} />
+            <VBtn label="1.5" onClick={() => sim({ clamped: "1.5" })} />
+            <VBtn label="-0.5" onClick={() => sim({ clamped: "-0.5" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
         </DemoColumn>
         <DemoColumn>
@@ -317,9 +311,10 @@ export function DateDemo() {
   const search = useStore(dateUtils.$search);
   const [input, setInput] = useState("(empty)");
 
-  function set(raw: Record<string, string | undefined>, updates: Partial<typeof v>) {
-    setInput(rawQs(raw));
-    dateStore.updateAll({ ...v, ...updates });
+  function sim(params: Record<string, string>) {
+    const qs = new URLSearchParams(params).toString();
+    setInput(qs ? `?${qs}` : "(empty)");
+    dateUtils._$internalSearch.set(qs ? `?${qs}` : "");
   }
 
   return (
@@ -329,30 +324,17 @@ export function DateDemo() {
           <ValueButtons label="date()">
             <VBtn
               label="2024-01-15T00:00:00.000Z"
-              onClick={() =>
-                set(
-                  { base: "2024-01-15T00:00:00.000Z" },
-                  { base: new Date("2024-01-15T00:00:00.000Z") },
-                )
-              }
+              onClick={() => sim({ base: "2024-01-15T00:00:00.000Z" })}
             />
-            <VBtn
-              label="not-a-date"
-              onClick={() => set({ base: "not-a-date" }, { base: new Date(Number.NaN) })}
-            />
-            <VBtn label="clear" onClick={() => set({}, { base: new Date(Number.NaN) })} />
+            <VBtn label="not-a-date" onClick={() => sim({ base: "not-a-date" })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
           <ValueButtons label="date({ optional: true })">
             <VBtn
               label="2024-06-01T00:00:00.000Z"
-              onClick={() =>
-                set(
-                  { optional: "2024-06-01T00:00:00.000Z" },
-                  { optional: new Date("2024-06-01T00:00:00.000Z") },
-                )
-              }
+              onClick={() => sim({ optional: "2024-06-01T00:00:00.000Z" })}
             />
-            <VBtn label="clear" onClick={() => set({}, { optional: undefined })} />
+            <VBtn label="clear" onClick={() => sim({})} />
           </ValueButtons>
         </DemoColumn>
         <DemoColumn>
@@ -479,99 +461,41 @@ export function TupleDemo() {
   const s3 = useStore(tuple3Utils.$search);
   const [input, setInput] = useState("(empty)");
 
+  function sim(utils: typeof tuple1Utils, params: string) {
+    setInput(params ? `?${params}` : "(empty)");
+    utils._$internalSearch.set(params ? `?${params}` : "");
+  }
+
   return (
     <DemoContainer>
       <DemoRow>
         <DemoColumn>
           <ValueButtons label="tuple([float()]) — single">
-            <VBtn
-              label="[1.5]"
-              onClick={() => {
-                setInput("?scale=1.5");
-                tuple1Store.update([1.5]);
-              }}
-            />
-            <VBtn
-              label="[0]"
-              onClick={() => {
-                setInput("?scale=0");
-                tuple1Store.update([0]);
-              }}
-            />
-            <VBtn
-              label="clear"
-              onClick={() => {
-                setInput("(empty)");
-                tuple1Store.update([Number.NaN]);
-              }}
-            />
+            <VBtn label="[1.5]" onClick={() => sim(tuple1Utils, "scale=1.5")} />
+            <VBtn label="[0]" onClick={() => sim(tuple1Utils, "scale=0")} />
+            <VBtn label="clear" onClick={() => sim(tuple1Utils, "")} />
           </ValueButtons>
           <ValueButtons label="tuple([float(), float()]) — pair">
+            <VBtn label="[1.5, 2.3]" onClick={() => sim(tuple2Utils, "coord=1.5&coord=2.3")} />
+            <VBtn label="[0, 0]" onClick={() => sim(tuple2Utils, "coord=0&coord=0")} />
+            <VBtn label="[-3.14, 42]" onClick={() => sim(tuple2Utils, "coord=-3.14&coord=42")} />
+            <VBtn label="1 param only" onClick={() => sim(tuple2Utils, "coord=1.5")} />
             <VBtn
-              label="[1.5, 2.3]"
-              onClick={() => {
-                setInput("?coord=1.5&coord=2.3");
-                tuple2Store.update([1.5, 2.3]);
-              }}
+              label="3 params"
+              onClick={() => sim(tuple2Utils, "coord=1.5&coord=2.3&coord=99")}
             />
-            <VBtn
-              label="[0, 0]"
-              onClick={() => {
-                setInput("?coord=0&coord=0");
-                tuple2Store.update([0, 0]);
-              }}
-            />
-            <VBtn
-              label="[-3.14, 42]"
-              onClick={() => {
-                setInput("?coord=-3.14&coord=42");
-                tuple2Store.update([-3.14, 42]);
-              }}
-            />
-            <VBtn
-              label="1 param → [1.5, NaN]"
-              onClick={() => {
-                setInput("?coord=1.5");
-                tuple2Store.update([1.5, Number.NaN]);
-              }}
-            />
-            <VBtn
-              label="3 params → [1.5, 2.3]"
-              onClick={() => {
-                setInput("?coord=1.5&coord=2.3&coord=99");
-                tuple2Store.update([1.5, 2.3]);
-              }}
-            />
-            <VBtn
-              label="clear"
-              onClick={() => {
-                setInput("(empty)");
-                tuple2Store.update([Number.NaN, Number.NaN]);
-              }}
-            />
+            <VBtn label="clear" onClick={() => sim(tuple2Utils, "")} />
           </ValueButtons>
           <ValueButtons label="tuple([string(), integer({ numInput, default: 0 }), boolean()]) — mixed with resolve">
             <VBtn
-              label='["hello", "42", true]'
-              onClick={() => {
-                setInput("?filter=hello&filter=42&filter=true");
-                tuple3Store.update(["hello", "42", true]);
-              }}
+              label='["hello", "42", "true"]'
+              onClick={() => sim(tuple3Utils, "filter=hello&filter=42&filter=true")}
             />
             <VBtn
-              label='["hello", "", false]'
-              onClick={() => {
-                setInput("?filter=hello&filter=&filter=false");
-                tuple3Store.update(["hello", "", false]);
-              }}
+              label='["hello", "", "false"]'
+              onClick={() => sim(tuple3Utils, "filter=hello&filter=&filter=false")}
             />
-            <VBtn
-              label="clear"
-              onClick={() => {
-                setInput("(empty)");
-                tuple3Store.update(["", "", false]);
-              }}
-            />
+            <VBtn label="clear" onClick={() => sim(tuple3Utils, "")} />
           </ValueButtons>
         </DemoColumn>
         <DemoColumn>
