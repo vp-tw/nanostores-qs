@@ -68,12 +68,7 @@ export default defineConfig({
         },
         {
           label: "Advanced",
-          items: [
-            "advanced/inline-config",
-            "advanced/custom-presets",
-            "advanced/validation",
-            "advanced/custom-qs-lib",
-          ],
+          items: ["advanced/custom-presets", "advanced/custom-qs-lib"],
         },
         {
           label: "Reference",

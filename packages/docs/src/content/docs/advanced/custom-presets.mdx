@@ -1,99 +1,21 @@
 ---
 title: Custom Presets
-description: Create reusable custom presets with createPreset
+description: Build your own presets with createPreset or plain config
 ---
 
-Use `createPreset` from `@vp-tw/nanostores-qs/presets` to build your own preset functions. A preset created with `createPreset` returns a function that accepts `{ optional }`, `{ default }`, or `{ array }` options — the same API as built-in presets.
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import InlineConfigDemo from "../../../components/demos/InlineConfigDemo";
 
-```ts
-import { createPreset } from "@vp-tw/nanostores-qs/presets";
-```
+When built-in presets don't cover your use case, you have two options:
 
-## Percentage (bounded number)
+1. **Plain config** — inline decode/encode for one-off usage
+2. **`createPreset`** — reusable preset function with `{ optional }`, `{ default }`, `{ array }` options
 
-```ts
-const percentage = createPreset({
-  decode: (value: unknown): number => {
-    const n = Number(value);
-    if (Number.isNaN(n) || n < 0 || n > 100) throw new Error("invalid percentage");
-    return n;
-  },
-  defaultValue: 0,
-  encode: (v) => String(v),
-});
+## Plain config (inline)
 
-// percentage()                    — base (defaultValue: 0)
-// percentage({ optional: true })  — no defaultValue
-// percentage({ array: true })     — array variant
-// percentage({ default: 50 })     — custom default
-const progressStore = qsUtils.createSearchParamStore("progress", percentage());
-```
+Pass a config object directly to `createSearchParamStore`. Good for one-off usage.
 
-## Comma-separated array
-
-A single URL parameter representing an array (vs `{ array: true }` which uses multiple same-name parameters):
-
-```ts
-const commaSeparated = createPreset({
-  decode: (value: unknown): string[] =>
-    String(value)
-      .split(",")
-      .filter((s) => s.length > 0),
-  defaultValue: [] as string[],
-  encode: (v) => (v.length === 0 ? undefined : v.join(",")),
-});
-
-// URL: ?tags=react,typescript,nanostores
-const tagsStore = qsUtils.createSearchParamStore("tags", commaSeparated());
-```
-
-## JSON object
-
-Serialize complex objects to/from URL parameters:
-
-```ts
-const json = <T>(defaultValue: T) =>
-  createPreset({
-    decode: (value: unknown): T => {
-      try {
-        return JSON.parse(String(value)) as T;
-      } catch {
-        throw new Error("invalid JSON");
-      }
-    },
-    defaultValue,
-    encode: (v) => JSON.stringify(v),
-  });
-
-// URL: ?filter=%7B%22status%22%3A%22active%22%7D
-const filterStore = qsUtils.createSearchParamStore("filter", json({ status: "active" })());
-```
-
-## decimal.js integration
-
-```ts
-import { createPreset } from "@vp-tw/nanostores-qs/presets";
-import { Decimal } from "decimal.js";
-
-const decimal = createPreset<Decimal>({
-  decode: (v) => {
-    const d = new Decimal(String(v));
-    if (!d.isFinite()) throw new Error("invalid decimal");
-    return d;
-  },
-  defaultValue: new Decimal(0),
-  encode: (v) => v.toString(),
-});
-
-// decimal()                    — Decimal (default: 0)
-// decimal({ optional: true })  — Decimal | undefined
-// decimal({ array: true })     — Decimal[]
-const priceStore = qsUtils.createSearchParamStore("price", decimal());
-```
-
-## Zod v4 integration
-
-For schema validation, you can use a plain config object directly instead of `createPreset`:
+### Zod v4 — inline
 
 ```ts
 import { z } from "zod";
@@ -106,31 +28,121 @@ const tabStore = qsUtils.createSearchParamStore("tab", {
 });
 ```
 
-## Preset anatomy
+Invalid values throw (via `schema.parse`) → library catches → falls back to `defaultValue`.
 
-A preset created by `createPreset` returns a **function** that accepts options:
+### decimal.js — inline with resolve
 
-- **No options** `()` — base config with `decode`, `defaultValue`, and `encode`
-- **`{ optional: true }`** — omits `defaultValue`, making the type `T | undefined`
-- **`{ array: true }`** — array variant using multiple same-name parameters
-- **`{ default: value }`** — override `defaultValue` with a custom value
-- **`{ array: true, maxItems: n }`** — array with a cap on items
+Use `resolve` when `$value` (for input binding) and `$resolved` (for business logic) need different types:
 
 ```ts
-const percentage = createPreset({
-  decode: (value: unknown): number => {
-    const n = Number(value);
-    if (Number.isNaN(n) || n < 0 || n > 100) throw new Error("invalid percentage");
-    return n;
+import { Decimal } from "decimal.js";
+
+const priceStore = qsUtils.createSearchParamStore("price", {
+  decode: (v: unknown): string => {
+    if (v == null) return "";
+    try {
+      new Decimal(String(v)); // validate
+      return String(v);
+    } catch {
+      return "";
+    }
   },
-  defaultValue: 0,
-  encode: (v) => String(v),
+  defaultValue: "",
+  encode: (v: string): string | undefined => (v === "" ? undefined : v),
+  resolve: (v: string): Decimal => (v === "" ? new Decimal(0) : new Decimal(v)),
 });
 
-// Override the default from 0 to 50
-const brightnessStore = qsUtils.createSearchParamStore("brightness", percentage({ default: 50 }));
+// priceStore.$value    — string (bindable to <input>)
+// priceStore.$resolved — Decimal (for calculation)
 ```
 
-Note: presets created with `createPreset` do not support `outOfRange` — that option is specific to the built-in `integer()` and `float()` presets. Handle range checking in your `decode` function instead.
+### Config shape
 
-Presets are **standalone** — they work with any `createQsUtils` instance, making them shareable across your app.
+| Property       | Type                            | Description                           |
+| -------------- | ------------------------------- | ------------------------------------- |
+| `decode`       | `(v: unknown) => T`             | Decode URL string to typed value      |
+| `defaultValue` | `T`                             | Value when parameter is missing       |
+| `encode`       | `(v: T) => string \| undefined` | Encode back to URL (undefined = omit) |
+| `resolve`      | `(v: T) => R`                   | Optional: map `$value` → `$resolved`  |
+| `isArray`      | `boolean`                       | Treat as array parameter              |
+
+### Live demo
+
+The demo below uses plain config with `resolve` for the number input, and standard boolean configs for the toggles:
+
+<DemoWrapper source="packages/docs/src/components/demos/InlineConfigDemo.tsx">
+  <InlineConfigDemo client:load />
+</DemoWrapper>
+
+## `createPreset` (reusable)
+
+Use `createPreset` from `@vp-tw/nanostores-qs/presets` to build preset functions. The returned function accepts the same options as built-in presets:
+
+```ts
+import { createPreset } from "@vp-tw/nanostores-qs/presets";
+```
+
+### Zod v4 — reusable preset
+
+```ts
+import { z } from "zod";
+
+function zodEnum<const T extends readonly [string, ...Array<string>]>(values: T) {
+  const schema = z.enum(values);
+  return createPreset<T[number], T[0]>({
+    decode: (v) => schema.parse(String(v)),
+    defaultValue: values[0],
+  });
+}
+
+const statusPreset = zodEnum(["active", "inactive", "pending"]);
+
+// Same options as built-in presets:
+qsUtils.createSearchParamStore("status", statusPreset());
+qsUtils.createSearchParamStore("status", statusPreset({ optional: true }));
+qsUtils.createSearchParamStore("status", statusPreset({ array: true }));
+qsUtils.createSearchParamStore("status", statusPreset({ default: "pending" }));
+```
+
+### decimal.js — reusable preset
+
+```ts
+import { Decimal } from "decimal.js";
+
+const decimal = createPreset<Decimal>({
+  decode: (v) => {
+    const d = new Decimal(String(v));
+    if (!d.isFinite()) throw new Error("invalid decimal");
+    return d;
+  },
+  defaultValue: new Decimal(0),
+  encode: (v) => v.toString(),
+});
+
+qsUtils.createSearchParamStore("price", decimal());
+qsUtils.createSearchParamStore("tax", decimal({ optional: true }));
+qsUtils.createSearchParamStore("amounts", decimal({ array: true }));
+```
+
+### Preset options
+
+A function returned by `createPreset` accepts:
+
+| Option                         | Description                                                   |
+| ------------------------------ | ------------------------------------------------------------- |
+| `()`                           | Base — uses the decode, defaultValue, and encode you provided |
+| `{ optional: true }`           | Omits `defaultValue`, type becomes `T \| undefined`           |
+| `{ default: value }`           | Override `defaultValue`                                       |
+| `{ array: true }`              | Array variant with per-item decode/encode                     |
+| `{ array: true, maxItems: n }` | Array capped at `n` items                                     |
+
+Note: `createPreset` does not support `outOfRange`, `min`/`max`, or `numInput` — those are specific to built-in `integer()` and `float()` presets. Bake constraint logic into your `decode` function instead.
+
+## When to use what
+
+| Scenario                                    | Approach                                   |
+| ------------------------------------------- | ------------------------------------------ |
+| Standard type (int, enum, boolean...)       | Built-in preset (e.g. `presets.integer()`) |
+| Custom logic, one place                     | Plain config object                        |
+| Custom logic, reused across stores          | `createPreset`                             |
+| Need `$value` ≠ `$resolved` (input binding) | Add `resolve` to config                    |
