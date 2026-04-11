@@ -269,8 +269,9 @@ presets.tuple([presets.string(), presets.integer()]);
 
 - `isArray: true` — qs library parses to array, tuple decodes positionally
 - No options parameter (no optional/array/default/numInput)
-- Decode: map each element with its preset's decode. Any throw → entire tuple fails to combined `defaultValue`
-- Encode: map each element with its preset's encode, return `Array<string>`
+- Decode: per-element with try-catch — failed element falls back to its own `defaultValue`, not entire tuple
+- Encode: map each element with its preset's encode, return `Array<string>` (nil → `""` to preserve position)
+- **Resolve composition**: if any element config has `resolve`, tuple auto-composes a tuple-level `resolve` that applies each element's resolve. `$resolved` maps `[string, string, boolean]` → `[string, number, boolean]` when middle element is `numInput`.
 
 ### Array Variants
 
@@ -431,11 +432,35 @@ const tab = qsUtils.createSearchParamStore("tab", {
 });
 ```
 
-## Implementation Plan
+## Utility Types
 
-1. **main.ts**: Add `resolve` config support + `$resolved` store on both `createSearchParamStore` and `createSearchParamsStore`
-2. **presets.ts**: Add `numInput` option to integer/float
-3. **Tests**: Add tests for `resolve`, `$resolved`, `numInput`
-4. **Edge case demo**: Interactive table component
-5. **Docs**: Update all docs, document edge cases clearly
-6. **Browser test**: Verify with agent-browser
+### `Resolve<T>`
+
+`createQsUtils.Resolve<T>` — forces TypeScript to eagerly evaluate conditional types in IDE hover tooltips. Exported for consumer use, not applied internally (causes type incompatibility with TS generic inference).
+
+### `StoreConfig<T>` / `StoreConfigArray<T>`
+
+Consumer-facing config types with descriptor object pattern:
+
+```ts
+createQsUtils.StoreConfig<{ value: string; defaultValue: string; resolved: Decimal }>;
+```
+
+When `resolved ≠ value`, `resolve` is required (not optional).
+
+## Implementation Status
+
+All items completed:
+
+1. ✅ **main.ts**: `resolve` config, `$resolved` store, shared history patch, `Resolve<T>`, `StoreConfig<T>`
+2. ✅ **presets.ts**: Function-based API, all presets, `numInput`, tuple resolve composition
+3. ✅ **Tests**: 176 tests, comprehensive type-level tests
+4. ✅ **Demos**: Live demos for all presets, custom presets (inline + reusable), QS format comparison
+5. ✅ **Docs**: All pages updated, Utility Types reference page
+6. ✅ **Changeset**: Major changeset added
+
+### Remaining before PR
+
+- Squash commits (50 → fewer logical commits)
+- Final browser test sweep
+- Update memory
