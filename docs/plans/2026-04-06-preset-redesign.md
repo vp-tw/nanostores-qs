@@ -1,13 +1,13 @@
 # Preset API Redesign (v2)
 
-Redesign presets as function calls with options. All configuration (optional, default, array, constraints) via a single options object. No property chaining. Zero external dependencies — presets module uses its own utilities.
+Redesign presets as function calls with options. All configuration (optional, default, array, constraints) via a single options object. No property chaining.
 
 ## Usage
 
 ```ts
 import * as presets from "@vp-tw/nanostores-qs/presets";
 
-createSearchParamStore("page", presets.integer({ default: 1 }));
+createSearchParamStore("page", presets.integer({ default: 1, min: 1 }));
 createSearchParamStore("q", presets.string({ optional: true }));
 createSearchParamStore("sort", presets.enum(["asc", "desc"]));
 createSearchParamStore("tags", presets.enum(["a", "b", "c"], { array: true }));
@@ -17,19 +17,12 @@ createSearchParamStore("tags", presets.enum(["a", "b", "c"], { array: true }));
 
 ### Mutual Exclusivity
 
-`optional`, `default`, and `array` are mutually exclusive. Enforced via `never` overrides:
-
-```ts
-type IntegerOptions =
-  | (IntegerBaseOptions & { optional?: never; default?: never; array?: never })
-  | (IntegerBaseOptions & { optional: true; default?: never; array?: never })
-  | (IntegerBaseOptions & { default: number; optional?: never; array?: never })
-  | (IntegerBaseOptions & { array: true; maxItems?: number; optional?: never; default?: never });
-```
+`optional`, `default`, `numInput`, and `array` are mutually exclusive. Enforced via `never` overrides in TypeScript.
 
 - No modifier — uses preset's inherent default (e.g., `NaN` for integer)
 - `optional: true` — value can be `undefined`, no `defaultValue` in config
 - `default: T` — custom default value
+- `numInput: true` — for `<input type="number">` binding (integer/float only, requires `default`)
 - `array: true` — `Array<T>`, default `[]`
 
 ### `outOfRange`
@@ -39,21 +32,79 @@ Controls constraint violation behavior. Available on presets with constraints (i
 - `"clamp"` (default) — silently correct (clamp numbers, truncate strings, slice arrays)
 - `"reject"` — throw → falls back to `defaultValue` (or `undefined` for optional)
 
-### Nil Handling in Optional
+### Nil Handling
 
 `main.ts` spreads `defaultItemConfig` (which includes `defaultValue: undefined`) onto all configs. This means `"defaultValue" in config` is always `true` after the spread, and the nil short-circuit in the decode path never triggers.
 
-**Solution:** Preset functions wrap optional decode and encode with nil checks:
+**Solution:** Preset functions wrap decode with nil checks:
 
-- Optional decode: if value is nil, return `undefined` without calling the user decode
-- Optional encode: if value is nil, return `undefined` without calling the user encode
+- Base decode: nil → return `defaultValue`
+- Optional decode: nil → return `undefined`
+- Default decode: nil → return custom default
+- Array: handled by per-item try-catch
 
-This is handled by internal `isNil` utility (no external dependency):
+`isNil` from `es-toolkit` (shared with `main.ts`).
+
+## Config Shape
+
+### Base Config (existing)
 
 ```ts
-function isNil(value: unknown): value is null | undefined {
-  return value === null || value === undefined;
+{
+  decode: (value: unknown) => TParsed;
+  defaultValue?: TParsed;
+  encode?: (value: TParsed) => string | undefined;
+  isArray?: boolean;
 }
+```
+
+### Extended Config with `resolve` (new)
+
+```ts
+{
+  decode: (value: unknown) => TParsed;
+  resolve?: (value: TParsed) => TResolved;  // NEW — maps parsed → resolved
+  defaultValue?: TParsed;
+  encode?: (value: TParsed) => string | undefined;
+  isArray?: boolean;
+}
+```
+
+When `resolve` is present in config, `createSearchParamStore` provides `$resolved`:
+
+```ts
+const store = qsUtils.createSearchParamStore("page", config);
+store.$value; // ReadableAtom<TParsed>
+store.$resolved; // ReadableAtom<TResolved>   — computed(store.$value, config.resolve)
+store.update; // accepts TParsed
+```
+
+When `resolve` is absent: `$resolved === $value` (same reference, zero overhead).
+
+This is a core library change in `main.ts`.
+
+## Store API
+
+### Single param store
+
+```ts
+const store = qsUtils.createSearchParamStore("key", config);
+
+store.$value      // ReadableAtom<TParsed>     — raw decoded value
+store.$resolved   // ReadableAtom<TResolved>   — resolve(parsed), or same as $value
+store.update(value: TParsed)                   — push new value
+store.update.dry(value: TParsed): string       — preview URL without changing
+```
+
+### Multi param store
+
+```ts
+const store = qsUtils.createSearchParamsStore({ ... });
+
+store.$values     // ReadableAtom<{ [K]: TParsed }>
+store.$resolved   // ReadableAtom<{ [K]: TResolved }>   — per-key resolve
+store.update(key, value)
+store.updateAll(values)
 ```
 
 ## Built-in Presets
@@ -70,6 +121,7 @@ presets.integer({ min: 0, max: 100, outOfRange: "reject" }); // throws on out-of
 presets.integer({ round: "ceil" }); // Math.ceil
 presets.integer({ round: "floor", min: 0, default: 0 }); // combined
 presets.integer({ array: true, maxItems: 5, min: 0 }); // array + constraints
+presets.integer({ numInput: true, default: 1, min: 1 }); // for <input type="number">
 ```
 
 | Option       | Type                                      | Default                   |
@@ -78,11 +130,26 @@ presets.integer({ array: true, maxItems: 5, min: 0 }); // array + constraints
 | `min`        | `number`                                  | `Number.MIN_SAFE_INTEGER` |
 | `max`        | `number`                                  | `Number.MAX_SAFE_INTEGER` |
 | `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`                 |
+| `numInput`   | `boolean`                                 | `false`                   |
 
 - `"round"` / `"ceil"` / `"floor"`: `parseFloat` + `Math` method
 - `"parse"`: `parseInt(value, 10)` (truncates toward zero, e.g., `"3.9"` → `3`)
 - Decode: parse → round → clamp/reject to `[min, max]`
 - Encode: `NaN`/nil → `undefined` (omit), else `String(value)`
+
+#### `numInput: true`
+
+For binding to `<input type="number">`. Requires `default`.
+
+```ts
+presets.integer({ numInput: true, default: 1, min: 1 });
+// $value:    `${number}` | ""    — bindable to input.value
+// $resolved: number              — business logic value
+```
+
+- Decode: valid number string → `` `${number}` ``, nil → `""`
+- Resolve: `` `${number}` `` → number, `""` → default
+- Encode: `""` → `undefined` (omit), `` `${number}` `` → pass through
 
 ### `presets.float(options?)`
 
@@ -91,6 +158,7 @@ presets.float(); // number, default NaN
 presets.float({ fixed: 2 }); // 2 decimal places
 presets.float({ fixed: 2, min: 0, max: 1 }); // clamped
 presets.float({ optional: true }); // number | undefined
+presets.float({ numInput: true, default: 0, fixed: 2 }); // for <input type="number">
 ```
 
 | Option       | Type                  | Default                   |
@@ -99,9 +167,12 @@ presets.float({ optional: true }); // number | undefined
 | `min`        | `number`              | `Number.MIN_SAFE_INTEGER` |
 | `max`        | `number`              | `Number.MAX_SAFE_INTEGER` |
 | `outOfRange` | `"clamp" \| "reject"` | `"clamp"`                 |
+| `numInput`   | `boolean`             | `false`                   |
 
 - Decode: `parseFloat` → `fixed` ? `Number(v.toFixed(n))` (rounding, not just formatting) → clamp/reject
 - Encode: `NaN`/nil → `undefined`, else `fixed` ? `toFixed(n)` : `String(value)`
+
+`numInput`: same pattern as integer — `$value` is `` `${number}` | "" ``, `$resolved` is `number`.
 
 ### `presets.string(options?)`
 
@@ -133,8 +204,8 @@ No constraint options.
 
 Decode:
 
-- Base: `"true"` → `true`, else → `false`
-- Optional: `"true"` → `true`, `"false"` → `false`, else → throw
+- Base/Default: `"true"` → `true`, `"false"` → `false`, nil → `defaultValue`, else → throw
+- Optional: `"true"` → `true`, `"false"` → `false`, nil → `undefined`, else → throw
 
 Encode is **conditional on defaultValue** to ensure the non-default value appears in URL:
 
@@ -190,17 +261,6 @@ Decode: throw if value not in array. Encode: `String(value)`.
 ### `presets.tuple(configs)`
 
 ```ts
-function tuple<const TConfigs extends ReadonlyArray<PresetConfig>>(
-  configs: TConfigs,
-): {
-  isArray: true;
-  decode: (value: Array<unknown>) => InferTupleType<TConfigs>;
-  defaultValue: InferTupleDefaults<TConfigs>;
-  encode: (value: InferTupleType<TConfigs>) => Array<string>;
-};
-```
-
-```ts
 presets.tuple([presets.string(), presets.integer()]);
 // isArray: true
 // type: [string, number], default: ["", NaN]
@@ -208,11 +268,9 @@ presets.tuple([presets.string(), presets.integer()]);
 ```
 
 - `isArray: true` — qs library parses to array, tuple decodes positionally
-- No options parameter (no optional/array/default)
+- No options parameter (no optional/array/default/numInput)
 - Decode: map each element with its preset's decode. Any throw → entire tuple fails to combined `defaultValue`
 - Encode: map each element with its preset's encode, return `Array<string>`
-
-Array encode per element: call element's `encode`, filter nil results.
 
 ### Array Variants
 
@@ -229,10 +287,17 @@ When `array: true`, the config returned has `isArray: true`:
 
 ```ts
 type IntegerOptions =
-  | (IntegerBaseOptions & { optional?: never; default?: never; array?: never })
-  | (IntegerBaseOptions & { optional: true; default?: never; array?: never })
-  | (IntegerBaseOptions & { default: number; optional?: never; array?: never })
-  | (IntegerBaseOptions & { array: true; maxItems?: number; optional?: never; default?: never });
+  | (IntegerBaseOptions & { optional?: never; default?: never; array?: never; numInput?: never })
+  | (IntegerBaseOptions & { optional: true; default?: never; array?: never; numInput?: never })
+  | (IntegerBaseOptions & { default: number; optional?: never; array?: never; numInput?: never })
+  | (IntegerBaseOptions & {
+      array: true;
+      maxItems?: number;
+      optional?: never;
+      default?: never;
+      numInput?: never;
+    })
+  | (IntegerBaseOptions & { numInput: true; default: number; optional?: never; array?: never });
 
 interface IntegerBaseOptions {
   round?: "round" | "ceil" | "floor" | "parse";
@@ -245,13 +310,16 @@ interface IntegerBaseOptions {
 ### Return Type (conditional on options)
 
 ```ts
-// No modifier → { decode, defaultValue, encode }
-// optional: true → { decode, encode }  (no defaultValue)
-// default: T → { decode, defaultValue, encode }
-// array: true → { isArray: true, decode, encode }
+// No modifier     → { decode, defaultValue, encode }
+// optional: true  → { decode, encode }  (no defaultValue)
+// default: T      → { decode, defaultValue, encode }
+// numInput: true  → { decode, resolve, defaultValue, encode }
+// array: true     → { isArray: true, decode, encode }
 ```
 
 Inferred via conditional types so `InferValueFromQueryParamConfig` works correctly.
+
+For `numInput`, the decode return type is `` `${number}` | "" `` and resolve return type is `number`.
 
 ### Tuple Type Inference
 
@@ -289,7 +357,37 @@ createSearchParamStore("progress", percentage({ optional: true }));
 createSearchParamStore("progress", percentage({ array: true }));
 ```
 
-`createPreset` returns a function that accepts shared options (`optional`, `default`, `array`, `maxItems`). Custom constraint options (like min/max for percentage) are baked into the decode — `outOfRange` is not passed through.
+`createPreset` returns a function that accepts shared options (`optional`, `default`, `array`, `maxItems`). Custom constraint options (like min/max for percentage) are baked into the decode — `outOfRange` is not passed through. `numInput` is not available for custom presets.
+
+## Edge Case Demo
+
+Interactive table showing all preset behaviors. Each row:
+
+- Preset config (fixed)
+- Text input for qs value + present/absent toggle
+- `$value` column — displayed with `objectInspect` (distinguishes `0` vs `'0'` vs `undefined`)
+- `$resolved` column — displayed with `objectInspect`
+
+Preset rows cover:
+
+| Preset Config                               | Key edge cases                              |
+| ------------------------------------------- | ------------------------------------------- |
+| `integer()`                                 | `"42"`, `"3.7"`, `"abc"`, `""`, absent      |
+| `integer({ default: 1, min: 1 })`           | `"0"` (clamped to 1), `"-5"`, absent        |
+| `integer({ round: "ceil" })`                | `"3.2"` → 4                                 |
+| `integer({ round: "parse" })`               | `"3.9"` → 3 (truncation)                    |
+| `integer({ optional: true })`               | absent → `undefined`                        |
+| `integer({ numInput: true, default: 1 })`   | absent → `$value: ""`, `$resolved: 1`       |
+| `integer({ outOfRange: "reject", min: 0 })` | `"-5"` → NaN                                |
+| `float({ fixed: 2 })`                       | `"3.14159"` → 3.14                          |
+| `string()`                                  | absent → `""` (not `"undefined"`)           |
+| `string({ maxLength: 5 })`                  | `"hello world"` → `"hello"`                 |
+| `boolean()`                                 | `"true"`, `"false"`, `"1"`, absent          |
+| `boolean({ default: true })`                | absent → `true`, encode `false` → `"false"` |
+| `date()`                                    | ISO string, `"invalid"`                     |
+| `ymd()`                                     | `"2024-01-15"`, `"2024/01/15"` (invalid)    |
+| `hms()`                                     | `"14:30:00"`, `"25:00:00"` (invalid)        |
+| `enum(["a","b"])`                           | `"a"`, `"c"` (invalid)                      |
 
 ## Documentation Strategy
 
@@ -300,7 +398,7 @@ Presets are the **primary usage pattern**. `createPreset` and plain config are *
 ```ts
 import * as presets from "@vp-tw/nanostores-qs/presets";
 
-const page = qsUtils.createSearchParamStore("page", presets.integer({ default: 1 }));
+const page = qsUtils.createSearchParamStore("page", presets.integer({ default: 1, min: 1 }));
 const sort = qsUtils.createSearchParamStore("sort", presets.enum(["asc", "desc"]));
 ```
 
@@ -333,11 +431,11 @@ const tab = qsUtils.createSearchParamStore("tab", {
 });
 ```
 
-## Verification Plan
+## Implementation Plan
 
-1. Rewrite `presets.ts` — function-based API, zero external dependencies
-2. Rewrite `presets.test.ts` — all presets, all option combinations, constraints, edge cases
-3. Rewrite `presets.test-d.ts` — type inference for all option variants
-4. Run full CI: lint, typecheck, tests
-5. Update docs and demos
-6. Browser test with agent-browser
+1. **main.ts**: Add `resolve` config support + `$resolved` store on both `createSearchParamStore` and `createSearchParamsStore`
+2. **presets.ts**: Add `numInput` option to integer/float
+3. **Tests**: Add tests for `resolve`, `$resolved`, `numInput`
+4. **Edge case demo**: Interactive table component
+5. **Docs**: Update all docs, document edge cases clearly
+6. **Browser test**: Verify with agent-browser
