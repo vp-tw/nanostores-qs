@@ -444,37 +444,125 @@ export function HmsDemo() {
 
 // --- Tuple (buttons) ---
 
-const tupleUtils = createQsUtils();
-const tupleStore = tupleUtils.createSearchParamStore(
+// [float] — single element
+const tuple1Utils = createQsUtils();
+const tuple1Store = tuple1Utils.createSearchParamStore("scale", presets.tuple([presets.float()]));
+
+// [float, float] — pair (coordinates)
+const tuple2Utils = createQsUtils();
+const tuple2Store = tuple2Utils.createSearchParamStore(
   "coord",
   presets.tuple([presets.float(), presets.float()]),
 );
 
-export function TupleDemo() {
-  const v = useStore(tupleStore.$value);
-  const search = useStore(tupleUtils.$search);
-  const [input, setInput] = useState("(empty)");
+// [string, integer, boolean] — mixed types
+const tuple3Utils = createQsUtils();
+const tuple3Store = tuple3Utils.createSearchParamStore(
+  "filter",
+  presets.tuple([presets.string(), presets.integer(), presets.boolean()]),
+);
 
-  function set(raw: string, value: [number, number]) {
-    setInput(raw);
-    tupleStore.update(value);
-  }
+export function TupleDemo() {
+  const v1 = useStore(tuple1Store.$value);
+  const s1 = useStore(tuple1Utils.$search);
+  const v2 = useStore(tuple2Store.$value);
+  const s2 = useStore(tuple2Utils.$search);
+  const v3 = useStore(tuple3Store.$value);
+  const s3 = useStore(tuple3Utils.$search);
+  const [input, setInput] = useState("(empty)");
 
   return (
     <DemoContainer>
       <DemoRow>
         <DemoColumn>
-          <ValueButtons label="tuple([float(), float()])">
-            <VBtn label="[1.5, 2.3]" onClick={() => set("?coord=1.5&coord=2.3", [1.5, 2.3])} />
-            <VBtn label="[0, 0]" onClick={() => set("?coord=0&coord=0", [0, 0])} />
-            <VBtn label="[-3.14, 42]" onClick={() => set("?coord=-3.14&coord=42", [-3.14, 42])} />
-            <VBtn label="clear" onClick={() => set("(empty)", [Number.NaN, Number.NaN])} />
+          <ValueButtons label="tuple([float()]) — single">
+            <VBtn
+              label="[1.5]"
+              onClick={() => {
+                setInput("?scale=1.5");
+                tuple1Store.update([1.5]);
+              }}
+            />
+            <VBtn
+              label="[0]"
+              onClick={() => {
+                setInput("?scale=0");
+                tuple1Store.update([0]);
+              }}
+            />
+            <VBtn
+              label="clear"
+              onClick={() => {
+                setInput("(empty)");
+                tuple1Store.update([Number.NaN]);
+              }}
+            />
+          </ValueButtons>
+          <ValueButtons label="tuple([float(), float()]) — pair">
+            <VBtn
+              label="[1.5, 2.3]"
+              onClick={() => {
+                setInput("?coord=1.5&coord=2.3");
+                tuple2Store.update([1.5, 2.3]);
+              }}
+            />
+            <VBtn
+              label="[0, 0]"
+              onClick={() => {
+                setInput("?coord=0&coord=0");
+                tuple2Store.update([0, 0]);
+              }}
+            />
+            <VBtn
+              label="[-3.14, 42]"
+              onClick={() => {
+                setInput("?coord=-3.14&coord=42");
+                tuple2Store.update([-3.14, 42]);
+              }}
+            />
+            <VBtn
+              label="clear"
+              onClick={() => {
+                setInput("(empty)");
+                tuple2Store.update([Number.NaN, Number.NaN]);
+              }}
+            />
+          </ValueButtons>
+          <ValueButtons label="tuple([string(), integer(), boolean()]) — mixed">
+            <VBtn
+              label='["hello", 42, true]'
+              onClick={() => {
+                setInput("?filter=hello&filter=42&filter=true");
+                tuple3Store.update(["hello", 42, true]);
+              }}
+            />
+            <VBtn
+              label='["", NaN, false]'
+              onClick={() => {
+                setInput("(empty)");
+                tuple3Store.update(["", Number.NaN, false]);
+              }}
+            />
           </ValueButtons>
         </DemoColumn>
         <DemoColumn>
           <CodePreview label="Input URL" value={input} />
-          <CodePreview label="$value (decoded)" value={objectInspect(v)} />
-          <CodePreview label="Output URL" value={search || "(empty)"} />
+          <CodePreview
+            label="$value (decoded)"
+            value={[
+              `scale:  ${objectInspect(v1)}`,
+              `coord:  ${objectInspect(v2)}`,
+              `filter: ${objectInspect(v3)}`,
+            ].join("\n")}
+          />
+          <CodePreview
+            label="Output URL"
+            value={[
+              `scale:  ${s1 || "(empty)"}`,
+              `coord:  ${s2 || "(empty)"}`,
+              `filter: ${s3 || "(empty)"}`,
+            ].join("\n")}
+          />
         </DemoColumn>
       </DemoRow>
     </DemoContainer>
