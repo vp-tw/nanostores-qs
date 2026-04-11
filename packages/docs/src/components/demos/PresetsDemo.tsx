@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
 import * as presets from "@vp-tw/nanostores-qs/presets";
@@ -14,8 +15,26 @@ import {
   DemoRow,
   DemoSelect,
 } from "../demo-ui";
+import styles from "./PresetsDemo.module.css";
 
-// Each preset gets its own createQsUtils to avoid URL conflicts between demos
+// --- Value button row ---
+
+function ValueButtons({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.presetRow}>
+      <div className={styles.presetLabel}>{label}</div>
+      <div className={styles.btnGroup}>{children}</div>
+    </div>
+  );
+}
+
+function VBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" className={styles.valueBtn} onClick={onClick}>
+      {label}
+    </button>
+  );
+}
 
 // --- String ---
 
@@ -43,6 +62,7 @@ export function StringDemo() {
           <DemoInput
             label="string({ maxLength: 5 })"
             type="text"
+            placeholder="try typing more than 5 chars"
             value={v.maxLen}
             onChange={(e) => strStore.update("maxLen", e.currentTarget.value)}
             onClear={() => strStore.update("maxLen", "")}
@@ -64,7 +84,7 @@ export function StringDemo() {
   );
 }
 
-// --- Integer ---
+// --- Integer (buttons) ---
 
 const intUtils = createQsUtils();
 const intStore = intUtils.createSearchParamsStore({
@@ -82,46 +102,34 @@ export function IntegerDemo() {
     <DemoContainer>
       <DemoRow>
         <DemoColumn>
-          <DemoInput
-            label="integer() — round"
-            type="text"
-            placeholder="e.g. 3.7"
-            value={Number.isNaN(v.round) ? "" : String(v.round)}
-            onChange={(e) => intStore.update("round", Number(e.currentTarget.value))}
-            onClear={() => intStore.update("round", Number.NaN)}
-          />
-          <DemoInput
-            label='integer({ round: "ceil" })'
-            type="text"
-            placeholder="e.g. 3.2"
-            value={Number.isNaN(v.ceil) ? "" : String(v.ceil)}
-            onChange={(e) => intStore.update("ceil", Number(e.currentTarget.value))}
-            onClear={() => intStore.update("ceil", Number.NaN)}
-          />
-          <DemoInput
-            label='integer({ round: "parse" })'
-            type="text"
-            placeholder="e.g. 3.9 → 3"
-            value={Number.isNaN(v.parse) ? "" : String(v.parse)}
-            onChange={(e) => intStore.update("parse", Number(e.currentTarget.value))}
-            onClear={() => intStore.update("parse", Number.NaN)}
-          />
-          <DemoInput
-            label="integer({ min: 0, max: 100 })"
-            type="text"
-            placeholder="try -5 or 200"
-            value={Number.isNaN(v.clamped) ? "" : String(v.clamped)}
-            onChange={(e) => intStore.update("clamped", Number(e.currentTarget.value))}
-            onClear={() => intStore.update("clamped", Number.NaN)}
-          />
-          <DemoInput
-            label='integer({ min: 0, max: 100, outOfRange: "reject" })'
-            type="text"
-            placeholder="try -5 or 200"
-            value={Number.isNaN(v.reject) ? "" : String(v.reject)}
-            onChange={(e) => intStore.update("reject", Number(e.currentTarget.value))}
-            onClear={() => intStore.update("reject", Number.NaN)}
-          />
+          <ValueButtons label="integer() — round">
+            <VBtn label="3.7 → 4" onClick={() => intStore.update("round", 4)} />
+            <VBtn label="3.2 → 3" onClick={() => intStore.update("round", 3)} />
+            <VBtn label="-5" onClick={() => intStore.update("round", -5)} />
+            <VBtn label="clear" onClick={() => intStore.update("round", Number.NaN)} />
+          </ValueButtons>
+          <ValueButtons label='integer({ round: "ceil" })'>
+            <VBtn label="3.2 → 4" onClick={() => intStore.update("ceil", 4)} />
+            <VBtn label="-1.5 → -1" onClick={() => intStore.update("ceil", -1)} />
+            <VBtn label="clear" onClick={() => intStore.update("ceil", Number.NaN)} />
+          </ValueButtons>
+          <ValueButtons label='integer({ round: "parse" })'>
+            <VBtn label="3.9 → 3" onClick={() => intStore.update("parse", 3)} />
+            <VBtn label="10" onClick={() => intStore.update("parse", 10)} />
+            <VBtn label="clear" onClick={() => intStore.update("parse", Number.NaN)} />
+          </ValueButtons>
+          <ValueButtons label="integer({ min: 0, max: 100 }) — clamp">
+            <VBtn label="50" onClick={() => intStore.update("clamped", 50)} />
+            <VBtn label="-5 → 0" onClick={() => intStore.update("clamped", 0)} />
+            <VBtn label="200 → 100" onClick={() => intStore.update("clamped", 100)} />
+            <VBtn label="clear" onClick={() => intStore.update("clamped", Number.NaN)} />
+          </ValueButtons>
+          <ValueButtons label='integer({ min: 0, max: 100, outOfRange: "reject" })'>
+            <VBtn label="50" onClick={() => intStore.update("reject", 50)} />
+            <VBtn label="-5 → NaN" onClick={() => intStore.update("reject", Number.NaN)} />
+            <VBtn label="200 → NaN" onClick={() => intStore.update("reject", Number.NaN)} />
+            <VBtn label="clear" onClick={() => intStore.update("reject", Number.NaN)} />
+          </ValueButtons>
         </DemoColumn>
         <DemoColumn>
           <CodePreview label="$values" value={objectInspect(v, { indent: 2 })} />
@@ -132,7 +140,7 @@ export function IntegerDemo() {
   );
 }
 
-// --- Float ---
+// --- Float (buttons) ---
 
 const floatUtils = createQsUtils();
 const floatStore = floatUtils.createSearchParamsStore({
@@ -148,30 +156,22 @@ export function FloatDemo() {
     <DemoContainer>
       <DemoRow>
         <DemoColumn>
-          <DemoInput
-            label="float()"
-            type="text"
-            placeholder="e.g. 3.14159"
-            value={Number.isNaN(v.base) ? "" : String(v.base)}
-            onChange={(e) => floatStore.update("base", Number(e.currentTarget.value))}
-            onClear={() => floatStore.update("base", Number.NaN)}
-          />
-          <DemoInput
-            label="float({ fixed: 2 })"
-            type="text"
-            placeholder="e.g. 3.14159 → 3.14"
-            value={Number.isNaN(v.fixed2) ? "" : String(v.fixed2)}
-            onChange={(e) => floatStore.update("fixed2", Number(e.currentTarget.value))}
-            onClear={() => floatStore.update("fixed2", Number.NaN)}
-          />
-          <DemoInput
-            label="float({ fixed: 2, min: 0, max: 1 })"
-            type="text"
-            placeholder="e.g. 0.75 or 1.5"
-            value={Number.isNaN(v.clamped) ? "" : String(v.clamped)}
-            onChange={(e) => floatStore.update("clamped", Number(e.currentTarget.value))}
-            onClear={() => floatStore.update("clamped", Number.NaN)}
-          />
+          <ValueButtons label="float()">
+            <VBtn label="3.14159" onClick={() => floatStore.update("base", 3.14159)} />
+            <VBtn label="-2.5" onClick={() => floatStore.update("base", -2.5)} />
+            <VBtn label="clear" onClick={() => floatStore.update("base", Number.NaN)} />
+          </ValueButtons>
+          <ValueButtons label="float({ fixed: 2 })">
+            <VBtn label="3.14159 → 3.14" onClick={() => floatStore.update("fixed2", 3.14)} />
+            <VBtn label="3.145 → 3.15" onClick={() => floatStore.update("fixed2", 3.15)} />
+            <VBtn label="clear" onClick={() => floatStore.update("fixed2", Number.NaN)} />
+          </ValueButtons>
+          <ValueButtons label="float({ fixed: 2, min: 0, max: 1 })">
+            <VBtn label="0.75" onClick={() => floatStore.update("clamped", 0.75)} />
+            <VBtn label="1.5 → 1" onClick={() => floatStore.update("clamped", 1)} />
+            <VBtn label="-0.5 → 0" onClick={() => floatStore.update("clamped", 0)} />
+            <VBtn label="clear" onClick={() => floatStore.update("clamped", Number.NaN)} />
+          </ValueButtons>
         </DemoColumn>
         <DemoColumn>
           <CodePreview label="$values" value={objectInspect(v, { indent: 2 })} />
@@ -273,7 +273,7 @@ export function EnumDemo() {
   );
 }
 
-// --- Date ---
+// --- Date (buttons) ---
 
 const dateUtils = createQsUtils();
 const dateStore = dateUtils.createSearchParamsStore({
@@ -284,31 +284,25 @@ const dateStore = dateUtils.createSearchParamsStore({
 export function DateDemo() {
   const v = useStore(dateStore.$values);
   const search = useStore(dateUtils.$search);
-  const baseStr = Number.isNaN(v.base.getTime()) ? "" : v.base.toISOString();
-  const optStr = v.optional ? v.optional.toISOString() : "";
   return (
     <DemoContainer>
       <DemoRow>
         <DemoColumn>
-          <DemoInput
-            label="date()"
-            type="text"
-            placeholder="e.g. 2024-01-15T00:00:00.000Z"
-            value={baseStr}
-            onChange={(e) => dateStore.update("base", new Date(e.currentTarget.value))}
-            onClear={() => dateStore.update("base", new Date(Number.NaN))}
-          />
-          <DemoInput
-            label="date({ optional: true })"
-            type="text"
-            placeholder="ISO date string"
-            value={optStr}
-            onChange={(e) => {
-              const d = new Date(e.currentTarget.value);
-              dateStore.update("optional", Number.isNaN(d.getTime()) ? undefined : d);
-            }}
-            onClear={() => dateStore.update("optional", undefined)}
-          />
+          <ValueButtons label="date()">
+            <VBtn
+              label="2024-01-15"
+              onClick={() => dateStore.update("base", new Date("2024-01-15T00:00:00.000Z"))}
+            />
+            <VBtn label="now" onClick={() => dateStore.update("base", new Date())} />
+            <VBtn label="invalid" onClick={() => dateStore.update("base", new Date(Number.NaN))} />
+          </ValueButtons>
+          <ValueButtons label="date({ optional: true })">
+            <VBtn
+              label="2024-06-01"
+              onClick={() => dateStore.update("optional", new Date("2024-06-01T00:00:00.000Z"))}
+            />
+            <VBtn label="clear" onClick={() => dateStore.update("optional", undefined)} />
+          </ValueButtons>
         </DemoColumn>
         <DemoColumn>
           <CodePreview label="$values" value={objectInspect(v, { indent: 2 })} />
@@ -399,7 +393,7 @@ export function HmsDemo() {
   );
 }
 
-// --- Tuple ---
+// --- Tuple (buttons) ---
 
 const tupleUtils = createQsUtils();
 const tupleStore = tupleUtils.createSearchParamStore(
@@ -414,22 +408,12 @@ export function TupleDemo() {
     <DemoContainer>
       <DemoRow>
         <DemoColumn>
-          <DemoInput
-            label="tuple — [0] float"
-            type="text"
-            placeholder="e.g. 1.5"
-            value={Number.isNaN(v[0]) ? "" : String(v[0])}
-            onChange={(e) => tupleStore.update([Number(e.currentTarget.value), v[1]])}
-            onClear={() => tupleStore.update([Number.NaN, v[1]])}
-          />
-          <DemoInput
-            label="tuple — [1] float"
-            type="text"
-            placeholder="e.g. 2.3"
-            value={Number.isNaN(v[1]) ? "" : String(v[1])}
-            onChange={(e) => tupleStore.update([v[0], Number(e.currentTarget.value)])}
-            onClear={() => tupleStore.update([v[0], Number.NaN])}
-          />
+          <ValueButtons label="tuple([float(), float()])">
+            <VBtn label="[1.5, 2.3]" onClick={() => tupleStore.update([1.5, 2.3])} />
+            <VBtn label="[0, 0]" onClick={() => tupleStore.update([0, 0])} />
+            <VBtn label="[-3.14, 42]" onClick={() => tupleStore.update([-3.14, 42])} />
+            <VBtn label="clear" onClick={() => tupleStore.update([Number.NaN, Number.NaN])} />
+          </ValueButtons>
         </DemoColumn>
         <DemoColumn>
           <CodePreview label="$value" value={objectInspect(v)} />

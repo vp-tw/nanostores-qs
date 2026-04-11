@@ -1,0 +1,41 @@
+.presetRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-xs);
+}
+
+.presetLabel {
+  font-size: 0.8125rem;
+  color: var(--demo-text-muted);
+  font-weight: 500;
+  font-family: var(--demo-font-mono);
+}
+
+.btnGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--demo-spacing-xs);
+}
+
+.valueBtn {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: var(--demo-spacing-xs) var(--demo-spacing-sm);
+  color: var(--demo-text);
+  font-size: 0.75rem;
+  font-family: var(--demo-font-mono);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  outline: none;
+}
+
+.valueBtn:hover {
+  background: var(--demo-surface-hover);
+}
+
+.valueBtn:focus-visible {
+  box-shadow: var(--demo-focus-ring);
+}
