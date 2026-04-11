@@ -643,7 +643,13 @@ function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
   return {
     isArray: true,
     decode: (values: Array<unknown>) => {
-      return configs.map((c, i) => c.decode(values[i])) as Mutable<InferTupleType<TConfigs>>;
+      return configs.map((c, i) => {
+        try {
+          return c.decode(values[i]);
+        } catch {
+          return "defaultValue" in c ? c.defaultValue : undefined;
+        }
+      }) as Mutable<InferTupleType<TConfigs>>;
     },
     defaultValue,
     encode: (value: Mutable<InferTupleType<TConfigs>>) => {

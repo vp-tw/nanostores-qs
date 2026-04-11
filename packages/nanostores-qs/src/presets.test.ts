@@ -1019,11 +1019,26 @@ describe("tuple", () => {
     });
   });
 
-  describe("decode error propagation", () => {
-    it("any element throw causes entire tuple to throw", () => {
+  describe("decode per-element fallback", () => {
+    it("invalid element falls back to its defaultValue, not entire tuple", () => {
       const config = tuple([string(), integer()]);
-      // "abc" will cause integer decode to throw
-      expect(() => config.decode(["hello", "abc"])).toThrow();
+      // "abc" causes integer decode to throw → falls back to NaN for that position
+      const result = config.decode(["hello", "abc"]);
+      expect(result[0]).toBe("hello");
+      expect(Number.isNaN(result[1])).toBe(true);
+    });
+
+    it("missing element falls back to defaultValue", () => {
+      const config = tuple([float(), float()]);
+      const result = config.decode(["1.5"]);
+      expect(result[0]).toBe(1.5);
+      expect(Number.isNaN(result[1])).toBe(true);
+    });
+
+    it("extra elements are ignored", () => {
+      const config = tuple([float(), float()]);
+      const result = config.decode(["1.5", "2.3", "99"]);
+      expect(result).toEqual([1.5, 2.3]);
     });
   });
 
