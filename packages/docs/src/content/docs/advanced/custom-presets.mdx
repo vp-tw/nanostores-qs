@@ -4,120 +4,33 @@ description: Build your own presets with createPreset or plain config
 ---
 
 import DemoWrapper from "../../../components/DemoWrapper.astro";
-import InlineConfigDemo from "../../../components/demos/InlineConfigDemo";
-import ZodDemo from "../../../components/demos/ZodDemo";
-import DecimalDemo from "../../../components/demos/DecimalDemo";
+import CustomPresetInlineDemo from "../../../components/demos/CustomPresetInlineDemo";
+import CustomPresetReusableDemo from "../../../components/demos/CustomPresetReusableDemo";
 
 When built-in presets don't cover your use case, you have two options:
 
-1. **Plain config** — inline decode/encode for one-off usage
+1. **Plain config** — inline `decode`/`encode`/`resolve` for one-off usage
 2. **`createPreset`** — reusable preset function with `{ optional }`, `{ default }`, `{ array }` options
 
-## Zod v4
+Both demos below use **enum validation** (same pattern as `z.enum()` from Zod v4) and **decimal.js** for precise arithmetic. View the source code to see the full implementation.
 
-Extract enum values as `const` array, then create a Zod enum from it. The `const` array serves as both the Zod schema source and the type source — no need for `satisfies z.infer<...>`:
+## Plain config (inline)
 
-### Inline (plain config)
+Pass a config object directly. Uses `resolve` for Decimal input binding — `$value` holds the string (bindable to `<input>`), `$resolved` holds the `Decimal` (for calculation). Clearing an input sets `$value` to `""`, and `resolve` maps it to the default.
 
-```ts
-import { z } from "zod";
-
-const tabOptions = ["home", "settings", "profile"] as const;
-const tabEnum = z.enum(tabOptions);
-
-const tabStore = qsUtils.createSearchParamStore("tab", {
-  decode: (v) => tabEnum.parse(String(v)),
-  defaultValue: tabOptions[0], // "home" — inferred as literal type
-});
-```
-
-### Reusable preset
-
-```ts
-import { createPreset } from "@vp-tw/nanostores-qs/presets";
-import { z } from "zod";
-
-function zodEnum<const T extends readonly [string, ...Array<string>]>(values: T) {
-  const schema = z.enum(values);
-  return createPreset<T[number], T[0]>({
-    decode: (v) => schema.parse(String(v)),
-    defaultValue: values[0],
-  });
-}
-
-const statusOptions = ["active", "inactive", "pending"] as const;
-const statusPreset = zodEnum(statusOptions);
-
-qsUtils.createSearchParamStore("status", statusPreset());
-qsUtils.createSearchParamStore("status", statusPreset({ optional: true }));
-qsUtils.createSearchParamStore("status", statusPreset({ array: true }));
-```
-
-### Live demo
-
-<DemoWrapper source="packages/docs/src/components/demos/ZodDemo.tsx">
-  <ZodDemo client:only="react" />
+<DemoWrapper source="packages/docs/src/components/demos/CustomPresetInlineDemo.tsx">
+  <CustomPresetInlineDemo client:load />
 </DemoWrapper>
 
-## decimal.js
+## `createPreset` (reusable)
 
-Use `resolve` when `$value` (for input binding) and `$resolved` (for calculation) need different types.
+Build preset functions with `createPreset`. The returned function accepts `{ optional }`, `{ default }`, `{ array }` — the same API as built-in presets. Here `enumPreset` and `decimal` are defined once and reused across stores.
 
-### Inline with resolve
-
-```ts
-import { Decimal } from "decimal.js";
-
-const priceStore = qsUtils.createSearchParamStore("price", {
-  decode: (v: unknown): string => {
-    if (v == null) return "";
-    try {
-      const d = new Decimal(String(v));
-      if (!d.isFinite()) return "";
-      return d.toString();
-    } catch {
-      return "";
-    }
-  },
-  defaultValue: "",
-  encode: (v: string): string | undefined => (v === "" ? undefined : v),
-  resolve: (v: string): Decimal => (v === "" ? new Decimal(0) : new Decimal(v)),
-});
-
-// priceStore.$value    — string (bindable to <input>)
-// priceStore.$resolved — Decimal (for calculation)
-```
-
-### Reusable preset
-
-```ts
-import { createPreset } from "@vp-tw/nanostores-qs/presets";
-import { Decimal } from "decimal.js";
-
-const decimal = createPreset<Decimal>({
-  decode: (v) => {
-    const d = new Decimal(String(v));
-    if (!d.isFinite()) throw new Error("invalid decimal");
-    return d;
-  },
-  defaultValue: new Decimal(0),
-  encode: (v) => v.toString(),
-});
-
-qsUtils.createSearchParamStore("tax", decimal());
-qsUtils.createSearchParamStore("tax", decimal({ optional: true }));
-qsUtils.createSearchParamStore("amounts", decimal({ array: true }));
-```
-
-### Live demo
-
-<DemoWrapper source="packages/docs/src/components/demos/DecimalDemo.tsx">
-  <DecimalDemo client:only="react" />
+<DemoWrapper source="packages/docs/src/components/demos/CustomPresetReusableDemo.tsx">
+  <CustomPresetReusableDemo client:load />
 </DemoWrapper>
 
-## Plain config reference
-
-### Config shape
+## Config shape
 
 | Property       | Type                            | Description                           |
 | -------------- | ------------------------------- | ------------------------------------- |
@@ -127,17 +40,7 @@ qsUtils.createSearchParamStore("amounts", decimal({ array: true }));
 | `resolve`      | `(v: T) => R`                   | Optional: map `$value` → `$resolved`  |
 | `isArray`      | `boolean`                       | Treat as array parameter              |
 
-### Live demo
-
-The demo below uses plain config with `resolve` for the number input, and standard boolean configs for the update option toggles:
-
-<DemoWrapper source="packages/docs/src/components/demos/InlineConfigDemo.tsx">
-  <InlineConfigDemo client:load />
-</DemoWrapper>
-
 ## `createPreset` options
-
-A function returned by `createPreset` accepts:
 
 | Option                         | Description                                                   |
 | ------------------------------ | ------------------------------------------------------------- |
