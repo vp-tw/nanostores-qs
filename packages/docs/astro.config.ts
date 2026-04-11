@@ -72,7 +72,7 @@ export default defineConfig({
         },
         {
           label: "Reference",
-          items: ["reference/api", "reference/presets-table"],
+          items: ["reference/api", "reference/presets-table", "reference/utility-types"],
         },
       ],
     }),

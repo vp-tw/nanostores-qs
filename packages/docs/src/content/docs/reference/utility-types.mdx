@@ -1,0 +1,92 @@
+---
+title: Utility Types
+description: TypeScript utility types exported by the library
+---
+
+## `Resolve<T>`
+
+Force TypeScript to eagerly evaluate a type, expanding conditional types and type aliases in IDE hover tooltips.
+
+### Problem
+
+When hovering over a store's `$value` in your IDE, TypeScript may show the unexpanded internal type:
+
+```
+ReadableAtom<InferValueFromSearchParamConfig<FallbackQueryParamConfig<DefaultQsRecord, BaseResult<boolean, boolean>>>>
+```
+
+Instead of the resolved type: `ReadableAtom<boolean>`.
+
+### Solution
+
+```ts
+import type { createQsUtils } from "@vp-tw/nanostores-qs";
+
+// Wrap a type to force evaluation
+type PageValue = createQsUtils.Resolve<ReturnType<typeof pageStore.$value.get>>;
+// Hover: number
+```
+
+### Usage
+
+```ts
+import type { createQsUtils } from "@vp-tw/nanostores-qs";
+
+type Resolve<T> = createQsUtils.Resolve<T>;
+
+// In your component types
+interface Props {
+  page: Resolve<ReturnType<typeof pageStore.$value.get>>;
+  // Hover shows: number
+  // Instead of: InferValueFromSearchParamConfig<...>
+}
+```
+
+### How it works
+
+```ts
+type Resolve<T> = T extends infer U ? U : never;
+```
+
+The `T extends infer U ? U : never` pattern forces TypeScript to resolve the type into a new type variable `U`, which triggers eager evaluation of any conditional types or type aliases that were deferred.
+
+### Limitations
+
+- Does not always expand deeply nested types
+- No runtime effect — purely a type-level tool
+- Already applied internally where possible — most common cases don't need manual wrapping
+
+## `StoreConfig<T>`
+
+Type-safe config object for `createSearchParamStore`. See [Custom Presets](/advanced/custom-presets/#config-shape) for details.
+
+```ts
+import type { createQsUtils } from "@vp-tw/nanostores-qs";
+
+type MyConfig = createQsUtils.StoreConfig<{
+  value: string;
+  defaultValue: string;
+  resolved: number;
+}>;
+// → { decode, defaultValue, encode?, resolve (required) }
+```
+
+| Descriptor field | Effect                                                   |
+| ---------------- | -------------------------------------------------------- |
+| `value`          | The decoded type (`$value`)                              |
+| `defaultValue`   | Default value type; omit for optional stores             |
+| `resolved`       | The resolved type (`$resolved`); omit if same as `value` |
+
+When `resolved ≠ value`, the `resolve` function is **required** (not optional) — TypeScript will error if you forget it.
+
+## `StoreConfigArray<T>`
+
+Same as `StoreConfig` but for `isArray: true` configs.
+
+```ts
+type MyArrayConfig = createQsUtils.StoreConfigArray<{
+  value: number;
+  resolved: string;
+}>;
+// → { isArray: true, decode, encode?, resolve (required) }
+```
