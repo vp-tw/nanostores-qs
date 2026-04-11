@@ -1,12 +1,8 @@
-import { useStore } from "@nanostores/react";
-import { createQsUtils } from "@vp-tw/nanostores-qs";
-import * as presets from "@vp-tw/nanostores-qs/presets";
 import { stringify as qsStringify } from "qs";
 import queryString from "query-string";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import {
-  CodePreview,
   DemoColumn,
   DemoContainer,
   DemoInput,
@@ -18,14 +14,6 @@ import styles from "./CustomQsLibDemo.module.css";
 
 const tagOptions = ["react", "vue", "svelte", "solid"] as const;
 
-const qsUtils = createQsUtils();
-const store = qsUtils.createSearchParamsStore({
-  name: presets.string({ optional: true }),
-  tags: presets.enum(tagOptions, { array: true }),
-});
-
-// --- Format definitions ---
-
 interface FormatEntry {
   lib: string;
   format: string;
@@ -36,16 +24,24 @@ const formats: Array<FormatEntry> = [
   {
     lib: "URLSearchParams",
     format: "(native)",
-    stringify: (data) => new URLSearchParams(data as Record<string, string>).toString(),
+    stringify: (data) => {
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(data)) {
+        if (Array.isArray(v)) {
+          for (const item of v) params.append(k, String(item));
+        } else if (v !== undefined) {
+          params.set(k, String(v));
+        }
+      }
+      return params.toString();
+    },
   },
-  // qs
   ...(["indices", "brackets", "repeat", "comma"] as const).map((f) => ({
     lib: "qs",
     format: f,
     stringify: (data: Record<string, unknown>) =>
       qsStringify(data, { arrayFormat: f, encode: false }),
   })),
-  // query-string
   ...(
     [
       "bracket",
@@ -65,37 +61,28 @@ const formats: Array<FormatEntry> = [
 ];
 
 export default function CustomQsLibDemo() {
-  const values = useStore(store.$values);
-  const currentSearch = useStore(qsUtils.$search);
+  const [name, setName] = useState("");
+  const [tags, setTags] = useState<Array<string>>([]);
 
   const data = useMemo(() => {
     const d: Record<string, unknown> = {};
-    if (values.name !== undefined) d.name = values.name;
-    if (values.tags.length > 0) d.tags = values.tags;
+    if (name) d.name = name;
+    if (tags.length > 0) d.tags = tags;
     return d;
-  }, [values.name, values.tags]);
+  }, [name, tags]);
 
-  const results = useMemo(
-    () =>
-      formats.map((f) => {
-        try {
-          return { ...f, output: f.stringify(data) || "(empty)" };
-        } catch {
-          return { ...f, output: "(error)" };
-        }
-      }),
-    [data],
-  );
-
-  // Group by lib
   const grouped = useMemo(() => {
     const map = new Map<string, Array<{ format: string; output: string }>>();
-    for (const r of results) {
-      if (!map.has(r.lib)) map.set(r.lib, []);
-      map.get(r.lib)!.push({ format: r.format, output: r.output });
+    for (const f of formats) {
+      if (!map.has(f.lib)) map.set(f.lib, []);
+      try {
+        map.get(f.lib)!.push({ format: f.format, output: f.stringify(data) || "(empty)" });
+      } catch {
+        map.get(f.lib)!.push({ format: f.format, output: "(error)" });
+      }
     }
     return map;
-  }, [results]);
+  }, [data]);
 
   return (
     <DemoContainer>
@@ -106,24 +93,16 @@ export default function CustomQsLibDemo() {
             label="name"
             type="text"
             placeholder="e.g. John"
-            value={values.name ?? ""}
-            onChange={(e) =>
-              store.updateAll({ ...values, name: e.currentTarget.value || undefined })
-            }
-            onClear={() => store.updateAll({ ...values, name: undefined })}
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+            onClear={() => setName("")}
           />
           <DemoMultiSelect
             label="tags (array)"
             options={tagOptions}
-            value={[...values.tags]}
-            onChange={(v) =>
-              store.updateAll({
-                ...values,
-                tags: v as typeof values.tags,
-              })
-            }
+            value={tags}
+            onChange={setTags}
           />
-          <CodePreview label="window.location.search" value={currentSearch || "(empty)"} />
         </DemoColumn>
         <DemoColumn>
           {Array.from(grouped.entries()).map(([lib, entries]) => (
