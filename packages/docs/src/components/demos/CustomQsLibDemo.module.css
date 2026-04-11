@@ -1,0 +1,20 @@
+.libRow {
+  display: flex;
+  gap: var(--demo-spacing-lg);
+  flex-wrap: wrap;
+}
+
+.libGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-md);
+  flex: 1;
+  min-width: 240px;
+}
+
+.sublabel {
+  font-family: var(--demo-font-mono);
+  font-size: 0.75rem;
+  color: var(--demo-text-muted);
+  margin-top: calc(-1 * var(--demo-spacing-sm));
+}

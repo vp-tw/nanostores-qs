@@ -2,121 +2,126 @@ import { useStore } from "@nanostores/react";
 import { createQsUtils } from "@vp-tw/nanostores-qs";
 import * as presets from "@vp-tw/nanostores-qs/presets";
 import objectInspect from "object-inspect";
-import { parse, stringify } from "qs";
+import { parse as qsParse, stringify as qsStringify } from "qs";
+import queryString from "query-string";
 
 import {
   CodePreview,
-  DemoColumn,
+  DemoCheckbox,
   DemoContainer,
   DemoInput,
   DemoLabel,
-  DemoRow,
-  DemoTabList,
-  DemoTabPanel,
+  DemoMultiSelect,
 } from "../demo-ui";
+import styles from "./CustomQsLibDemo.module.css";
 
-// Default: uses URLSearchParams
+const tagOptions = ["react", "vue", "svelte", "solid"] as const;
+
+// --- URLSearchParams (default) ---
 const defaultUtils = createQsUtils();
 const defaultStore = defaultUtils.createSearchParamsStore({
   name: presets.string({ optional: true }),
-  age: presets.integer({ optional: true }),
+  tags: presets.enum(tagOptions, { array: true }),
 });
 
-// Custom: uses qs library
-const qsLibUtils = createQsUtils({
+// --- qs library (brackets array format) ---
+const qsUtils = createQsUtils({
   qs: {
-    parse: (search) => parse(search, { ignoreQueryPrefix: true }),
-    stringify: (values) => stringify(values),
+    parse: (search) => qsParse(search, { ignoreQueryPrefix: true }),
+    stringify: (values) => qsStringify(values, { arrayFormat: "brackets" }),
   },
 });
-const qsLibStore = qsLibUtils.createSearchParamsStore({
+const qsStore = qsUtils.createSearchParamsStore({
   name: presets.string({ optional: true }),
-  age: presets.integer({ optional: true }),
+  tags: presets.enum(tagOptions, { array: true }),
 });
 
-const tabs = ["URLSearchParams", "qs library"] as const;
-type Tab = (typeof tabs)[number];
+// --- query-string (comma array format) ---
+const queryStringUtils = createQsUtils({
+  qs: {
+    parse: (search) => queryString.parse(search, { arrayFormat: "comma" }),
+    stringify: (values) =>
+      queryString.stringify(values as Record<string, unknown>, { arrayFormat: "comma" }),
+  },
+});
+const queryStringStore = queryStringUtils.createSearchParamsStore({
+  name: presets.string({ optional: true }),
+  tags: presets.enum(tagOptions, { array: true }),
+});
+
+interface LibPanelProps {
+  label: string;
+  sublabel: string;
+  utils: ReturnType<typeof createQsUtils>;
+  store: ReturnType<
+    typeof defaultUtils.createSearchParamsStore<
+      typeof defaultStore extends { $values: { get: () => infer T } } ? Record<string, any> : never
+    >
+  >;
+  values: { name: string | undefined; tags: ReadonlyArray<string> };
+}
+
+function LibPanel({ label, sublabel, utils, values, store }: LibPanelProps) {
+  const search = useStore(utils.$search);
+  const qs = useStore(utils.$qs);
+
+  return (
+    <div className={styles.libGroup}>
+      <DemoLabel>{label}</DemoLabel>
+      <div className={styles.sublabel}>{sublabel}</div>
+      <DemoInput
+        label="name"
+        type="text"
+        placeholder="e.g. John"
+        value={values.name ?? ""}
+        onChange={(e) =>
+          store.updateAll({ ...values, name: e.currentTarget.value || undefined } as any)
+        }
+        onClear={() => store.updateAll({ ...values, name: undefined } as any)}
+      />
+      <DemoMultiSelect
+        label="tags (array)"
+        options={tagOptions}
+        value={[...values.tags]}
+        onChange={(v) => store.updateAll({ ...values, tags: v } as any)}
+      />
+      <CodePreview label="$search" value={search || "(empty)"} />
+      <CodePreview label="$qs" value={objectInspect(qs, { indent: 2 })} />
+    </div>
+  );
+}
 
 export default function CustomQsLibDemo() {
   const defaultValues = useStore(defaultStore.$values);
-  const defaultSearch = useStore(defaultUtils.$search);
-  const defaultQs = useStore(defaultUtils.$qs);
-
-  const qsValues = useStore(qsLibStore.$values);
-  const qsSearch = useStore(qsLibUtils.$search);
-  const qsQs = useStore(qsLibUtils.$qs);
-
-  // Use simple state since both share URL
-  const activeTab: Tab = "URLSearchParams";
+  const qsValues = useStore(qsStore.$values);
+  const queryStringValues = useStore(queryStringStore.$values);
 
   return (
     <DemoContainer>
-      <DemoLabel>Custom QS Library: Side-by-Side Comparison</DemoLabel>
-      <DemoTabList
-        tabs={tabs}
-        active={activeTab}
-        onChange={() => {
-          // Both tabs share the same URL — switching is visual only
-        }}
-      />
-
-      <DemoRow>
-        <DemoColumn>
-          <DemoLabel>URLSearchParams (default)</DemoLabel>
-          <DemoInput
-            label="name"
-            type="text"
-            value={defaultValues.name ?? ""}
-            onChange={(e) =>
-              defaultStore.updateAll({
-                ...defaultValues,
-                name: e.currentTarget.value || undefined,
-              })
-            }
-            onClear={() => defaultStore.updateAll({ ...defaultValues, name: undefined })}
-          />
-          <DemoInput
-            label="age"
-            type="number"
-            value={defaultValues.age === undefined ? "" : defaultValues.age}
-            onChange={(e) => {
-              const v = e.currentTarget.value;
-              defaultStore.update("age", v === "" ? undefined : Number(v));
-            }}
-            onClear={() => defaultStore.update("age", undefined)}
-          />
-          <CodePreview label="$search" value={defaultSearch || "(empty)"} />
-          <CodePreview label="$qs" value={objectInspect(defaultQs, { indent: 2 })} />
-        </DemoColumn>
-
-        <DemoColumn>
-          <DemoLabel>qs library (custom)</DemoLabel>
-          <DemoInput
-            label="name"
-            type="text"
-            value={qsValues.name ?? ""}
-            onChange={(e) =>
-              qsLibStore.updateAll({
-                ...qsValues,
-                name: e.currentTarget.value || undefined,
-              })
-            }
-            onClear={() => qsLibStore.updateAll({ ...qsValues, name: undefined })}
-          />
-          <DemoInput
-            label="age"
-            type="number"
-            value={qsValues.age === undefined ? "" : qsValues.age}
-            onChange={(e) => {
-              const v = e.currentTarget.value;
-              qsLibStore.update("age", v === "" ? undefined : Number(v));
-            }}
-            onClear={() => qsLibStore.update("age", undefined)}
-          />
-          <CodePreview label="$search" value={qsSearch || "(empty)"} />
-          <CodePreview label="$qs" value={objectInspect(qsQs, { indent: 2 })} />
-        </DemoColumn>
-      </DemoRow>
+      <DemoLabel>Custom QS Library: Array Format Comparison</DemoLabel>
+      <div className={styles.libRow}>
+        <LibPanel
+          label="URLSearchParams"
+          sublabel="tags=react&tags=vue"
+          utils={defaultUtils}
+          store={defaultStore as any}
+          values={defaultValues}
+        />
+        <LibPanel
+          label="qs"
+          sublabel="tags[]=react&tags[]=vue"
+          utils={qsUtils}
+          store={qsStore as any}
+          values={qsValues}
+        />
+        <LibPanel
+          label="query-string"
+          sublabel="tags=react,vue"
+          utils={queryStringUtils}
+          store={queryStringStore as any}
+          values={queryStringValues}
+        />
+      </div>
     </DemoContainer>
   );
 }
