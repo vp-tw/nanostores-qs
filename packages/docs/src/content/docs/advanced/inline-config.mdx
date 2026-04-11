@@ -1,56 +1,73 @@
 ---
-title: Inline Configuration
-description: Custom decode/encode with the def() callback pattern
+title: Plain Config
+description: Custom decode/encode without presets
 ---
 
 import DemoWrapper from "../../../components/DemoWrapper.astro";
 import InlineConfigDemo from "../../../components/demos/InlineConfigDemo";
 
-When presets don't fit your use case, use the **inline `def()` callback** or a config object directly.
+When presets don't fit your use case, pass a **plain config object** directly to `createSearchParamStore`.
 
-## Single-parameter inline config
-
-```tsx
-// num: number | "" — custom decode with defaultValue
-const num = qsUtils.createSearchParamStore("num", (def) =>
-  def({ decode: (v) => (!v ? "" : Number(v)), defaultValue: "" }),
-);
-```
-
-The `def()` callback receives a builder function. Call it with `{ decode, defaultValue }` to configure the parameter. Chain `.setEncode()` to customize the encode direction:
+## Single-parameter config
 
 ```tsx
-const replaceStore = qsUtils.createSearchParamStore("replace", (def) =>
-  def({
-    decode: (v) => v !== "false",
-    defaultValue: true,
-  }).setEncode((v) => (v ? undefined : "false")),
-);
+const numStore = qsUtils.createSearchParamStore("num", {
+  decode: (v: unknown): string => {
+    if (v == null) return "";
+    const n = Number(v);
+    if (Number.isNaN(n)) return "";
+    return String(n);
+  },
+  defaultValue: "",
+  encode: (v: string): string | undefined => (v === "" ? undefined : v),
+  resolve: (v: string): number => (v === "" ? 0 : Number(v)),
+});
+
+// numStore.$value    — string (for input binding)
+// numStore.$resolved — number (for business logic)
 ```
 
-## Multi-parameter inline config
+## Multi-parameter config
 
 ```tsx
-const filters = qsUtils.createSearchParamsStore((def) => ({
-  search: def({ defaultValue: "" }),
-  category: def({ isArray: true }),
-  minPrice: def({ decode: Number }).setEncode(String),
-  maxPrice: def({ decode: Number }).setEncode(String),
-  sortBy: def({ defaultValue: "newest" }),
-}));
+const filters = qsUtils.createSearchParamsStore({
+  search: { defaultValue: "" },
+  category: { isArray: true },
+  minPrice: {
+    decode: (v: unknown) => Number(v),
+    defaultValue: 0,
+    encode: (v: number) => String(v),
+  },
+  maxPrice: {
+    decode: (v: unknown) => Number(v),
+    defaultValue: 1000,
+    encode: (v: number) => String(v),
+  },
+  sortBy: { defaultValue: "newest" },
+});
 ```
 
-## When to use inline config
+## Config shape
+
+| Property       | Type                            | Description                                 |
+| -------------- | ------------------------------- | ------------------------------------------- |
+| `decode`       | `(v: unknown) => T`             | Decode URL string to typed value            |
+| `defaultValue` | `T`                             | Value when parameter is missing             |
+| `encode`       | `(v: T) => string \| undefined` | Encode value back to URL (undefined = omit) |
+| `resolve`      | `(v: T) => R`                   | Optional: map `$value` → `$resolved`        |
+| `isArray`      | `boolean`                       | Treat as array parameter                    |
+
+## When to use plain config
 
 | Scenario                              | Approach                                            |
 | ------------------------------------- | --------------------------------------------------- |
 | Standard type (int, enum, boolean...) | Use a built-in preset (e.g. `presets.integer()`)    |
-| Custom logic, used in one place       | Inline `def()` callback                             |
+| Custom logic, used in one place       | Plain config object                                 |
 | Custom logic, reused across stores    | Create a [custom preset](/advanced/custom-presets/) |
 
 ## Live demo
 
-The controls below use inline config for `replace` and `keepHash` toggles, and a custom `num` parameter:
+The controls below use plain config for `num` (with `resolve`), `replace`, and `keepHash` toggles:
 
 <DemoWrapper source="packages/docs/src/components/demos/InlineConfigDemo.tsx">
   <InlineConfigDemo client:load />

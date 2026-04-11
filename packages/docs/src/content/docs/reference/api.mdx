@@ -102,33 +102,6 @@ All `update` and `updateAll` calls accept an options object:
 
 ---
 
-## `defineSearchParam(config)`
-
-Create a reusable, standalone preset. Import from `@vp-tw/nanostores-qs/defineSearchParam`.
-
-```ts
-import { defineSearchParam } from "@vp-tw/nanostores-qs/defineSearchParam";
-
-const myPreset = defineSearchParam({
-  decode: (v) => Number(v),
-  defaultValue: 0,
-}).setEncode((v) => String(v));
-```
-
-### Config
-
-| Property       | Type                | Description                      |
-| -------------- | ------------------- | -------------------------------- |
-| `decode`       | `(v: unknown) => T` | Decode URL string to typed value |
-| `defaultValue` | `T`                 | Value when parameter is missing  |
-| `isArray`      | `boolean`           | Treat as array parameter         |
-
-### `.setEncode(fn)`
-
-Chain `.setEncode()` to define the encode direction. Return `undefined` to omit the parameter from the URL.
-
----
-
 ## Routing notes
 
 - When `window` is unavailable (SSR), the internal search defaults to an empty string; listeners are not attached.
