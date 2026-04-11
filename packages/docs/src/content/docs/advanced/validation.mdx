@@ -30,25 +30,18 @@ Combine `createPreset` with Zod for reusable validated presets:
 import { createPreset } from "@vp-tw/nanostores-qs/presets";
 import { z } from "zod";
 
-function zodEnum<T extends [string, ...string[]]>(schema: z.ZodEnum<T>) {
-  const options = schema.options;
-  return createPreset({
-    decode: (v) => {
-      const result = schema.safeParse(v);
-      if (!result.success) throw new Error("invalid enum value");
-      return result.data;
-    },
-    defaultValue: options[0],
+function zodEnum<const T extends readonly [string, ...Array<string>]>(values: T) {
+  const schema = z.enum(values);
+  return createPreset<T[number], T[0]>({
+    decode: (v) => schema.parse(String(v)),
+    defaultValue: values[0],
   });
 }
 
 // Usage — call with options like built-in presets
-const StatusSchema = z.enum(["active", "inactive", "pending"]);
-const statusStore = qsUtils.createSearchParamStore("status", zodEnum(StatusSchema)());
-const optionalStatus = qsUtils.createSearchParamStore(
-  "status",
-  zodEnum(StatusSchema)({ optional: true }),
-);
+const statusPreset = zodEnum(["active", "inactive", "pending"]);
+const statusStore = qsUtils.createSearchParamStore("status", statusPreset());
+const optionalStatus = qsUtils.createSearchParamStore("status", statusPreset({ optional: true }));
 ```
 
 ## Validation strategy
