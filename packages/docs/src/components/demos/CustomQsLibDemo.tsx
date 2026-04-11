@@ -36,12 +36,22 @@ const formats: Array<FormatEntry> = [
       return params.toString();
     },
   },
+  {
+    lib: "qs",
+    format: "(default)",
+    stringify: (data: Record<string, unknown>) => qsStringify(data, { encode: false }),
+  },
   ...(["indices", "brackets", "repeat", "comma"] as const).map((f) => ({
     lib: "qs",
     format: f,
     stringify: (data: Record<string, unknown>) =>
       qsStringify(data, { arrayFormat: f, encode: false }),
   })),
+  {
+    lib: "query-string",
+    format: "(default)",
+    stringify: (data: Record<string, unknown>) => queryString.stringify(data, { encode: false }),
+  },
   ...(
     [
       "bracket",
@@ -52,12 +62,14 @@ const formats: Array<FormatEntry> = [
       "colon-list-separator",
       "none",
     ] as const
-  ).map((f) => ({
-    lib: "query-string",
-    format: f,
-    stringify: (data: Record<string, unknown>) =>
-      queryString.stringify(data, { arrayFormat: f, encode: false }),
-  })),
+  )
+    .filter((f) => f !== "separator")
+    .map((f) => ({
+      lib: "query-string",
+      format: f,
+      stringify: (data: Record<string, unknown>) =>
+        queryString.stringify(data, { arrayFormat: f, encode: false }),
+    })),
   {
     lib: "query-string",
     format: "separator (|)",
