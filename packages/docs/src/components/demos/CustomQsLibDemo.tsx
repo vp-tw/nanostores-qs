@@ -58,6 +58,16 @@ const formats: Array<FormatEntry> = [
     stringify: (data: Record<string, unknown>) =>
       queryString.stringify(data, { arrayFormat: f, encode: false }),
   })),
+  {
+    lib: "query-string",
+    format: "separator (|)",
+    stringify: (data: Record<string, unknown>) =>
+      queryString.stringify(data, {
+        arrayFormat: "separator",
+        arrayFormatSeparator: "|",
+        encode: false,
+      }),
+  },
 ];
 
 export default function CustomQsLibDemo() {
