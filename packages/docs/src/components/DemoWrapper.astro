@@ -1,0 +1,35 @@
+---
+interface Props {
+  source: string;
+}
+
+const { source } = Astro.props;
+const ghBase = "https://github.com/VdustR/nanostores-qs/blob/main/";
+---
+
+<div class="demo-wrapper">
+  <slot />
+  <div class="demo-source">
+    <a href={ghBase + source} target="_blank" rel="noopener noreferrer">
+      View source on GitHub
+    </a>
+  </div>
+</div>
+
+<style>
+  .demo-wrapper {
+    margin: 1.5rem 0;
+  }
+  .demo-source {
+    margin-top: 0.5rem;
+    text-align: right;
+  }
+  .demo-source a {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-4);
+    text-decoration: none;
+  }
+  .demo-source a:hover {
+    text-decoration: underline;
+  }
+</style>

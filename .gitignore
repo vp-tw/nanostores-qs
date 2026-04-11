@@ -148,5 +148,8 @@ dist
 .env.local
 .env.*.local
 
+# Astro
+.astro/
+
 /packages/nanostores-qs/README.md
 /packages/nanostores-qs/LICENSE

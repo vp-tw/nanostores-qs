@@ -14,10 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: pnpm build --base=/${{ github.event.repository.name }}/
+      - run: pnpm --filter @vp-tw/nanostores-qs build
+      - run: pnpm --filter docs build -- --base=/${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: packages/docs/dist
   deploy:
     needs: build
     runs-on: ubuntu-latest

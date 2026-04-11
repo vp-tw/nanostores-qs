@@ -1,0 +1,61 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--demo-text-muted);
+  font-weight: 500;
+}
+
+.select {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: var(--demo-spacing-sm) var(--demo-spacing-md);
+  color: var(--demo-text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.select:focus {
+  border-color: var(--demo-border-focus);
+  box-shadow: var(--demo-focus-ring);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--demo-spacing-xs);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--demo-spacing-xs);
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: 2px var(--demo-spacing-sm);
+  font-size: 0.75rem;
+  color: var(--demo-text);
+}
+
+.chipRemove {
+  background: none;
+  border: none;
+  color: var(--demo-text-muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.chipRemove:hover {
+  color: var(--demo-text);
+}

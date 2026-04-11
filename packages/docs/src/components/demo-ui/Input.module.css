@@ -1,0 +1,59 @@
+.fieldWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-spacing-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--demo-text-muted);
+  font-weight: 500;
+}
+
+.inputRow {
+  display: flex;
+  gap: var(--demo-spacing-xs);
+  align-items: center;
+}
+
+.input {
+  flex: 1;
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: var(--demo-spacing-sm) var(--demo-spacing-md);
+  color: var(--demo-text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: var(--demo-border-focus);
+  box-shadow: var(--demo-focus-ring);
+}
+
+.input::placeholder {
+  color: var(--demo-text-muted);
+}
+
+.clearButton {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  padding: var(--demo-spacing-sm);
+  color: var(--demo-text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex-shrink: 0;
+}
+
+.clearButton:hover {
+  background: var(--demo-surface-hover);
+  color: var(--demo-text);
+}

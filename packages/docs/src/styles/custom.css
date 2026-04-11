@@ -1,0 +1,34 @@
+/* Force dark mode only */
+:root,
+:root[data-theme="light"] {
+  color-scheme: dark;
+}
+
+/* Hide the theme toggle (fallback) */
+starlight-theme-select {
+  display: none !important;
+}
+
+/* Typography */
+:root {
+  --sl-font: "IBM Plex Sans", var(--sl-font-system);
+  --sl-font-mono: "JetBrains Mono", var(--sl-font-system-mono);
+}
+
+/* Accent: teal-cyan — conveys "reactive", "state management" */
+:root {
+  --sl-color-accent-low: #0e3a3f;
+  --sl-color-accent: #28919e;
+  --sl-color-accent-high: #a3e0e8;
+}
+
+/* Gray scale: slightly warm neutral */
+:root {
+  --sl-color-gray-1: #eceef2;
+  --sl-color-gray-2: #c0c2c7;
+  --sl-color-gray-3: #888b96;
+  --sl-color-gray-4: #545861;
+  --sl-color-gray-5: #353841;
+  --sl-color-gray-6: #24272f;
+  --sl-color-gray-7: #181a21;
+}

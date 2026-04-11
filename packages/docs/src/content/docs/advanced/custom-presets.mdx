@@ -1,0 +1,84 @@
+---
+title: Custom Presets
+description: Build your own presets with createPreset or plain config
+---
+
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import CustomPresetInlineDemo from "../../../components/demos/CustomPresetInlineDemo";
+import CustomPresetReusableDemo from "../../../components/demos/CustomPresetReusableDemo";
+
+When built-in presets don't cover your use case, you have two options:
+
+1. **Plain config** — inline `decode`/`encode`/`resolve` for one-off usage
+2. **`createPreset`** — reusable preset function with `{ optional }`, `{ default }`, `{ array }` options
+
+Both demos below use **enum validation** (same pattern as `z.enum()` from Zod v4) and **decimal.js** for precise arithmetic. View the source code to see the full implementation.
+
+## Plain config (inline)
+
+Pass a config object directly. Uses `resolve` for Decimal input binding — `$value` holds the string (bindable to `<input>`), `$resolved` holds the `Decimal` (for calculation). Clearing an input sets `$value` to `""`, and `resolve` maps it to the default.
+
+<DemoWrapper source="packages/docs/src/components/demos/CustomPresetInlineDemo.tsx">
+  <CustomPresetInlineDemo client:load />
+</DemoWrapper>
+
+## `createPreset` (reusable)
+
+Build preset functions with `createPreset`. The returned function accepts `{ optional }`, `{ default }`, `{ array }` — the same API as built-in presets. Here `enumPreset` and `decimal` are defined once and reused across stores.
+
+<DemoWrapper source="packages/docs/src/components/demos/CustomPresetReusableDemo.tsx">
+  <CustomPresetReusableDemo client:load />
+</DemoWrapper>
+
+## Config shape
+
+| Property       | Type                            | Description                           |
+| -------------- | ------------------------------- | ------------------------------------- |
+| `decode`       | `(v: unknown) => T`             | Decode URL string to typed value      |
+| `defaultValue` | `T`                             | Value when parameter is missing       |
+| `encode`       | `(v: T) => string \| undefined` | Encode back to URL (undefined = omit) |
+| `resolve`      | `(v: T) => R`                   | Optional: map `$value` → `$resolved`  |
+| `isArray`      | `boolean`                       | Treat as array parameter              |
+
+## `createPreset` options
+
+| Option                         | Description                                                   |
+| ------------------------------ | ------------------------------------------------------------- |
+| `()`                           | Base — uses the decode, defaultValue, and encode you provided |
+| `{ optional: true }`           | Omits `defaultValue`, type becomes `T \| undefined`           |
+| `{ default: value }`           | Override `defaultValue`                                       |
+| `{ array: true }`              | Array variant with per-item decode/encode                     |
+| `{ array: true, maxItems: n }` | Array capped at `n` items                                     |
+
+Note: `createPreset` does not support `outOfRange`, `min`/`max`, or `numInput` — those are specific to built-in `integer()` and `float()` presets. Bake constraint logic into your `decode` function instead.
+
+## Narrowing resolve
+
+`resolve` can narrow the value type. For example, a string store where `$resolved` is a literal union:
+
+```ts
+import { createPreset } from "@vp-tw/nanostores-qs/presets";
+
+type SortDir = "asc" | "desc";
+
+const sortDirection = createPreset<string, string, SortDir>({
+  decode: (v) => String(v),
+  defaultValue: "",
+  resolve: (s): SortDir => (s === "desc" ? "desc" : "asc"),
+});
+
+const store = qsUtils.createSearchParamStore("sort", sortDirection());
+// store.$value    — ReadableAtom<string>
+// store.$resolved — ReadableAtom<"asc" | "desc">
+```
+
+The `resolve` field is correctly inferred as required (not optional) whenever `TResolved` differs from `TValue`, including subtype narrowing like `string → "asc" | "desc"`.
+
+## When to use what
+
+| Scenario                                    | Approach                                   |
+| ------------------------------------------- | ------------------------------------------ |
+| Standard type (int, enum, boolean...)       | Built-in preset (e.g. `presets.integer()`) |
+| Custom logic, one place                     | Plain config object                        |
+| Custom logic, reused across stores          | `createPreset`                             |
+| Need `$value` ≠ `$resolved` (input binding) | Add `resolve` to config                    |

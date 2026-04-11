@@ -27,8 +27,19 @@
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    },
+    "./presets": {
+      "types": "./dist/presets.d.ts",
+      "import": "./dist/presets.js"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -40,8 +51,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "es-toolkit": "catalog:",
-    "ts-toolbelt": "catalog:"
+    "es-toolkit": "catalog:"
   },
   "devDependencies": {
     "nanostores": "catalog:",

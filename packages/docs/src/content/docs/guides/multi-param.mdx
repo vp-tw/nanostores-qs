@@ -1,0 +1,77 @@
+---
+title: Multiple Parameters
+description: Managing multiple query parameters together
+---
+
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import MultiParamDemo from "../../../components/demos/MultiParamDemo";
+
+Use `createSearchParamsStore` to manage **multiple** query parameters as a single reactive object.
+
+```tsx
+import { createQsUtils } from "@vp-tw/nanostores-qs";
+import * as presets from "@vp-tw/nanostores-qs/presets";
+
+const qsUtils = createQsUtils();
+
+const filters = qsUtils.createSearchParamsStore({
+  search: presets.string(),
+  page: presets.integer({ default: 1, min: 0 }),
+  limit: presets.integer({ default: 10, min: 1, max: 100 }),
+  categories: presets.enum(["electronics", "clothing", "books", "sports"], { array: true }),
+});
+```
+
+## Reading values
+
+```tsx
+const values = useStore(filters.$values);
+// { search: string, page: number, limit: number, categories: Array<...> }
+```
+
+## Updating a single field
+
+```tsx
+filters.update("page", 2);
+filters.update("limit", 25);
+```
+
+## Updating all fields atomically
+
+Use `updateAll` for **correlated parameters** — e.g., resetting page when search changes:
+
+```tsx
+filters.updateAll({
+  ...filters.$values.get(),
+  search: "headphones",
+  page: 1, // reset page on new search
+});
+```
+
+This produces a single history entry and a consistent UI state, avoiding transient flicker.
+
+## Dry-run
+
+```tsx
+const preview = filters.updateAll.dry({
+  ...filters.$values.get(),
+  page: 1,
+});
+// "?search=headphones&categories=electronics&categories=clothing&page=1"
+```
+
+## Live demo
+
+<DemoWrapper source="packages/docs/src/components/demos/MultiParamDemo.tsx">
+  <MultiParamDemo client:load />
+</DemoWrapper>
+
+## Best practice: correlated params
+
+When `search` changes, reset `page` to avoid showing page 5 of a new search:
+
+```tsx
+function onSearchChange(term: string) {
+  filters.updateAll({ ...filters.$values.get(), search: term, page: 1 });
+}
+```

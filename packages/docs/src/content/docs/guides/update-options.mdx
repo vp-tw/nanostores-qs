@@ -1,0 +1,65 @@
+---
+title: Update Options
+description: Configure how URL updates behave
+---
+
+Both `update()` and `updateAll()` accept an options object as the last argument.
+
+## Options
+
+| Option     | Type      | Default | Description                               |
+| ---------- | --------- | ------- | ----------------------------------------- |
+| `replace`  | `boolean` | `false` | Use `replaceState` instead of `pushState` |
+| `keepHash` | `boolean` | `false` | Preserve the current `location.hash`      |
+| `state`    | `unknown` | —       | Custom state passed to the History API    |
+| `force`    | `boolean` | `false` | Bypass equality check and always write    |
+
+## `replace`
+
+By default, updates create a new history entry (`pushState`). Set `replace: true` to overwrite the current entry:
+
+```tsx
+pageStore.update(42, { replace: true });
+// URL changes but browser back button won't go to the previous URL
+```
+
+Useful for ephemeral state changes (e.g., typing in a search input).
+
+## `keepHash`
+
+By default, URL updates drop the hash. Set `keepHash: true` to preserve it:
+
+```tsx
+// URL: /page#section
+pageStore.update(2, { keepHash: true });
+// URL: /page?page=2#section
+```
+
+## `state`
+
+Pass custom state to the History API. Useful for persisting scroll position or other metadata:
+
+```tsx
+pageStore.update(2, { state: { scrollY: window.scrollY } });
+```
+
+## `force`
+
+Normally, if the new value equals the current value, no update occurs. Use `force: true` to always write:
+
+```tsx
+pageStore.update(currentPage, { force: true });
+// Forces a pushState even if the value hasn't changed
+```
+
+## Defaults and equality
+
+When a value equals the preset's `defaultValue`, the parameter is removed from the URL. Customize equality via `createQsUtils`:
+
+```ts
+const qsUtils = createQsUtils({
+  isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+});
+```
+
+The default `isEqual` comes from `es-toolkit`.

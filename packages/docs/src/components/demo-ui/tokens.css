@@ -1,0 +1,21 @@
+:root {
+  --demo-bg: oklch(0.145 0 0);
+  --demo-bg-hover: oklch(0.18 0 0);
+  --demo-surface: oklch(0.205 0 0);
+  --demo-surface-hover: oklch(0.25 0 0);
+  --demo-border: oklch(0.3 0 0);
+  --demo-border-focus: oklch(0.6 0.08 195);
+  --demo-text: oklch(0.985 0 0);
+  --demo-text-muted: oklch(0.6 0 0);
+  --demo-accent: oklch(0.65 0.1 195);
+  --demo-accent-hover: oklch(0.55 0.1 195);
+  --demo-radius: 6px;
+  --demo-radius-lg: 8px;
+  --demo-spacing-xs: 4px;
+  --demo-spacing-sm: 8px;
+  --demo-spacing-md: 12px;
+  --demo-spacing-lg: 16px;
+  --demo-spacing-xl: 24px;
+  --demo-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --demo-focus-ring: 0 0 0 2px var(--demo-bg), 0 0 0 4px var(--demo-border-focus);
+}
