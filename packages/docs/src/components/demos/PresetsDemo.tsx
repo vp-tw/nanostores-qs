@@ -455,11 +455,15 @@ const tuple2Store = tuple2Utils.createSearchParamStore(
   presets.tuple([presets.float(), presets.float()]),
 );
 
-// [string, integer, boolean] — mixed types
+// [string, numInput integer, boolean] — mixed types with resolve
 const tuple3Utils = createQsUtils();
 const tuple3Store = tuple3Utils.createSearchParamStore(
   "filter",
-  presets.tuple([presets.string(), presets.integer(), presets.boolean()]),
+  presets.tuple([
+    presets.string(),
+    presets.integer({ numInput: true, default: 0 }),
+    presets.boolean(),
+  ]),
 );
 
 export function TupleDemo() {
@@ -468,6 +472,7 @@ export function TupleDemo() {
   const v2 = useStore(tuple2Store.$value);
   const s2 = useStore(tuple2Utils.$search);
   const v3 = useStore(tuple3Store.$value);
+  const r3 = useStore(tuple3Store.$resolved);
   const s3 = useStore(tuple3Utils.$search);
   const [input, setInput] = useState("(empty)");
 
@@ -542,19 +547,26 @@ export function TupleDemo() {
               }}
             />
           </ValueButtons>
-          <ValueButtons label="tuple([string(), integer(), boolean()]) — mixed">
+          <ValueButtons label="tuple([string(), integer({ numInput, default: 0 }), boolean()]) — mixed with resolve">
             <VBtn
-              label='["hello", 42, true]'
+              label='["hello", "42", true]'
               onClick={() => {
                 setInput("?filter=hello&filter=42&filter=true");
-                tuple3Store.update(["hello", 42, true]);
+                tuple3Store.update(["hello", "42", true]);
               }}
             />
             <VBtn
-              label='["", NaN, false]'
+              label='["hello", "", false]'
+              onClick={() => {
+                setInput("?filter=hello&filter=&filter=false");
+                tuple3Store.update(["hello", "", false]);
+              }}
+            />
+            <VBtn
+              label="clear"
               onClick={() => {
                 setInput("(empty)");
-                tuple3Store.update(["", Number.NaN, false]);
+                tuple3Store.update(["", "", false]);
               }}
             />
           </ValueButtons>
@@ -569,6 +581,7 @@ export function TupleDemo() {
               `filter: ${objectInspect(v3)}`,
             ].join("\n")}
           />
+          <CodePreview label="$resolved (filter)" value={objectInspect(r3)} />
           <CodePreview
             label="Output URL"
             value={[

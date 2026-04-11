@@ -308,6 +308,28 @@ const numberPreset = createPreset({
   anyObj as Expected satisfies Result;
 })();
 
+// tuple with resolve: [string, numInput integer] → $value [string, string], $resolved [string, number]
+(() => {
+  const t = tuple([string(), integer({ numInput: true, default: 1 })]);
+  const s = qs.createSearchParamStore("t", t);
+  type ValueType = ReturnType<typeof s.$value.get>;
+  type ResolvedType = ReturnType<typeof s.$resolved.get>;
+  anyObj as ValueType satisfies [string, string];
+  anyObj as [string, string] satisfies ValueType;
+  anyObj as ResolvedType satisfies [string, number];
+  anyObj as [string, number] satisfies ResolvedType;
+})();
+
+// tuple without resolve: $resolved = $value
+(() => {
+  const t = tuple([string(), integer()]);
+  const s = qs.createSearchParamStore("t", t);
+  type ValueType = ReturnType<typeof s.$value.get>;
+  type ResolvedType = ReturnType<typeof s.$resolved.get>;
+  anyObj as ValueType satisfies ResolvedType;
+  anyObj as ResolvedType satisfies ValueType;
+})();
+
 // --- createPreset with resolve ---
 
 // createPreset<string, string, number> with resolve: $value is string, $resolved is number

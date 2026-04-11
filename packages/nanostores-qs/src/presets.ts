@@ -620,27 +620,44 @@ type InferTupleDefaults<TConfigs extends ReadonlyArray<unknown>> = {
     : undefined;
 };
 
+type InferTupleResolved<TConfigs extends ReadonlyArray<unknown>> = {
+  [K in keyof TConfigs]: TConfigs[K] extends { resolve: (...args: any) => infer R }
+    ? R
+    : createQsUtils.InferValueFromItemQueryParamConfig<TConfigs[K]>;
+};
+
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 interface TupleConfig {
   decode: (value: unknown) => unknown;
   defaultValue?: unknown;
   encode?: (value: any) => string | undefined;
+  resolve?: (value: any) => unknown;
 }
 
-function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
-  configs: TConfigs,
-): {
+interface TupleResult<TConfigs extends ReadonlyArray<TupleConfig>> {
   isArray: true;
   decode: (value: Array<unknown>) => Mutable<InferTupleType<TConfigs>>;
   defaultValue: Mutable<InferTupleDefaults<TConfigs>>;
   encode: (value: Mutable<InferTupleType<TConfigs>>) => Array<string>;
-} {
+}
+
+type TupleResultWithResolve<TConfigs extends ReadonlyArray<TupleConfig>> = TupleResult<TConfigs> & {
+  resolve: (value: Mutable<InferTupleType<TConfigs>>) => Mutable<InferTupleResolved<TConfigs>>;
+};
+
+function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
+  configs: TConfigs,
+): [Mutable<InferTupleResolved<TConfigs>>] extends [Mutable<InferTupleType<TConfigs>>]
+  ? TupleResult<TConfigs>
+  : TupleResultWithResolve<TConfigs> {
   const defaultValue = configs.map((c) =>
     "defaultValue" in c ? c.defaultValue : undefined,
   ) as Mutable<InferTupleDefaults<TConfigs>>;
 
-  return {
+  const hasAnyResolve = configs.some((c) => "resolve" in c);
+
+  const result: any = {
     isArray: true,
     decode: (values: Array<unknown>) => {
       return configs.map((c, i) => {
@@ -662,6 +679,17 @@ function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
       });
     },
   };
+
+  if (hasAnyResolve) {
+    result.resolve = (values: Mutable<InferTupleType<TConfigs>>) => {
+      return (values as Array<unknown>).map((v, i) => {
+        const config = configs[i];
+        return config?.resolve ? config.resolve(v) : v;
+      }) as Mutable<InferTupleResolved<TConfigs>>;
+    };
+  }
+
+  return result;
 }
 
 export { boolean, createPreset, date, presetEnum as enum, float, hms, integer, string, tuple, ymd };

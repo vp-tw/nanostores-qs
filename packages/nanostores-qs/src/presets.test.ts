@@ -1063,6 +1063,40 @@ describe("tuple", () => {
       expect("array" in config).toBe(false);
     });
   });
+
+  describe("resolve composition", () => {
+    it("no resolve when no element has resolve", () => {
+      const config = tuple([string(), integer()]);
+      expect("resolve" in config).toBe(false);
+    });
+
+    it("composes resolve from elements with resolve", () => {
+      const numInputConfig = integer({ numInput: true, default: 1 });
+      const config = tuple([string(), numInputConfig]);
+      expect("resolve" in config).toBe(true);
+      const resolved = config.resolve(["hello", "42"]);
+      expect(resolved[0]).toBe("hello");
+      expect(resolved[1]).toBe(42);
+    });
+
+    it("resolve passes through elements without resolve", () => {
+      const numInputConfig = integer({ numInput: true, default: 0 });
+      const config = tuple([string(), numInputConfig, boolean()]);
+      expect("resolve" in config).toBe(true);
+      const resolved = config.resolve(["hello", "5", true]);
+      expect(resolved[0]).toBe("hello");
+      expect(resolved[1]).toBe(5);
+      expect(resolved[2]).toBe(true);
+    });
+
+    it("resolve handles empty numInput string", () => {
+      const numInputConfig = integer({ numInput: true, default: 1 });
+      const config = tuple([string(), numInputConfig]);
+      const resolved = config.resolve(["hello", ""]);
+      expect(resolved[0]).toBe("hello");
+      expect(resolved[1]).toBe(1);
+    });
+  });
 });
 
 describe("integration: presets + stores", () => {
