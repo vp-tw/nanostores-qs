@@ -556,3 +556,54 @@ presetEnum(["asc", "desc"], { default: "invalid" });
   const _decode: (value: Array<unknown>) => Array<number> = config.decode;
   void [_isArray, _decode];
 })();
+
+// --- WithResolve bidirectional type equality (narrowing resolve) ---
+
+// createPreset with narrowing resolve: TValue=string, TResolved="asc"|"desc"
+(() => {
+  const sortPreset = createPreset<string, string, "asc" | "desc">({
+    decode: (v) => String(v),
+    defaultValue: "",
+    resolve: (s): "asc" | "desc" => (s === "desc" ? "desc" : "asc"),
+  });
+
+  // Base call — resolve must be present in type
+  const base = sortPreset();
+  const _resolve: (value: string) => "asc" | "desc" = base.resolve;
+  void _resolve;
+
+  // Optional call — resolve must be present
+  const opt = sortPreset({ optional: true });
+  const _optResolve: (value: string | undefined) => "asc" | "desc" | undefined = opt.resolve;
+  void _optResolve;
+
+  // Array call — resolve must be present
+  const arr = sortPreset({ array: true });
+  const _arrResolve: (value: Array<string>) => Array<"asc" | "desc"> = arr.resolve;
+  void _arrResolve;
+})();
+
+// StoreConfig with narrowing resolved: resolve must be required, not optional
+(() => {
+  const _config: {
+    decode: (value: unknown) => string;
+    defaultValue: string;
+    encode?: (value: string) => string | undefined;
+    resolve: (value: string) => "asc" | "desc";
+  } = {} as createQsUtils.StoreConfig<{
+    value: string;
+    defaultValue: string;
+    resolved: "asc" | "desc";
+  }>;
+  void _config;
+})();
+
+// StoreConfigArray with narrowing resolved: resolve must be required
+(() => {
+  const config = {} as createQsUtils.StoreConfigArray<{
+    value: string;
+    resolved: "asc" | "desc";
+  }>;
+  const _resolve: (value: Array<string>) => Array<"asc" | "desc"> = config.resolve;
+  void _resolve;
+})();

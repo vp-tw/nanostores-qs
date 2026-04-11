@@ -80,12 +80,12 @@ const preview = filters.updateAll.dry({ ...values, page: 1 });
 
 ### Integer-specific options
 
-| Option       | Type                                      | Default      | Description              |
-| ------------ | ----------------------------------------- | ------------ | ------------------------ |
-| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`    | Rounding mode            |
-| `min`        | `number`                                  | Min safe int | Minimum allowed value    |
-| `max`        | `number`                                  | Max safe int | Maximum allowed value    |
-| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`    | Clamp to range or reject |
+| Option       | Type                                      | Default      | Description                                       |
+| ------------ | ----------------------------------------- | ------------ | ------------------------------------------------- |
+| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`    | Rounding mode                                     |
+| `min`        | `number`                                  | Min safe int | Minimum allowed value                             |
+| `max`        | `number`                                  | Max safe int | Maximum allowed value                             |
+| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`    | Clamp to range or reject (both decode and encode) |
 
 ```ts
 presets.integer({ round: "ceil" }); // Math.ceil

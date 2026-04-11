@@ -23,4 +23,5 @@ Redesign preset API from property-based to function-based with options.
 - `$resolved` store on all `createSearchParamStore` / `createSearchParamsStore` results
 - `StoreConfig<{ value, defaultValue?, resolved? }>` consumer-facing type
 - `boolean({ default: true })` encode correctly flips (false appears in URL)
+- `outOfRange: "reject"` applies consistently in both decode and encode paths
 - Shared history patch for multi-instance support

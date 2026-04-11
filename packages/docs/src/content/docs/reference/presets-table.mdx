@@ -85,7 +85,10 @@ This is useful for number inputs where the raw string must be preserved during e
 | `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`                 | Clamp to range or reject out-of-range values                                          |
 | `numInput`   | `true`                                    | —                         | Input binding mode: `$value` is `string`, `$resolved` is `number`. Requires `default` |
 
-When `outOfRange` is `"reject"`, out-of-range values fall back to `defaultValue` (or `undefined` for optional).
+When `outOfRange` is `"reject"`:
+
+- **Decode** (URL → store): out-of-range values throw → falls back to `defaultValue` (or `undefined` for optional)
+- **Encode** (store → URL): out-of-range values throw → parameter is removed from URL
 
 <DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
   <IntegerDemo client:load />
@@ -176,6 +179,12 @@ Encode: `value.toISOString()`. Guards against Invalid Date — returns `undefine
 | `presets.ymd({ array: true })`    | `Array<string>`       | `[]`           |
 
 Format: `YYYY-MM-DD`. Validates both format and semantic correctness — rejects values like `"2024-13-01"` or `"2024-02-30"` that aren't real calendar dates.
+
+The default value `"0000-00-00"` is an intentional sentinel (like `NaN` for integer) — it signals "no date selected". Use `{ optional: true }` if you prefer `undefined`.
+
+:::caution[Don't pass ymd values to `new Date()`]
+`ymd` stores a **date string without time or timezone**. Passing it to `new Date("2024-06-15")` produces a UTC midnight timestamp that shifts to a different calendar date in negative-offset timezones (e.g., `2024-06-14` in `UTC-5`). Instead, split the string (`"2024-06-15".split("-")`) and construct the date explicitly, or use a date library that handles date-only values.
+:::
 
 <DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
   <YmdDemo client:load />

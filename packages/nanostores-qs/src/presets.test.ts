@@ -1336,4 +1336,144 @@ describe("integration: presets + stores", () => {
       expect(() => presetEnum([])).toThrow("enum array must not be empty");
     });
   });
+
+  describe("integer encode defensively rounds non-integer input (A6)", () => {
+    it("encode(3.7) rounds to 4 with default round", () => {
+      const config = integer({ min: 0, max: 100 });
+      expect(config.encode(3.7)).toBe("4");
+    });
+
+    it("encode(3.2) rounds to 3 with default round", () => {
+      const config = integer({ min: 0, max: 100 });
+      expect(config.encode(3.2)).toBe("3");
+    });
+
+    it("encode(3.7) with round:'ceil' → 4", () => {
+      const config = integer({ round: "ceil", min: 0, max: 100 });
+      expect(config.encode(3.2)).toBe("4");
+    });
+
+    it("encode(3.7) with round:'floor' → 3", () => {
+      const config = integer({ round: "floor", min: 0, max: 100 });
+      expect(config.encode(3.7)).toBe("3");
+    });
+
+    it("encode(3.7) with round:'parse' truncates → 3", () => {
+      const config = integer({ round: "parse", min: 0, max: 100 });
+      expect(config.encode(3.7)).toBe("3");
+    });
+
+    it("encode clamps out-of-range values", () => {
+      const config = integer({ min: 0, max: 100 });
+      expect(config.encode(-5)).toBe("0");
+      expect(config.encode(200)).toBe("100");
+    });
+  });
+
+  describe("float encode clamps and applies fixed (A6)", () => {
+    it("encode clamps to range", () => {
+      const config = float({ min: 0, max: 100 });
+      expect(config.encode(-5)).toBe("0");
+      expect(config.encode(200)).toBe("100");
+    });
+
+    it("encode with fixed applies precision", () => {
+      const config = float({ fixed: 2, min: 0, max: 100 });
+      expect(config.encode(3.14159)).toBe("3.14");
+    });
+
+    it("encode with fixed clamps then formats", () => {
+      const config = float({ fixed: 1, min: 0, max: 10 });
+      expect(config.encode(15.789)).toBe("10.0");
+    });
+  });
+
+  describe("integer/float encode respects outOfRange (A6)", () => {
+    it("integer encode with reject throws on out-of-range", () => {
+      const config = integer({ min: 0, max: 100, outOfRange: "reject" });
+      expect(() => config.encode(200)).toThrow("out of range");
+      expect(() => config.encode(-1)).toThrow("out of range");
+      expect(config.encode(50)).toBe("50");
+    });
+
+    it("integer encode with reject throws on Infinity", () => {
+      const config = integer({ min: 0, max: 100, outOfRange: "reject" });
+      expect(() => config.encode(Infinity)).toThrow("out of range");
+      expect(() => config.encode(-Infinity)).toThrow("out of range");
+    });
+
+    it("integer encode with clamp (default) clamps Infinity", () => {
+      const config = integer({ min: 0, max: 100 });
+      expect(config.encode(Infinity)).toBe("100");
+      expect(config.encode(-Infinity)).toBe("0");
+    });
+
+    it("float encode with reject throws on out-of-range", () => {
+      const config = float({ min: 0, max: 100, outOfRange: "reject" });
+      expect(() => config.encode(200)).toThrow("out of range");
+      expect(() => config.encode(-1)).toThrow("out of range");
+      expect(config.encode(50)).toBe("50");
+    });
+
+    it("float encode with reject throws on Infinity", () => {
+      const config = float({ min: 0, max: 100, outOfRange: "reject" });
+      expect(() => config.encode(Infinity)).toThrow("out of range");
+      expect(() => config.encode(-Infinity)).toThrow("out of range");
+    });
+
+    it("float encode with clamp (default) clamps Infinity", () => {
+      const config = float({ min: 0, max: 100 });
+      expect(config.encode(Infinity)).toBe("100");
+      expect(config.encode(-Infinity)).toBe("0");
+    });
+
+    it("float encode with fixed applies precision before reject check", () => {
+      const config = float({ fixed: 0, min: 0, max: 10, outOfRange: "reject" });
+      // 10.4 rounds to 10 via toFixed(0), which is in range → should NOT throw
+      expect(config.encode(10.4)).toBe("10");
+      // 10.5 rounds to 11 via toFixed(0), which is out of range → should throw
+      expect(() => config.encode(10.5)).toThrow("out of range");
+    });
+  });
+
+  describe("defaultArrayConfig.defaultValue is frozen", () => {
+    it("catch-path fallback returns frozen array that prevents cross-store pollution", () => {
+      const qsUtils = createQsUtils();
+      // Custom array config with a decode that throws on certain input
+      const throwingConfig = {
+        isArray: true as const,
+        decode: (_v: Array<unknown>): Array<string> => {
+          throw new Error("decode failed");
+        },
+      };
+      const store1 = qsUtils.createSearchParamStore("a", throwingConfig);
+      const store2 = qsUtils.createSearchParamStore("b", throwingConfig);
+      // Both fall back to defaultArrayConfig.defaultValue via catch path
+      const val1 = store1.$value.get();
+      const val2 = store2.$value.get();
+      // Frozen — mutation throws instead of polluting other stores
+      expect(() => (val1 as Array<string>).push("oops")).toThrow();
+      expect(val2).toEqual([]);
+    });
+  });
+
+  describe("history listener snapshot safety (A1)", () => {
+    it("forEach snapshot prevents skipping when array mutates", () => {
+      // Simulate the pattern: iterate a snapshot, mutate original mid-iteration
+      const listeners: Array<() => void> = [];
+      const calls: Array<number> = [];
+
+      listeners.push(() => {
+        calls.push(1);
+        // Simulate destroy: remove self from array mid-iteration
+        listeners.splice(0, 1);
+      });
+      listeners.push(() => calls.push(2));
+      listeners.push(() => calls.push(3));
+
+      // Snapshot iteration (our fix) — all callbacks fire
+      for (const fn of [...listeners]) fn();
+      expect(calls).toEqual([1, 2, 3]);
+    });
+  });
 });

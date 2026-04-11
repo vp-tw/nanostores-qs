@@ -52,6 +52,28 @@ Build preset functions with `createPreset`. The returned function accepts `{ opt
 
 Note: `createPreset` does not support `outOfRange`, `min`/`max`, or `numInput` — those are specific to built-in `integer()` and `float()` presets. Bake constraint logic into your `decode` function instead.
 
+## Narrowing resolve
+
+`resolve` can narrow the value type. For example, a string store where `$resolved` is a literal union:
+
+```ts
+import { createPreset } from "@vp-tw/nanostores-qs/presets";
+
+type SortDir = "asc" | "desc";
+
+const sortDirection = createPreset<string, string, SortDir>({
+  decode: (v) => String(v),
+  defaultValue: "",
+  resolve: (s): SortDir => (s === "desc" ? "desc" : "asc"),
+});
+
+const store = qsUtils.createSearchParamStore("sort", sortDirection());
+// store.$value    — ReadableAtom<string>
+// store.$resolved — ReadableAtom<"asc" | "desc">
+```
+
+The `resolve` field is correctly inferred as required (not optional) whenever `TResolved` differs from `TValue`, including subtype narrowing like `string → "asc" | "desc"`.
+
 ## When to use what
 
 | Scenario                                    | Approach                                   |

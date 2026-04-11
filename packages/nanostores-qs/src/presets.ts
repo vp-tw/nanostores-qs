@@ -1,5 +1,5 @@
 import type { createQsUtils } from "./main";
-import { isNil } from "es-toolkit";
+import { clamp, isNil } from "es-toolkit";
 
 // --- Shared option types with `never` exclusivity ---
 
@@ -79,17 +79,20 @@ interface CreatePresetConfig<TValue, TDefaultValue> {
 
 // --- Resolve intersection — adds resolve to result when TResolved ≠ TValue ---
 
-type WithResolve<TValue, TResolved> = [TResolved] extends [TValue]
-  ? unknown
-  : { resolve: (value: TValue) => TResolved };
+type TypesEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
-type WithOptionalResolve<TValue, TResolved> = [TResolved] extends [TValue]
-  ? unknown
-  : { resolve: (value: TValue | undefined) => TResolved | undefined };
+type WithResolve<TValue, TResolved> =
+  TypesEqual<TValue, TResolved> extends true ? unknown : { resolve: (value: TValue) => TResolved };
 
-type WithArrayResolve<TValue, TResolved> = [TResolved] extends [TValue]
-  ? unknown
-  : { resolve: (value: Array<TValue>) => Array<TResolved> };
+type WithOptionalResolve<TValue, TResolved> =
+  TypesEqual<TValue, TResolved> extends true
+    ? unknown
+    : { resolve: (value: TValue | undefined) => TResolved | undefined };
+
+type WithArrayResolve<TValue, TResolved> =
+  TypesEqual<TValue, TResolved> extends true
+    ? unknown
+    : { resolve: (value: Array<TValue>) => Array<TResolved> };
 
 // --- Overloaded return type ---
 
@@ -217,6 +220,32 @@ function createPreset<TValue, TDefaultValue = TValue, TResolved = TValue>(
   return presetFn as CreatePresetReturn<TValue, TDefaultValue, TResolved>;
 }
 
+// --- Shared numInput helper ---
+
+function isNumInput<T extends object>(options: T): options is T & NumInputOptions {
+  return "numInput" in options && options.numInput === true;
+}
+
+function numInputResult(
+  options: NumInputOptions,
+  parseAndClamp: (value: unknown) => number,
+): NumInputResult {
+  const defaultNum = options.default;
+  return {
+    decode: (v: unknown): string => (isNil(v) ? "" : String(v)),
+    defaultValue: "",
+    encode: (v: string): string | undefined => (v === "" ? undefined : v),
+    resolve: (v: string): number => {
+      if (v === "") return defaultNum;
+      try {
+        return parseAndClamp(v);
+      } catch {
+        return defaultNum;
+      }
+    },
+  };
+}
+
 // --- Integer preset ---
 
 interface IntegerBaseOptions {
@@ -263,30 +292,11 @@ function integer(options?: IntegerOptions): any {
     if (outOfRange === "reject") {
       if (rounded < min || rounded > max) throw new Error("out of range");
     }
-    return Math.max(min, Math.min(max, rounded));
+    return clamp(rounded, min, max);
   }
 
-  if (options && "numInput" in options && options.numInput === true) {
-    const defaultNum = (options as NumInputOptions).default;
-    return {
-      decode: (v: unknown): string => {
-        if (isNil(v)) return "";
-        return String(v);
-      },
-      defaultValue: "",
-      encode: (v: string): string | undefined => {
-        if (v === "") return undefined;
-        return v;
-      },
-      resolve: (v: string): number => {
-        if (v === "") return defaultNum;
-        try {
-          return parseAndClamp(v);
-        } catch {
-          return defaultNum;
-        }
-      },
-    };
+  if (options && isNumInput(options)) {
+    return numInputResult(options, parseAndClamp);
   }
 
   const preset = createPreset<number, number>({
@@ -294,11 +304,11 @@ function integer(options?: IntegerOptions): any {
     defaultValue: Number.NaN,
     encode: (v) => {
       if (isNil(v) || Number.isNaN(v)) return undefined;
-      try {
-        return String(parseAndClamp(v));
-      } catch {
-        return undefined;
+      const rounded = round === "parse" ? Math.trunc(v) : Math[round](v);
+      if (outOfRange === "reject") {
+        if (rounded < min || rounded > max) throw new Error("out of range");
       }
+      return String(clamp(rounded, min, max));
     },
   });
 
@@ -342,30 +352,11 @@ function float(options?: FloatOptions): any {
     if (outOfRange === "reject") {
       if (n < min || n > max) throw new Error("out of range");
     }
-    return Math.max(min, Math.min(max, n));
+    return clamp(n, min, max);
   }
 
-  if (options && "numInput" in options && options.numInput === true) {
-    const defaultNum = (options as NumInputOptions).default;
-    return {
-      decode: (v: unknown): string => {
-        if (isNil(v)) return "";
-        return String(v);
-      },
-      defaultValue: "",
-      encode: (v: string): string | undefined => {
-        if (v === "") return undefined;
-        return v;
-      },
-      resolve: (v: string): number => {
-        if (v === "") return defaultNum;
-        try {
-          return parseAndClamp(v);
-        } catch {
-          return defaultNum;
-        }
-      },
-    };
+  if (options && isNumInput(options)) {
+    return numInputResult(options, parseAndClamp);
   }
 
   const preset = createPreset<number, number>({
@@ -373,13 +364,13 @@ function float(options?: FloatOptions): any {
     defaultValue: Number.NaN,
     encode: (v) => {
       if (isNil(v) || Number.isNaN(v)) return undefined;
-      try {
-        const clamped = parseAndClamp(v);
-        if (fixed !== undefined) return clamped.toFixed(fixed);
-        return String(clamped);
-      } catch {
-        return undefined;
+      const n = fixed !== undefined ? Number(v.toFixed(fixed)) : v;
+      if (outOfRange === "reject") {
+        if (n < min || n > max) throw new Error("out of range");
       }
+      const clamped = clamp(n, min, max);
+      if (fixed !== undefined) return clamped.toFixed(fixed);
+      return String(clamped);
     },
   });
 

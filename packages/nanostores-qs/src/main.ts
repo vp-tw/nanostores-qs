@@ -14,26 +14,39 @@ const _historyListeners: Array<() => void> = [];
 let _originalPushState: typeof history.pushState | null = null;
 let _originalReplaceState: typeof history.replaceState | null = null;
 
+let _patchedPushState: typeof history.pushState | null = null;
+let _patchedReplaceState: typeof history.replaceState | null = null;
+
 function _patchHistory() {
   if (_originalPushState) return;
   _originalPushState = history.pushState;
   _originalReplaceState = history.replaceState;
   history.pushState = function (this: History, ...args) {
     _originalPushState!.apply(this, args);
-    _historyListeners.forEach((fn) => fn());
+    for (const fn of [..._historyListeners]) fn();
   };
   history.replaceState = function (this: History, ...args) {
     _originalReplaceState!.apply(this, args);
-    _historyListeners.forEach((fn) => fn());
+    for (const fn of [..._historyListeners]) fn();
   };
+  _patchedPushState = history.pushState;
+  _patchedReplaceState = history.replaceState;
 }
 
 function _unpatchHistory() {
   if (!_originalPushState || _historyListeners.length > 0) return;
+  // Only restore if both methods are still our wrappers (not wrapped by third-party).
+  // If clobbered, keep references intact — our wrapper becomes a no-op passthrough
+  // (empty _historyListeners) but must still forward to _originalPushState.
+  if (history.pushState !== _patchedPushState || history.replaceState !== _patchedReplaceState) {
+    return;
+  }
   history.pushState = _originalPushState;
   history.replaceState = _originalReplaceState!;
   _originalPushState = null;
   _originalReplaceState = null;
+  _patchedPushState = null;
+  _patchedReplaceState = null;
 }
 
 namespace createQsUtils {
@@ -306,11 +319,12 @@ namespace createQsUtils {
     ? R
     : T["value"];
 
-  type _ResolveField<T extends StoreConfigDescriptor, TValueInput> = [_InferResolved<T>] extends [
-    T["value"],
-  ]
-    ? { resolve?: (value: TValueInput) => _InferResolved<T> }
-    : { resolve: (value: TValueInput) => _InferResolved<T> };
+  type _TypesEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+
+  type _ResolveField<T extends StoreConfigDescriptor, TValueInput> =
+    _TypesEqual<_InferResolved<T>, T["value"]> extends true
+      ? { resolve?: (value: TValueInput) => _InferResolved<T> }
+      : { resolve: (value: TValueInput) => _InferResolved<T> };
 
   export type StoreConfig<T extends StoreConfigDescriptor> = T extends {
     defaultValue: infer TDefaultValue;
@@ -330,20 +344,22 @@ namespace createQsUtils {
         encode?: (value: T["value"] | undefined) => string | undefined;
       } & _ResolveField<T, T["value"] | undefined>;
 
+  type _InferArrayResolved<T extends { value: unknown; resolved?: unknown }> = T extends {
+    resolved: infer R;
+  }
+    ? R
+    : T["value"];
+
   export type StoreConfigArray<T extends { value: unknown; resolved?: unknown }> = {
     isArray: true;
     decode: (value: Array<unknown>) => Array<T["value"]>;
     encode?: (value: Array<T["value"]>) => Array<string>;
-  } & ([T extends { resolved: infer R } ? R : T["value"]] extends [T["value"]]
+  } & (_TypesEqual<_InferArrayResolved<T>, T["value"]> extends true
     ? {
-        resolve?: (
-          value: Array<T["value"]>,
-        ) => Array<T extends { resolved: infer R } ? R : T["value"]>;
+        resolve?: (value: Array<T["value"]>) => Array<_InferArrayResolved<T>>;
       }
     : {
-        resolve: (
-          value: Array<T["value"]>,
-        ) => Array<T extends { resolved: infer R } ? R : T["value"]>;
+        resolve: (value: Array<T["value"]>) => Array<_InferArrayResolved<T>>;
       });
 }
 
@@ -460,7 +476,7 @@ function createQsUtils<
   } satisfies createQsUtils.DefaultConfig<TQsRecord>;
   const defaultArrayConfig = {
     isArray: true,
-    defaultValue: [],
+    defaultValue: Object.freeze([] as Array<string>) as Array<string>,
     decode: (value) => (value as Array<unknown>).flatMap((i) => (isNil(i) ? [] : [String(i)])),
   } satisfies createQsUtils.DefaultArrayConfig<TQsRecord>;
   /**
@@ -474,12 +490,13 @@ function createQsUtils<
     type TValues = {
       [K in keyof TConfigRecord]: createQsUtils.InferValueFromSearchParamConfig<TConfigRecord[K]>;
     };
+    // Pre-compute merged configs once (avoid re-spreading on every URL change)
+    const mergedConfigs = mapValues(resolvedConfigRecord, (configInput) => ({
+      ...(configInput?.isArray ? defaultArrayConfig : defaultItemConfig),
+      ...configInput,
+    })) as Record<string, NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>>;
     function getParsedValues(qsRecord: TQsRecord): TValues {
-      const values: TValues = mapValues(resolvedConfigRecord, (configInput, key) => {
-        const config = {
-          ...(configInput?.isArray ? defaultArrayConfig : defaultItemConfig),
-          ...configInput,
-        } as NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>;
+      const values: TValues = mapValues(mergedConfigs, (config, key) => {
         const qsValue = !(key in qsRecord) ? undefined : qsRecord[key as keyof TQsRecord];
         const value = Array.isArray(qsValue)
           ? config.isArray
@@ -506,11 +523,7 @@ function createQsUtils<
       const qsRecord = $qs.get();
       const failedEncodeKeys: Array<keyof TValues> = [];
       const nextEncodedValues = Object.fromEntries(
-        Object.entries(resolvedConfigRecord).flatMap(([key, configInput]) => {
-          const config = {
-            ...(configInput?.isArray ? defaultArrayConfig : defaultItemConfig),
-            ...configInput,
-          } as NonNullable<createQsUtils.BaseSearchParamConfig<TQsRecord>>;
+        Object.entries(mergedConfigs).flatMap(([key, config]) => {
           const encode =
             config.encode ??
             (config.isArray
