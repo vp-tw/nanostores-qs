@@ -51,8 +51,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "es-toolkit": "catalog:",
-    "ts-toolbelt": "catalog:"
+    "es-toolkit": "catalog:"
   },
   "devDependencies": {
     "nanostores": "catalog:",
