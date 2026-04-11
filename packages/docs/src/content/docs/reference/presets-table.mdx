@@ -3,6 +3,19 @@ title: Presets Reference
 description: Complete reference for all built-in presets
 ---
 
+import DemoWrapper from "../../../components/DemoWrapper.astro";
+import {
+  StringDemo,
+  IntegerDemo,
+  FloatDemo,
+  BooleanDemo,
+  EnumDemo,
+  DateDemo,
+  YmdDemo,
+  HmsDemo,
+  TupleDemo,
+} from "../../../components/demos/PresetsDemo";
+
 All presets are imported from `@vp-tw/nanostores-qs/presets`. Every preset is a **function** that accepts an options object.
 
 ```ts
@@ -38,6 +51,10 @@ These options are **mutually exclusive** — pass exactly one of `optional`, `de
 | `maxLength`  | `number`              | —         | Maximum string length                    |
 | `outOfRange` | `"clamp" \| "reject"` | `"clamp"` | Truncate or reject strings exceeding max |
 
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <StringDemo client:load />
+</DemoWrapper>
+
 ## `presets.integer(options?)`
 
 | Call                                  | Value Type            | Default     |
@@ -58,14 +75,9 @@ These options are **mutually exclusive** — pass exactly one of `optional`, `de
 
 When `outOfRange` is `"reject"`, out-of-range values fall back to `defaultValue` (or `undefined` for optional).
 
-```ts
-// Integer with rounding and constraints
-presets.integer({ round: "ceil" }); // Math.ceil
-presets.integer({ round: "floor", min: 0 }); // Math.floor, min 0
-presets.integer({ round: "parse" }); // parseInt (truncates)
-presets.integer({ min: 1, max: 100, default: 1 }); // clamped 1-100
-presets.integer({ min: 1, max: 100, outOfRange: "reject" }); // reject out-of-range
-```
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <IntegerDemo client:load />
+</DemoWrapper>
 
 ## `presets.float(options?)`
 
@@ -85,11 +97,9 @@ presets.integer({ min: 1, max: 100, outOfRange: "reject" }); // reject out-of-ra
 | `max`        | `number`              | `Number.MAX_SAFE_INTEGER` | Maximum allowed value                        |
 | `outOfRange` | `"clamp" \| "reject"` | `"clamp"`                 | Clamp to range or reject out-of-range values |
 
-```ts
-presets.float({ fixed: 2 }); // 2 decimal places, e.g. 3.14
-presets.float({ fixed: 2, default: 0 }); // 2 decimal places, default 0
-presets.float({ min: 0, max: 1 }); // clamped 0-1
-```
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <FloatDemo client:load />
+</DemoWrapper>
 
 ## `presets.boolean(options?)`
 
@@ -105,13 +115,12 @@ presets.float({ min: 0, max: 1 }); // clamped 0-1
 - **Base** (`boolean()`): `"true"` decodes to `true`, anything else to `false`. Encodes: value matching `defaultValue` is omitted from URL.
 - **`boolean({ default: true })`**: Since `true` is the default, `true` is omitted and `false` appears in the URL — the encode logic flips compared to `boolean()`.
 - **Optional** (`boolean({ optional: true })`): Strict decode — `"true"` -> `true`, `"false"` -> `false`, anything else throws. Both values appear in URL; omitted means `undefined`.
-- **Array** (`boolean({ array: true })`): Strict per-item decode, invalid items filtered out.
+
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <BooleanDemo client:load />
+</DemoWrapper>
 
 ## `presets.enum(enumArray, options?)`
-
-```ts
-const sortOptions = ["newest", "oldest", "popular"] as const;
-```
 
 | Call                                                | Value Type                          | Default     |
 | --------------------------------------------------- | ----------------------------------- | ----------- |
@@ -121,6 +130,10 @@ const sortOptions = ["newest", "oldest", "popular"] as const;
 | `presets.enum(sortOptions, { array: true })`        | `Array<...>`                        | `[]`        |
 
 The first element of `enumArray` is the inherent default. Invalid values throw (fall back to default in base, filtered out in array).
+
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <EnumDemo client:load />
+</DemoWrapper>
 
 ## `presets.date(options?)`
 
@@ -133,6 +146,10 @@ The first element of `enumArray` is the inherent default. Invalid values throw (
 Decode: `new Date(String(value))`, throws if `getTime()` is `NaN`.
 Encode: `value.toISOString()`. Guards against Invalid Date — returns `undefined` if the date is invalid, preventing `RangeError` from `toISOString()`.
 
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <DateDemo client:load />
+</DemoWrapper>
+
 ## `presets.ymd(options?)`
 
 | Call                              | Value Type            | Default        |
@@ -141,7 +158,11 @@ Encode: `value.toISOString()`. Guards against Invalid Date — returns `undefine
 | `presets.ymd({ optional: true })` | `string \| undefined` | `undefined`    |
 | `presets.ymd({ array: true })`    | `string[]`            | `[]`           |
 
-Format: `YYYY-MM-DD`. Decode validates format with regex only (syntactic validation) — it does not check whether the date is a real calendar date. For example, `2024-02-30` passes validation.
+Format: `YYYY-MM-DD`. Syntactic validation only — does not check whether the date is a real calendar date.
+
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <YmdDemo client:load />
+</DemoWrapper>
 
 ## `presets.hms(options?)`
 
@@ -151,39 +172,20 @@ Format: `YYYY-MM-DD`. Decode validates format with regex only (syntactic validat
 | `presets.hms({ optional: true })` | `string \| undefined` | `undefined`  |
 | `presets.hms({ array: true })`    | `string[]`            | `[]`         |
 
-Format: `HH:mm:ss`. Decode validates format via regex.
+Format: `HH:mm:ss`. Validates hour 00-23, minute/second 00-59.
+
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <HmsDemo client:load />
+</DemoWrapper>
 
 ## `presets.tuple(configs)`
 
-Combines multiple preset configs into a single array parameter. No `optional`, `default`, or `array` modifiers.
+Combines multiple preset configs into a single array parameter. No `optional`, `default`, or `array` modifiers. Decode: each element decoded with its config. If any element throws, entire tuple falls back to combined `defaultValue`.
 
-```ts
-presets.tuple([presets.string(), presets.integer()]);
-// type: [string, number], default: ["", NaN]
-// URL: ?param=hello&param=42
-```
-
-Decode: decodes each element with its config's decode. If any element throws, the entire tuple falls back to its combined `defaultValue`.
+<DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
+  <TupleDemo client:load />
+</DemoWrapper>
 
 ## Creating custom presets
 
-Use `createPreset` to build your own preset function with the same options API:
-
-```ts
-import { createPreset } from "@vp-tw/nanostores-qs/presets";
-
-const myPreset = createPreset({
-  decode: (v) => Number(v),
-  defaultValue: 0,
-  encode: (v) => String(v),
-});
-
-// myPreset()                    — base (defaultValue: 0)
-// myPreset({ optional: true })  — no defaultValue
-// myPreset({ array: true })     — array variant
-// myPreset({ default: 42 })     — custom default
-```
-
-Note: `createPreset` presets do not support `outOfRange` — handle range checking in your `decode` function instead.
-
-See also [Custom Presets](/advanced/custom-presets/) for more examples.
+Use `createPreset` to build your own preset function with the same options API. See [Custom Presets](/advanced/custom-presets/) for live examples with enum validation and decimal.js.
