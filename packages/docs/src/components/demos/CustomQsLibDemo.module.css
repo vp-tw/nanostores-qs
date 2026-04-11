@@ -1,20 +1,33 @@
-.libRow {
-  display: flex;
-  gap: var(--demo-spacing-lg);
-  flex-wrap: wrap;
-}
-
 .libGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-spacing-md);
-  flex: 1;
-  min-width: 240px;
+  gap: var(--demo-spacing-xs);
 }
 
-.sublabel {
-  font-family: var(--demo-font-mono);
-  font-size: 0.75rem;
+.formatTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.formatTable td {
+  padding: var(--demo-spacing-xs) var(--demo-spacing-sm);
+  border-bottom: 1px solid var(--demo-border);
+}
+
+.formatTable tr:last-child td {
+  border-bottom: none;
+}
+
+.formatName {
   color: var(--demo-text-muted);
-  margin-top: calc(-1 * var(--demo-spacing-sm));
+  font-weight: 500;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.formatOutput {
+  font-family: var(--demo-font-mono);
+  color: var(--demo-text);
+  word-break: break-all;
 }
