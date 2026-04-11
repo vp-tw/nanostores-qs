@@ -167,7 +167,8 @@ function createPreset<TValue, TDefaultValue = TValue, TResolved = TValue>(
       return result;
     }
 
-    // array
+    // array — invalid items are silently dropped (best-effort decode).
+    // URL may retain raw invalid values until the next update() re-encodes from store state.
     if (options && "array" in options && options.array === true) {
       const maxItems = (options as ArrayOptions).maxItems;
       const result: any = {
@@ -492,6 +493,9 @@ function date(options?: PresetOptions<Date>): any {
 }
 
 // --- YMD preset ---
+// Stores a date-only string (no time/timezone). Default "0000-00-00" is an intentional
+// invalid sentinel (like NaN for integer). Do NOT pass ymd values to new Date() — the
+// UTC midnight parse shifts calendar dates in negative-offset timezones.
 
 const ymdPattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -636,6 +640,8 @@ function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
       }) as Mutable<InferTupleType<TConfigs>>;
     },
     defaultValue,
+    // Encode uses "" as positional placeholder for nil/missing elements to preserve
+    // tuple arity. This means optional string slots are lossy: undefined → "" → "".
     encode: (value: Mutable<InferTupleType<TConfigs>>) => {
       return (value as Array<unknown>).map((v, i) => {
         const config = configs[i];

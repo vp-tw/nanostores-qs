@@ -258,6 +258,7 @@ namespace createQsUtils {
     update: UpdateSingle<TQsRecord, TConfig>;
   };
   export interface QsUtils<TQsRecord extends BaseQsRecord = DefaultQsRecord> {
+    // @internal — exposed for SSR/testing; writing bypasses URL sync.
     _$internalSearch: WritableAtom<string>;
     $search: ReadableAtom<string>;
     $urlSearchParams: ReadableAtom<URLSearchParams>;
