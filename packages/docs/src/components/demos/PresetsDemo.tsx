@@ -241,6 +241,9 @@ export function BooleanDemo() {
             checked={opt ?? false}
             onChange={(v) => boolOpt.update(v)}
           />
+          <ValueButtons label="">
+            <VBtn label="reset optional → undefined" onClick={() => boolOpt.update(undefined)} />
+          </ValueButtons>
         </DemoColumn>
         <DemoColumn>
           <CodePreview
