@@ -15,7 +15,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: pnpm --filter @vp-tw/nanostores-qs build
-      - run: pnpm --filter docs build -- --base=/${{ github.event.repository.name }}/
+      - run: pnpm --filter docs build
+        env:
+          DOCS_BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: packages/docs/dist

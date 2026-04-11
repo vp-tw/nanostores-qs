@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import process from "node:process";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
@@ -17,9 +18,8 @@ export default defineConfig({
     },
   },
   site: "https://vdustr.github.io",
-  // base is NOT set here — passed via CLI for production builds:
-  //   astro build --base=/nanostores-qs/
-  // In dev mode, no base prefix → http://localhost:4321/
+  // In CI, DOCS_BASE is set to "/<repo-name>/". In dev, omitted → no prefix.
+  base: process.env.DOCS_BASE,
   integrations: [
     starlight({
       title: "@vp-tw/nanostores-qs",
