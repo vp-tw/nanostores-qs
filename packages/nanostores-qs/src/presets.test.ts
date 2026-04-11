@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { createQsUtils } from "./main";
+
+// --- Integration: presets through createSearchParamStore / createSearchParamsStore ---
+
 import {
   boolean,
   createPreset,
@@ -161,6 +165,46 @@ describe("createPreset", () => {
       expect(config.encode(["a", "b"])).toEqual(["a", "b"]);
     });
   });
+
+  describe("with resolve", () => {
+    const ratio = createPreset<string, string, number>({
+      decode: (v) => {
+        const s = String(v);
+        if (!/^\d+:\d+$/.test(s)) throw new Error("invalid ratio");
+        return s;
+      },
+      defaultValue: "16:9",
+      resolve: (v) => {
+        const parts = v.split(":").map(Number);
+        return (parts[0] ?? 0) / (parts[1] ?? 1);
+      },
+    });
+
+    it("base: includes resolve", () => {
+      const config = ratio();
+      expect(config.resolve("16:9")).toBeCloseTo(16 / 9);
+      expect(config.resolve("4:3")).toBeCloseTo(4 / 3);
+    });
+
+    it("default: includes resolve", () => {
+      const config = ratio({ default: "4:3" });
+      expect(config.resolve("16:9")).toBeCloseTo(16 / 9);
+      expect(config.defaultValue).toBe("4:3");
+    });
+
+    it("optional: resolve wraps nil → undefined", () => {
+      const config = ratio({ optional: true });
+      expect(config.resolve("16:9")).toBeCloseTo(16 / 9);
+      expect(config.resolve(undefined as any)).toBeUndefined();
+    });
+
+    it("array: resolve maps each element", () => {
+      const config = ratio({ array: true });
+      const result = config.resolve(["16:9", "4:3"]);
+      expect(result[0]).toBeCloseTo(16 / 9);
+      expect(result[1]).toBeCloseTo(4 / 3);
+    });
+  });
 });
 
 describe("integer", () => {
@@ -281,6 +325,64 @@ describe("integer", () => {
       expect(config.defaultValue).toBe(0);
     });
   });
+
+  describe("numInput", () => {
+    it("decode: raw string passthrough", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(config.decode("42")).toBe("42");
+      expect(config.decode("3.2")).toBe("3.2");
+    });
+
+    it("decode: nil → empty string", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(config.decode(undefined)).toBe("");
+      expect(config.decode(null)).toBe("");
+    });
+
+    it("defaultValue is empty string", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(config.defaultValue).toBe("");
+    });
+
+    it("encode: empty string → undefined", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(config.encode("")).toBeUndefined();
+    });
+
+    it("encode: raw string passthrough (no normalization)", () => {
+      const config = integer({ numInput: true, default: 1, min: 1, max: 100 });
+      expect(config.encode("42")).toBe("42");
+      expect(config.encode("0")).toBe("0");
+      expect(config.encode("200")).toBe("200");
+    });
+
+    it("resolve: empty string → default number", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(config.resolve("")).toBe(1);
+    });
+
+    it("resolve: number string → parsed and clamped", () => {
+      const config = integer({ numInput: true, default: 1, min: 1, max: 100 });
+      expect(config.resolve("42")).toBe(42);
+      expect(config.resolve("0")).toBe(1);
+      expect(config.resolve("200")).toBe(100);
+    });
+
+    it("resolve: applies round", () => {
+      const config = integer({ numInput: true, default: 1, round: "ceil", min: 0, max: 100 });
+      expect(config.resolve("3.2")).toBe(4);
+    });
+
+    it("resolve: invalid string → default", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(config.resolve("abc" as any)).toBe(1);
+    });
+
+    it("has resolve function in config", () => {
+      const config = integer({ numInput: true, default: 1 });
+      expect(typeof config.resolve).toBe("function");
+    });
+  });
 });
 
 describe("float", () => {
@@ -338,6 +440,55 @@ describe("float", () => {
       const config = float({ array: true });
       expect(config.isArray).toBe(true);
       expect(config.decode(["1.1", "abc", "3.3"])).toEqual([1.1, 3.3]);
+    });
+  });
+
+  describe("numInput", () => {
+    it("decode: raw string passthrough", () => {
+      const config = float({ numInput: true, default: 0 });
+      expect(config.decode("3.14")).toBe("3.14");
+      expect(config.decode("1.")).toBe("1.");
+    });
+
+    it("decode: nil → empty string", () => {
+      const config = float({ numInput: true, default: 0 });
+      expect(config.decode(undefined)).toBe("");
+      expect(config.decode(null)).toBe("");
+    });
+
+    it("encode: empty string → undefined", () => {
+      const config = float({ numInput: true, default: 0 });
+      expect(config.encode("")).toBeUndefined();
+    });
+
+    it("encode: raw string passthrough (no normalization)", () => {
+      const config = float({ numInput: true, default: 0, min: 0, max: 1 });
+      expect(config.encode("3.14")).toBe("3.14");
+      expect(config.encode("1.")).toBe("1.");
+      expect(config.encode("-0.5")).toBe("-0.5");
+      expect(config.encode("1.5")).toBe("1.5");
+    });
+
+    it("resolve: empty string → default", () => {
+      const config = float({ numInput: true, default: 0.5 });
+      expect(config.resolve("")).toBe(0.5);
+    });
+
+    it("resolve: number string → parsed and clamped", () => {
+      const config = float({ numInput: true, default: 0, min: 0, max: 1 });
+      expect(config.resolve("0.5")).toBe(0.5);
+      expect(config.resolve("1.5")).toBe(1);
+      expect(config.resolve("-0.5")).toBe(0);
+    });
+
+    it("resolve: applies fixed", () => {
+      const config = float({ numInput: true, default: 0, fixed: 2 });
+      expect(config.resolve("3.14159")).toBe(3.14);
+    });
+
+    it("resolve: invalid string → default", () => {
+      const config = float({ numInput: true, default: 0 });
+      expect(config.resolve("abc" as any)).toBe(0);
     });
   });
 });
@@ -446,14 +597,17 @@ describe("boolean", () => {
       expect(config.decode("false")).toBe(false);
     });
 
-    it("decode: 'anything' → false (lenient)", () => {
+    it("decode: invalid value → throws", () => {
       const config = boolean();
-      expect(config.decode("anything")).toBe(false);
+      expect(() => config.decode("anything")).toThrow("invalid boolean");
+      expect(() => config.decode("")).toThrow("invalid boolean");
+      expect(() => config.decode("1")).toThrow("invalid boolean");
     });
 
-    it("decode: '' → false", () => {
+    it("decode: nil → defaultValue (false)", () => {
       const config = boolean();
-      expect(config.decode("")).toBe(false);
+      expect(config.decode(undefined)).toBe(false);
+      expect(config.decode(null)).toBe(false);
     });
 
     it("defaultValue is false", () => {
@@ -472,6 +626,24 @@ describe("boolean", () => {
     it("defaultValue is true", () => {
       const config = boolean({ default: true });
       expect(config.defaultValue).toBe(true);
+    });
+
+    it("decode: nil → true (defaultValue)", () => {
+      const config = boolean({ default: true });
+      expect(config.decode(undefined)).toBe(true);
+      expect(config.decode(null)).toBe(true);
+    });
+
+    it("decode: 'true' → true, 'false' → false", () => {
+      const config = boolean({ default: true });
+      expect(config.decode("true")).toBe(true);
+      expect(config.decode("false")).toBe(false);
+    });
+
+    it("decode: invalid → throws (falls back to true via main.ts catch)", () => {
+      const config = boolean({ default: true });
+      expect(() => config.decode("foo")).toThrow("invalid boolean");
+      expect(() => config.decode("1")).toThrow("invalid boolean");
     });
 
     it("encode: false → 'false', true → undefined (omit default)", () => {
@@ -587,6 +759,21 @@ describe("date", () => {
       const d = config.decode("2024-01-15T10:30:00.000Z");
       expect(d).toBeInstanceOf(Date);
       expect(d!.toISOString()).toBe("2024-01-15T10:30:00.000Z");
+    });
+  });
+
+  describe("default", () => {
+    it("uses provided default Date", () => {
+      const d = new Date("2024-01-01T00:00:00.000Z");
+      const config = date({ default: d });
+      expect(config.defaultValue).toBe(d);
+    });
+
+    it("nil → default Date", () => {
+      const d = new Date("2024-01-01T00:00:00.000Z");
+      const config = date({ default: d });
+      expect(config.decode(undefined)).toBe(d);
+      expect(config.decode(null)).toBe(d);
     });
   });
 
@@ -840,11 +1027,17 @@ describe("tuple", () => {
     });
   });
 
-  describe("encode skips nil values", () => {
-    it("filters out undefined encoded values", () => {
+  describe("encode preserves positions", () => {
+    it("uses empty string sentinel for undefined encoded values", () => {
       const config = tuple([string(), integer()]);
-      // NaN encodes to undefined for integer, so it gets filtered
-      expect(config.encode(["hello", Number.NaN])).toEqual(["hello"]);
+      // NaN encodes to undefined for integer, replaced with "" to preserve position
+      expect(config.encode(["hello", Number.NaN])).toEqual(["hello", ""]);
+    });
+
+    it("preserves all positions in a 3-element tuple", () => {
+      const config = tuple([integer(), string(), integer()]);
+      // First integer is NaN, but position is preserved
+      expect(config.encode([Number.NaN, "world", 42])).toEqual(["", "world", "42"]);
     });
   });
 
@@ -853,6 +1046,176 @@ describe("tuple", () => {
       const config = tuple([string(), integer()]);
       expect("optional" in config).toBe(false);
       expect("array" in config).toBe(false);
+    });
+  });
+});
+
+describe("integration: presets + stores", () => {
+  function makeQs(search: string) {
+    const qsUtils = createQsUtils();
+    // Simulate URL
+    qsUtils._$internalSearch.set(search);
+    return qsUtils;
+  }
+
+  describe("integer({ default: 1 }) through store", () => {
+    it("absent → $value is 1 (default)", () => {
+      const qs = makeQs("");
+      const store = qs.createSearchParamStore("page", integer({ default: 1, min: 1 }));
+      expect(store.$value.get()).toBe(1);
+    });
+
+    it("?page=abc → decode throws → fallback to 1", () => {
+      const qs = makeQs("?page=abc");
+      const store = qs.createSearchParamStore("page", integer({ default: 1, min: 1 }));
+      expect(store.$value.get()).toBe(1);
+    });
+
+    it("?page=5 → $value is 5", () => {
+      const qs = makeQs("?page=5");
+      const store = qs.createSearchParamStore("page", integer({ default: 1, min: 1 }));
+      expect(store.$value.get()).toBe(5);
+    });
+
+    it("?page=0 → clamped to 1", () => {
+      const qs = makeQs("?page=0");
+      const store = qs.createSearchParamStore("page", integer({ default: 1, min: 1 }));
+      expect(store.$value.get()).toBe(1);
+    });
+  });
+
+  describe("numInput through store", () => {
+    it("absent → $value is '', $resolved is default", () => {
+      const qs = makeQs("");
+      const store = qs.createSearchParamStore(
+        "page",
+        integer({ numInput: true, default: 1, min: 1 }),
+      );
+      expect(store.$value.get()).toBe("");
+      expect(store.$resolved.get()).toBe(1);
+    });
+
+    it("?page=42 → $value is '42', $resolved is 42", () => {
+      const qs = makeQs("?page=42");
+      const store = qs.createSearchParamStore(
+        "page",
+        integer({ numInput: true, default: 1, min: 1 }),
+      );
+      expect(store.$value.get()).toBe("42");
+      expect(store.$resolved.get()).toBe(42);
+    });
+
+    it("?page=abc → $value is 'abc' (raw), $resolved falls back to 1", () => {
+      const qs = makeQs("?page=abc");
+      const store = qs.createSearchParamStore(
+        "page",
+        integer({ numInput: true, default: 1, min: 1 }),
+      );
+      expect(store.$value.get()).toBe("abc");
+      expect(store.$resolved.get()).toBe(1);
+    });
+  });
+
+  describe("$resolved identity", () => {
+    it("no resolve → $resolved === $value (same reference)", () => {
+      const qs = makeQs("");
+      const store = qs.createSearchParamStore("q", string());
+      expect(store.$resolved).toBe(store.$value);
+    });
+
+    it("with resolve → $resolved !== $value", () => {
+      const qs = makeQs("");
+      const store = qs.createSearchParamStore("page", integer({ numInput: true, default: 1 }));
+      expect(store.$resolved).not.toBe(store.$value);
+    });
+  });
+
+  describe("multi-param store with mixed resolve", () => {
+    it("$resolved maps numInput to number, passes through others", () => {
+      const qs = makeQs("?page=3&q=hello");
+      const store = qs.createSearchParamsStore({
+        page: integer({ numInput: true, default: 1, min: 1 }),
+        q: string(),
+      });
+      const values = store.$values.get();
+      const resolved = store.$resolved.get();
+
+      expect(values.page).toBe("3");
+      expect(values.q).toBe("hello");
+      expect(resolved.page).toBe(3);
+      expect(resolved.q).toBe("hello");
+    });
+
+    it("no resolve configs → $resolved === $values", () => {
+      const qs = makeQs("");
+      const store = qs.createSearchParamsStore({
+        q: string(),
+        sort: presetEnum(["asc", "desc"]),
+      });
+      expect(store.$resolved).toBe(store.$values);
+    });
+  });
+
+  describe("boolean({ default: true }) through store", () => {
+    it("absent → true", () => {
+      const qs = makeQs("");
+      const store = qs.createSearchParamStore("archived", boolean({ default: true }));
+      expect(store.$value.get()).toBe(true);
+    });
+
+    it("?archived=false → false", () => {
+      const qs = makeQs("?archived=false");
+      const store = qs.createSearchParamStore("archived", boolean({ default: true }));
+      expect(store.$value.get()).toBe(false);
+    });
+
+    it("?archived=foo → throws → fallback to true", () => {
+      const qs = makeQs("?archived=foo");
+      const store = qs.createSearchParamStore("archived", boolean({ default: true }));
+      expect(store.$value.get()).toBe(true);
+    });
+  });
+
+  describe("encode/decode round-trip consistency", () => {
+    it("integer encode clamps like decode (C-3)", () => {
+      const config = integer({ default: 0, min: 1, max: 10 });
+      // encode should clamp 15 → 10, not pass through as "15"
+      expect(config.encode(15 as any)).toBe("10");
+      expect(config.encode(0 as any)).toBe("1");
+    });
+
+    it("float encode clamps like decode (C-3)", () => {
+      const config = float({ default: 0, min: 0, max: 1, fixed: 2 });
+      expect(config.encode(1.5 as any)).toBe("1.00");
+      expect(config.encode(-0.5 as any)).toBe("0.00");
+    });
+
+    it("string encode enforces maxLength like decode (C-3)", () => {
+      const config = string({ maxLength: 3, default: "" });
+      expect(config.encode("abcdef")).toBe("abc");
+    });
+
+    it("string encode with outOfRange reject returns undefined (C-3)", () => {
+      const config = string({ maxLength: 3, outOfRange: "reject", default: "" });
+      expect(config.encode("abcdef")).toBeUndefined();
+    });
+  });
+
+  describe("array maxItems in encode (I-2)", () => {
+    it("integer array encode caps to maxItems", () => {
+      const config = integer({ array: true, maxItems: 2 });
+      expect(config.encode([1, 2, 3])).toEqual(["1", "2"]);
+    });
+
+    it("boolean array encode caps to maxItems", () => {
+      const config = boolean({ array: true, maxItems: 1 });
+      expect(config.encode([true, false, true])).toEqual(["true"]);
+    });
+  });
+
+  describe("enum empty array guard (I-3)", () => {
+    it("throws on empty enum array", () => {
+      expect(() => presetEnum([])).toThrow("enum array must not be empty");
     });
   });
 });

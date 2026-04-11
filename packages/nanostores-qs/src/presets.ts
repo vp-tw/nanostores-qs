@@ -1,8 +1,5 @@
 import type { createQsUtils } from "./main";
-
-function isNil(value: unknown): value is null | undefined {
-  return value === null || value === undefined;
-}
+import { isNil } from "es-toolkit";
 
 // --- Shared option types with `never` exclusivity ---
 
@@ -42,79 +39,120 @@ type PresetOptions<TType> =
 
 // --- Return types ---
 
-interface BaseResult<TType, TDefaultValueType> {
-  decode: (value: unknown) => TType;
-  defaultValue: TDefaultValueType;
-  encode: (value: TType) => string | undefined;
+interface BaseResult<TValue, TDefaultValue> {
+  decode: (value: unknown) => TValue;
+  defaultValue: TDefaultValue;
+  encode: (value: TValue) => string | undefined;
 }
 
-interface OptionalResult<TType> {
-  decode: (value: unknown) => TType | undefined;
-  encode: (value: TType | undefined) => string | undefined;
+interface OptionalResult<TValue> {
+  decode: (value: unknown) => TValue | undefined;
+  encode: (value: TValue | undefined) => string | undefined;
 }
 
-interface DefaultResult<TType> {
-  decode: (value: unknown) => TType;
-  defaultValue: TType;
-  encode: (value: TType) => string | undefined;
+interface DefaultResult<TValue> {
+  decode: (value: unknown) => TValue;
+  defaultValue: TValue;
+  encode: (value: TValue) => string | undefined;
 }
 
-interface ArrayResult<TType> {
+interface ArrayResult<TValue> {
   isArray: true;
-  decode: (value: Array<unknown>) => Array<TType>;
-  encode: (value: Array<TType>) => Array<string>;
+  decode: (value: Array<unknown>) => Array<TValue>;
+  encode: (value: Array<TValue>) => Array<string>;
+}
+
+interface NumInputResult {
+  decode: (value: unknown) => string;
+  defaultValue: "";
+  encode: (value: string) => string | undefined;
+  resolve: (value: string) => number;
 }
 
 // --- Config input ---
 
-interface CreatePresetConfig<TType, TDefaultValueType> {
-  decode: (value: unknown) => TType;
-  defaultValue: TDefaultValueType;
-  encode?: (value: TType) => string | undefined;
+interface CreatePresetConfig<TValue, TDefaultValue> {
+  decode: (value: unknown) => TValue;
+  defaultValue: TDefaultValue;
+  encode?: (value: TValue) => string | undefined;
 }
+
+// --- Resolve intersection — adds resolve to result when TResolved ≠ TValue ---
+
+type WithResolve<TValue, TResolved> = [TResolved] extends [TValue]
+  ? unknown
+  : { resolve: (value: TValue) => TResolved };
+
+type WithOptionalResolve<TValue, TResolved> = [TResolved] extends [TValue]
+  ? unknown
+  : { resolve: (value: TValue | undefined) => TResolved | undefined };
+
+type WithArrayResolve<TValue, TResolved> = [TResolved] extends [TValue]
+  ? unknown
+  : { resolve: (value: Array<TValue>) => Array<TResolved> };
 
 // --- Overloaded return type ---
 
-interface CreatePresetReturn<TType, TDefaultValueType> {
-  (): BaseResult<TType, TDefaultValueType>;
-  (options: { optional: true }): OptionalResult<TType>;
-  <TDefault extends TType>(options: { default: TDefault }): DefaultResult<TType>;
-  (options: { array: true; maxItems?: number }): ArrayResult<TType>;
+interface CreatePresetReturn<TValue, TDefaultValue, TResolved = TValue> {
+  (): BaseResult<TValue, TDefaultValue> & WithResolve<TValue, TResolved>;
+  (options: { optional: true }): OptionalResult<TValue> & WithOptionalResolve<TValue, TResolved>;
+  <TDefault extends TValue>(options: {
+    default: TDefault;
+  }): DefaultResult<TValue> & WithResolve<TValue, TResolved>;
+  (options: {
+    array: true;
+    maxItems?: number;
+  }): ArrayResult<TValue> & WithArrayResolve<TValue, TResolved>;
   (
-    options?: PresetOptions<TType>,
+    options?: PresetOptions<TValue>,
   ):
-    | BaseResult<TType, TDefaultValueType>
-    | OptionalResult<TType>
-    | DefaultResult<TType>
-    | ArrayResult<TType>;
+    | (BaseResult<TValue, TDefaultValue> & WithResolve<TValue, TResolved>)
+    | (OptionalResult<TValue> & WithOptionalResolve<TValue, TResolved>)
+    | (DefaultResult<TValue> & WithResolve<TValue, TResolved>)
+    | (ArrayResult<TValue> & WithArrayResolve<TValue, TResolved>);
 }
 
 // --- Factory ---
 
-function createPreset<TType, TDefaultValueType = TType>(
-  config: CreatePresetConfig<TType, TDefaultValueType>,
-): CreatePresetReturn<TType, TDefaultValueType> {
-  const encode = config.encode ?? ((v: TType) => String(v));
+function createPreset<TValue, TDefaultValue = TValue, TResolved = TValue>(
+  config: CreatePresetConfig<TValue, TDefaultValue> & {
+    resolve: (value: TValue) => TResolved;
+  },
+): CreatePresetReturn<TValue, TDefaultValue, TResolved>;
+function createPreset<TValue, TDefaultValue = TValue>(
+  config: CreatePresetConfig<TValue, TDefaultValue>,
+): CreatePresetReturn<TValue, TDefaultValue>;
+function createPreset<TValue, TDefaultValue = TValue, TResolved = TValue>(
+  config: CreatePresetConfig<TValue, TDefaultValue> & {
+    resolve?: (value: TValue) => TResolved;
+  },
+): CreatePresetReturn<TValue, TDefaultValue, TResolved> {
+  const encode = config.encode ?? ((v: TValue) => String(v));
+  const resolve = config.resolve;
 
-  function presetFn(options?: PresetOptions<TType>): any {
+  function presetFn(options?: PresetOptions<TValue>): any {
     // optional
     if (options && "optional" in options && options.optional === true) {
-      return {
+      const result: any = {
         decode: (v: unknown) => {
           if (isNil(v)) return undefined;
           return config.decode(v);
         },
-        encode: (v: TType | undefined) => {
+        encode: (v: TValue | undefined) => {
           if (isNil(v)) return undefined;
           return encode(v);
         },
       };
+      if (resolve) {
+        result.resolve = (v: TValue | undefined) => (isNil(v) ? undefined : resolve(v));
+      }
+      return result;
     }
 
     // default
     if (options && "default" in options && options.default !== undefined) {
       const defaultValue = options.default;
-      return {
+      const result: any = {
         decode: (v: unknown) => {
           if (isNil(v)) return defaultValue;
           return config.decode(v);
@@ -122,15 +160,17 @@ function createPreset<TType, TDefaultValueType = TType>(
         defaultValue,
         encode,
       };
+      if (resolve) result.resolve = resolve;
+      return result;
     }
 
     // array
     if (options && "array" in options && options.array === true) {
       const maxItems = (options as ArrayOptions).maxItems;
-      return {
+      const result: any = {
         isArray: true as const,
-        decode: (values: Array<unknown>): Array<TType> => {
-          const result = values.flatMap((v) => {
+        decode: (values: Array<unknown>): Array<TValue> => {
+          const decoded = values.flatMap((v) => {
             try {
               return [config.decode(v)];
             } catch {
@@ -138,12 +178,13 @@ function createPreset<TType, TDefaultValueType = TType>(
             }
           });
           if (maxItems !== undefined) {
-            return result.slice(0, maxItems);
+            return decoded.slice(0, maxItems);
           }
-          return result;
+          return decoded;
         },
-        encode: (values: Array<TType>): Array<string> => {
-          return values.flatMap((v) => {
+        encode: (values: Array<TValue>): Array<string> => {
+          const capped = maxItems !== undefined ? values.slice(0, maxItems) : values;
+          return capped.flatMap((v) => {
             if (isNil(v)) return [];
             try {
               const encoded = encode(v);
@@ -154,10 +195,14 @@ function createPreset<TType, TDefaultValueType = TType>(
           });
         },
       };
+      if (resolve) {
+        result.resolve = (values: Array<TValue>) => values.map(resolve);
+      }
+      return result;
     }
 
     // base (no options or empty options)
-    return {
+    const result: any = {
       decode: (v: unknown) => {
         if (isNil(v)) return config.defaultValue;
         return config.decode(v);
@@ -165,9 +210,11 @@ function createPreset<TType, TDefaultValueType = TType>(
       defaultValue: config.defaultValue,
       encode,
     };
+    if (resolve) result.resolve = resolve;
+    return result;
   }
 
-  return presetFn as CreatePresetReturn<TType, TDefaultValueType>;
+  return presetFn as CreatePresetReturn<TValue, TDefaultValue, TResolved>;
 }
 
 // --- Integer preset ---
@@ -179,9 +226,18 @@ interface IntegerBaseOptions {
   outOfRange?: "clamp" | "reject";
 }
 
+interface NumInputOptions {
+  numInput: true;
+  default: number;
+  optional?: never;
+  array?: never;
+  maxItems?: never;
+}
+
 type IntegerOptions =
   | (IntegerBaseOptions & ArrayOptions)
   | (IntegerBaseOptions & DefaultOptions<number>)
+  | (IntegerBaseOptions & NumInputOptions)
   | (IntegerBaseOptions & OptionalOptions<number>)
   | (IntegerBaseOptions & Partial<BaseOptions>);
 
@@ -192,27 +248,57 @@ function integer(options: IntegerBaseOptions & { default: number }): DefaultResu
 function integer(
   options: IntegerBaseOptions & { array: true; maxItems?: number },
 ): ArrayResult<number>;
+function integer(options: IntegerBaseOptions & { numInput: true; default: number }): NumInputResult;
 function integer(options?: IntegerOptions): any {
   const round = options?.round ?? "round";
   const min = options?.min ?? Number.MIN_SAFE_INTEGER;
   const max = options?.max ?? Number.MAX_SAFE_INTEGER;
   const outOfRange = options?.outOfRange ?? "clamp";
 
+  function parseAndClamp(value: unknown): number {
+    const n =
+      round === "parse" ? Number.parseInt(String(value), 10) : Number.parseFloat(String(value));
+    if (Number.isNaN(n)) throw new Error("invalid integer");
+    const rounded = round === "parse" ? n : Math[round](n);
+    if (outOfRange === "reject") {
+      if (rounded < min || rounded > max) throw new Error("out of range");
+    }
+    return Math.max(min, Math.min(max, rounded));
+  }
+
+  if (options && "numInput" in options && options.numInput === true) {
+    const defaultNum = (options as NumInputOptions).default;
+    return {
+      decode: (v: unknown): string => {
+        if (isNil(v)) return "";
+        return String(v);
+      },
+      defaultValue: "",
+      encode: (v: string): string | undefined => {
+        if (v === "") return undefined;
+        return v;
+      },
+      resolve: (v: string): number => {
+        if (v === "") return defaultNum;
+        try {
+          return parseAndClamp(v);
+        } catch {
+          return defaultNum;
+        }
+      },
+    };
+  }
+
   const preset = createPreset<number, number>({
-    decode: (value: unknown): number => {
-      const n =
-        round === "parse" ? Number.parseInt(String(value), 10) : Number.parseFloat(String(value));
-      if (Number.isNaN(n)) throw new Error("invalid integer");
-      const rounded = round === "parse" ? n : Math[round](n);
-      if (outOfRange === "reject") {
-        if (rounded < min || rounded > max) throw new Error("out of range");
-      }
-      return Math.max(min, Math.min(max, rounded));
-    },
+    decode: parseAndClamp,
     defaultValue: Number.NaN,
     encode: (v) => {
       if (isNil(v) || Number.isNaN(v)) return undefined;
-      return String(v);
+      try {
+        return String(parseAndClamp(v));
+      } catch {
+        return undefined;
+      }
     },
   });
 
@@ -231,6 +317,7 @@ interface FloatBaseOptions {
 type FloatOptions =
   | (FloatBaseOptions & ArrayOptions)
   | (FloatBaseOptions & DefaultOptions<number>)
+  | (FloatBaseOptions & NumInputOptions)
   | (FloatBaseOptions & OptionalOptions<number>)
   | (FloatBaseOptions & Partial<BaseOptions>);
 
@@ -239,29 +326,60 @@ function float(options: FloatBaseOptions): BaseResult<number, number>;
 function float(options: FloatBaseOptions & { optional: true }): OptionalResult<number>;
 function float(options: FloatBaseOptions & { default: number }): DefaultResult<number>;
 function float(options: FloatBaseOptions & { array: true; maxItems?: number }): ArrayResult<number>;
+function float(options: FloatBaseOptions & { numInput: true; default: number }): NumInputResult;
 function float(options?: FloatOptions): any {
   const fixed = options?.fixed;
   const min = options?.min ?? Number.MIN_SAFE_INTEGER;
   const max = options?.max ?? Number.MAX_SAFE_INTEGER;
   const outOfRange = options?.outOfRange ?? "clamp";
 
+  function parseAndClamp(value: unknown): number {
+    let n = Number.parseFloat(String(value));
+    if (Number.isNaN(n)) throw new Error("invalid float");
+    if (fixed !== undefined) {
+      n = Number(n.toFixed(fixed));
+    }
+    if (outOfRange === "reject") {
+      if (n < min || n > max) throw new Error("out of range");
+    }
+    return Math.max(min, Math.min(max, n));
+  }
+
+  if (options && "numInput" in options && options.numInput === true) {
+    const defaultNum = (options as NumInputOptions).default;
+    return {
+      decode: (v: unknown): string => {
+        if (isNil(v)) return "";
+        return String(v);
+      },
+      defaultValue: "",
+      encode: (v: string): string | undefined => {
+        if (v === "") return undefined;
+        return v;
+      },
+      resolve: (v: string): number => {
+        if (v === "") return defaultNum;
+        try {
+          return parseAndClamp(v);
+        } catch {
+          return defaultNum;
+        }
+      },
+    };
+  }
+
   const preset = createPreset<number, number>({
-    decode: (value: unknown): number => {
-      let n = Number.parseFloat(String(value));
-      if (Number.isNaN(n)) throw new Error("invalid float");
-      if (fixed !== undefined) {
-        n = Number(n.toFixed(fixed));
-      }
-      if (outOfRange === "reject") {
-        if (n < min || n > max) throw new Error("out of range");
-      }
-      return Math.max(min, Math.min(max, n));
-    },
+    decode: parseAndClamp,
     defaultValue: Number.NaN,
     encode: (v) => {
       if (isNil(v) || Number.isNaN(v)) return undefined;
-      if (fixed !== undefined) return v.toFixed(fixed);
-      return String(v);
+      try {
+        const clamped = parseAndClamp(v);
+        if (fixed !== undefined) return clamped.toFixed(fixed);
+        return String(clamped);
+      } catch {
+        return undefined;
+      }
     },
   });
 
@@ -292,16 +410,25 @@ function string(options?: StringOptions): any {
   const maxLength = options?.maxLength;
   const outOfRange = options?.outOfRange ?? "clamp";
 
+  function normalizeString(s: string): string {
+    if (maxLength !== undefined && s.length > maxLength) {
+      if (outOfRange === "reject") throw new Error("string too long");
+      return s.slice(0, maxLength);
+    }
+    return s;
+  }
+
   const preset = createPreset<string, string>({
-    decode: (value: unknown): string => {
-      const s = String(value);
-      if (maxLength !== undefined && s.length > maxLength) {
-        if (outOfRange === "reject") throw new Error("string too long");
-        return s.slice(0, maxLength);
-      }
-      return s;
-    },
+    decode: (value: unknown): string => normalizeString(String(value)),
     defaultValue: "",
+    encode: (v: string): string | undefined => {
+      if (isNil(v)) return undefined;
+      try {
+        return normalizeString(v);
+      } catch {
+        return undefined;
+      }
+    },
   });
 
   return preset(options as any);
@@ -359,13 +486,21 @@ function boolean(options?: BooleanOptions): any {
         });
         return maxItems !== undefined ? result.slice(0, maxItems) : result;
       },
-      encode: (values: Array<boolean>): Array<string> => values.map((v) => (v ? "true" : "false")),
+      encode: (values: Array<boolean>): Array<string> => {
+        const capped = maxItems !== undefined ? values.slice(0, maxItems) : values;
+        return capped.map((v) => (v ? "true" : "false"));
+      },
     };
   }
 
-  // base or default: lenient decode, conditional encode
+  // base or default: strict decode with nil fallback, conditional encode
   return {
-    decode: (v: unknown): boolean => v === "true",
+    decode: (v: unknown): boolean => {
+      if (isNil(v)) return defaultValue;
+      if (v === "true") return true;
+      if (v === "false") return false;
+      throw new Error("invalid boolean");
+    },
     defaultValue,
     encode: (v: boolean): string | undefined => {
       if (v === defaultValue) return undefined;
@@ -460,6 +595,7 @@ function presetEnum<const TEnumArray extends ReadonlyArray<string>>(
   enumArray: TEnumArray,
   options?: PresetOptions<TEnumArray[number]>,
 ): any {
+  if (enumArray.length === 0) throw new Error("enum array must not be empty");
   const preset = createPreset<TEnumArray[number], TEnumArray[0]>({
     decode: (value: unknown): TEnumArray[number] => {
       const s = String(value);
@@ -511,12 +647,12 @@ function tuple<const TConfigs extends ReadonlyArray<TupleConfig>>(
     },
     defaultValue,
     encode: (value: Mutable<InferTupleType<TConfigs>>) => {
-      return (value as Array<unknown>).flatMap((v, i) => {
+      return (value as Array<unknown>).map((v, i) => {
         const config = configs[i];
-        if (!config) return [];
+        if (!config) return "";
         const enc = config.encode ?? ((val: unknown) => String(val));
         const encoded = enc(v);
-        return isNil(encoded) ? [] : [encoded];
+        return isNil(encoded) ? "" : encoded;
       });
     },
   };

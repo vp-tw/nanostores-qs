@@ -37,6 +37,7 @@
     "starlight",
     "tsdoc",
     "tsgo",
+    "unpatch",
     "vdustr",
     "vite",
     "vitejs",
