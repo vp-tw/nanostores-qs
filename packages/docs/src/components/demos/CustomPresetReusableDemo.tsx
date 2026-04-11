@@ -29,89 +29,83 @@ function enumPreset<const T extends readonly [string, ...Array<string>]>(values:
   });
 }
 
-const categoryOptions = ["electronics", "clothing", "books"] as const;
-const categoryPreset = enumPreset(categoryOptions);
-const categoryStore = qsUtils.createSearchParamStore("category", categoryPreset());
+// --- Reusable decimal input (raw string + resolve to Decimal) ---
 
-// --- Reusable decimal preset ---
+function decimalInput(defaultValue: string) {
+  return {
+    decode: (v: unknown): string => (v == null ? "" : String(v)),
+    defaultValue: "",
+    encode: (v: string): string | undefined => (v === "" ? undefined : v),
+    resolve: (v: string): Decimal => {
+      if (v === "") return new Decimal(defaultValue);
+      try {
+        return new Decimal(v);
+      } catch {
+        return new Decimal(defaultValue);
+      }
+    },
+  };
+}
 
-const decimal = createPreset<Decimal>({
-  decode: (v) => {
-    const d = new Decimal(String(v));
-    if (!d.isFinite()) throw new Error("invalid decimal");
-    return d;
-  },
-  defaultValue: new Decimal(0),
-  encode: (v) => v.toString(),
-});
+// --- Same use case as inline demo ---
 
-const amountStore = qsUtils.createSearchParamStore(
-  "amount",
-  decimal({ default: new Decimal(100) }),
-);
-const discountStore = qsUtils.createSearchParamStore(
-  "discount",
-  decimal({ default: new Decimal("0.1") }),
-);
+const sortOptions = ["price_asc", "price_desc", "newest"] as const;
+const sortPreset = enumPreset(sortOptions);
+
+const sortStore = qsUtils.createSearchParamStore("sort", sortPreset());
+const priceStore = qsUtils.createSearchParamStore("price", decimalInput("0"));
+const taxStore = qsUtils.createSearchParamStore("tax", decimalInput("0.1"));
 
 export default function CustomPresetReusableDemo() {
-  const category = useStore(categoryStore.$value);
-  const amount = useStore(amountStore.$value);
-  const discount = useStore(discountStore.$value);
+  const sort = useStore(sortStore.$value);
+  const priceInput = useStore(priceStore.$value);
+  const price = useStore(priceStore.$resolved);
+  const taxInput = useStore(taxStore.$value);
+  const tax = useStore(taxStore.$resolved);
   const currentSearch = useStore(qsUtils.$search);
 
-  const finalAmount = amount.mul(Decimal.sub(1, discount));
+  const total = price.mul(Decimal.sum(1, tax));
 
   return (
     <DemoContainer>
-      <DemoLabel>createPreset (reusable preset functions)</DemoLabel>
+      <DemoLabel>Reusable Presets (enumPreset + decimalInput)</DemoLabel>
       <DemoRow>
         <DemoColumn>
           <DemoSelect
-            label="category — enumPreset(categoryOptions)"
-            options={categoryOptions}
-            value={category}
-            onChange={(v) => categoryStore.update(v)}
+            label="sort — enumPreset(sortOptions)"
+            options={sortOptions}
+            value={sort}
+            onChange={(v) => sortStore.update(v)}
           />
           <DemoInput
-            label="amount — decimal({ default: 100 })"
+            label="price — decimalInput('0')"
             type="text"
             inputMode="decimal"
-            placeholder="e.g. 100"
-            value={amount.toString()}
-            onChange={(e) => {
-              try {
-                amountStore.update(new Decimal(e.currentTarget.value));
-              } catch {
-                /* ignore invalid mid-typing */
-              }
-            }}
-            onClear={() => amountStore.update(new Decimal(100))}
+            placeholder="e.g. 19.99"
+            value={priceInput}
+            onChange={(e) => priceStore.update(e.currentTarget.value)}
+            onClear={() => priceStore.update("")}
           />
           <DemoInput
-            label="discount — decimal({ default: 0.1 })"
+            label="tax — decimalInput('0.1')"
             type="text"
             inputMode="decimal"
             placeholder="e.g. 0.1"
-            value={discount.toString()}
-            onChange={(e) => {
-              try {
-                discountStore.update(new Decimal(e.currentTarget.value));
-              } catch {
-                /* ignore invalid mid-typing */
-              }
-            }}
-            onClear={() => discountStore.update(new Decimal("0.1"))}
+            value={taxInput}
+            onChange={(e) => taxStore.update(e.currentTarget.value)}
+            onClear={() => taxStore.update("")}
           />
         </DemoColumn>
         <DemoColumn>
           <CodePreview
             label="Store values"
             value={inspect({
-              category,
-              amount,
-              discount,
-              "final (amount × (1-discount))": finalAmount,
+              sort,
+              "price.$value": priceInput,
+              "price.$resolved": price,
+              "tax.$value": taxInput,
+              "tax.$resolved": tax,
+              "total (price × (1+tax))": total,
             })}
           />
           <CodePreview label="window.location.search" value={currentSearch || "(empty)"} />

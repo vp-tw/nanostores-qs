@@ -15,8 +15,6 @@ import { inspect } from "./inspect";
 
 const qsUtils = createQsUtils();
 
-// --- Enum: as const array + manual validator (same pattern as z.enum) ---
-
 const sortOptions = ["price_asc", "price_desc", "newest"] as const;
 
 const sortStore = qsUtils.createSearchParamStore("sort", {
@@ -28,42 +26,32 @@ const sortStore = qsUtils.createSearchParamStore("sort", {
   defaultValue: sortOptions[0],
 });
 
-// --- Decimal: resolve pattern for input binding ---
-
-const DEFAULT_PRICE = "0";
-
 const priceStore = qsUtils.createSearchParamStore("price", {
-  decode: (v: unknown): string => {
-    if (v == null) return "";
-    try {
-      const d = new Decimal(String(v));
-      if (!d.isFinite()) return "";
-      return d.toString();
-    } catch {
-      return "";
-    }
-  },
+  decode: (v: unknown): string => (v == null ? "" : String(v)),
   defaultValue: "",
   encode: (v: string): string | undefined => (v === "" ? undefined : v),
-  resolve: (v: string): Decimal => (v === "" ? new Decimal(DEFAULT_PRICE) : new Decimal(v)),
+  resolve: (v: string): Decimal => {
+    if (v === "") return new Decimal(0);
+    try {
+      return new Decimal(v);
+    } catch {
+      return new Decimal(0);
+    }
+  },
 });
 
-const DEFAULT_TAX = "0.1";
-
 const taxStore = qsUtils.createSearchParamStore("tax", {
-  decode: (v: unknown): string => {
-    if (v == null) return "";
-    try {
-      const d = new Decimal(String(v));
-      if (!d.isFinite()) return "";
-      return d.toString();
-    } catch {
-      return "";
-    }
-  },
+  decode: (v: unknown): string => (v == null ? "" : String(v)),
   defaultValue: "",
   encode: (v: string): string | undefined => (v === "" ? undefined : v),
-  resolve: (v: string): Decimal => (v === "" ? new Decimal(DEFAULT_TAX) : new Decimal(v)),
+  resolve: (v: string): Decimal => {
+    if (v === "") return new Decimal("0.1");
+    try {
+      return new Decimal(v);
+    } catch {
+      return new Decimal("0.1");
+    }
+  },
 });
 
 export default function CustomPresetInlineDemo() {
