@@ -58,9 +58,9 @@ function decimalInput(defaultValue: string): DecimalInputConfig {
 const sortOptions = ["price_asc", "price_desc", "newest"] as const;
 const sortPreset = enumPreset(sortOptions);
 
-const sortStore = qsUtils.createSearchParamStore("sort", sortPreset());
-const priceStore = qsUtils.createSearchParamStore("price", decimalInput("0"));
-const taxStore = qsUtils.createSearchParamStore("tax", decimalInput("0.1"));
+const sortStore = qsUtils.createSearchParamStore("r_sort", sortPreset());
+const priceStore = qsUtils.createSearchParamStore("r_price", decimalInput("0"));
+const taxStore = qsUtils.createSearchParamStore("r_tax", decimalInput("0.1"));
 
 export default function CustomPresetReusableDemo() {
   const sort = useStore(sortStore.$value);

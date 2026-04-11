@@ -17,7 +17,7 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["price_asc", "price_desc", "newest"] as const;
 
-const sortStore = qsUtils.createSearchParamStore("sort", {
+const sortStore = qsUtils.createSearchParamStore("i_sort", {
   decode: (v: unknown): (typeof sortOptions)[number] => {
     const s = String(v);
     if (!(sortOptions as ReadonlyArray<string>).includes(s)) throw new Error("invalid sort");
@@ -51,8 +51,8 @@ function decimalConfig(fallback: string): DecimalConfig {
   };
 }
 
-const priceStore = qsUtils.createSearchParamStore("price", decimalConfig("0"));
-const taxStore = qsUtils.createSearchParamStore("tax", decimalConfig("0.1"));
+const priceStore = qsUtils.createSearchParamStore("i_price", decimalConfig("0"));
+const taxStore = qsUtils.createSearchParamStore("i_tax", decimalConfig("0.1"));
 
 export default function CustomPresetInlineDemo() {
   const sort = useStore(sortStore.$value);
