@@ -4,76 +4,146 @@ import * as presets from "@vp-tw/nanostores-qs/presets";
 import objectInspect from "object-inspect";
 import { parse as qsParse, stringify as qsStringify } from "qs";
 import queryString from "query-string";
+import { useMemo, useRef, useState } from "react";
 
 import {
   CodePreview,
-  DemoCheckbox,
   DemoContainer,
   DemoInput,
   DemoLabel,
   DemoMultiSelect,
+  DemoRow,
+  DemoSelect,
 } from "../demo-ui";
 import styles from "./CustomQsLibDemo.module.css";
 
 const tagOptions = ["react", "vue", "svelte", "solid"] as const;
 
-// --- URLSearchParams (default) ---
+// --- qs array formats ---
+
+const qsFormats = ["indices", "brackets", "repeat", "comma"] as const;
+type QsFormat = (typeof qsFormats)[number];
+
+const qsFormatExamples: Record<QsFormat, string> = {
+  indices: "tags[0]=react&tags[1]=vue",
+  brackets: "tags[]=react&tags[]=vue",
+  repeat: "tags=react&tags=vue",
+  comma: "tags=react,vue",
+};
+
+function createQsInstance(format: QsFormat) {
+  return createQsUtils({
+    qs: {
+      parse: (search) =>
+        qsParse(search, {
+          ignoreQueryPrefix: true,
+          comma: format === "comma",
+        }),
+      stringify: (values) => qsStringify(values, { arrayFormat: format }),
+    },
+  });
+}
+
+// --- query-string array formats ---
+
+const queryStringFormats = [
+  "bracket",
+  "index",
+  "comma",
+  "separator",
+  "bracket-separator",
+  "colon-list-separator",
+  "none",
+] as const;
+type QueryStringFormat = (typeof queryStringFormats)[number];
+
+const queryStringFormatExamples: Record<QueryStringFormat, string> = {
+  bracket: "tags[]=react&tags[]=vue",
+  index: "tags[0]=react&tags[1]=vue",
+  comma: "tags=react,vue",
+  separator: "tags=react,vue",
+  "bracket-separator": "tags[]=react,vue",
+  "colon-list-separator": "tags:list=react&tags:list=vue",
+  none: "tags=react&tags=vue",
+};
+
+function createQueryStringInstance(format: QueryStringFormat) {
+  return createQsUtils({
+    qs: {
+      parse: (search) => queryString.parse(search, { arrayFormat: format }),
+      stringify: (values) =>
+        queryString.stringify(values as Record<string, unknown>, { arrayFormat: format }),
+    },
+  });
+}
+
+// --- URLSearchParams (fixed, no format options) ---
+
 const defaultUtils = createQsUtils();
 const defaultStore = defaultUtils.createSearchParamsStore({
   name: presets.string({ optional: true }),
   tags: presets.enum(tagOptions, { array: true }),
 });
 
-// --- qs library (brackets array format) ---
-const qsUtils = createQsUtils({
-  qs: {
-    parse: (search) => qsParse(search, { ignoreQueryPrefix: true }),
-    stringify: (values) => qsStringify(values, { arrayFormat: "brackets" }),
-  },
-});
-const qsStore = qsUtils.createSearchParamsStore({
-  name: presets.string({ optional: true }),
-  tags: presets.enum(tagOptions, { array: true }),
-});
+// --- Dynamic lib panel ---
 
-// --- query-string (comma array format) ---
-const queryStringUtils = createQsUtils({
-  qs: {
-    parse: (search) => queryString.parse(search, { arrayFormat: "comma" }),
-    stringify: (values) =>
-      queryString.stringify(values as Record<string, unknown>, { arrayFormat: "comma" }),
-  },
-});
-const queryStringStore = queryStringUtils.createSearchParamsStore({
-  name: presets.string({ optional: true }),
-  tags: presets.enum(tagOptions, { array: true }),
-});
+function useQsLib(format: QsFormat) {
+  const ref = useRef<{ format: QsFormat; utils: ReturnType<typeof createQsUtils>; store: any }>();
+  if (!ref.current || ref.current.format !== format) {
+    const utils = createQsInstance(format);
+    const store = utils.createSearchParamsStore({
+      name: presets.string({ optional: true }),
+      tags: presets.enum(tagOptions, { array: true }),
+    });
+    ref.current = { format, utils, store };
+  }
+  return ref.current;
+}
 
-interface LibPanelProps {
+function useQueryStringLib(format: QueryStringFormat) {
+  const ref = useRef<{
+    format: QueryStringFormat;
+    utils: ReturnType<typeof createQsUtils>;
+    store: any;
+  }>();
+  if (!ref.current || ref.current.format !== format) {
+    const utils = createQueryStringInstance(format);
+    const store = utils.createSearchParamsStore({
+      name: presets.string({ optional: true }),
+      tags: presets.enum(tagOptions, { array: true }),
+    });
+    ref.current = { format, utils, store };
+  }
+  return ref.current;
+}
+
+function LibPanel({
+  label,
+  sublabel,
+  utils,
+  store,
+  formatSelector,
+}: {
   label: string;
   sublabel: string;
   utils: ReturnType<typeof createQsUtils>;
-  store: ReturnType<
-    typeof defaultUtils.createSearchParamsStore<
-      typeof defaultStore extends { $values: { get: () => infer T } } ? Record<string, any> : never
-    >
-  >;
-  values: { name: string | undefined; tags: ReadonlyArray<string> };
-}
-
-function LibPanel({ label, sublabel, utils, values, store }: LibPanelProps) {
+  store: any;
+  formatSelector?: React.ReactNode;
+}) {
+  const values = useStore(store.$values);
   const search = useStore(utils.$search);
   const qs = useStore(utils.$qs);
 
   return (
     <div className={styles.libGroup}>
       <DemoLabel>{label}</DemoLabel>
+      {formatSelector}
       <div className={styles.sublabel}>{sublabel}</div>
       <DemoInput
         label="name"
         type="text"
         placeholder="e.g. John"
-        value={values.name ?? ""}
+        value={(values as any).name ?? ""}
         onChange={(e) =>
           store.updateAll({ ...values, name: e.currentTarget.value || undefined } as any)
         }
@@ -82,7 +152,7 @@ function LibPanel({ label, sublabel, utils, values, store }: LibPanelProps) {
       <DemoMultiSelect
         label="tags (array)"
         options={tagOptions}
-        value={[...values.tags]}
+        value={[...((values as any).tags ?? [])]}
         onChange={(v) => store.updateAll({ ...values, tags: v } as any)}
       />
       <CodePreview label="$search" value={search || "(empty)"} />
@@ -92,9 +162,11 @@ function LibPanel({ label, sublabel, utils, values, store }: LibPanelProps) {
 }
 
 export default function CustomQsLibDemo() {
-  const defaultValues = useStore(defaultStore.$values);
-  const qsValues = useStore(qsStore.$values);
-  const queryStringValues = useStore(queryStringStore.$values);
+  const [qsFormat, setQsFormat] = useState<QsFormat>("brackets");
+  const [qsStringFormat, setQsStringFormat] = useState<QueryStringFormat>("comma");
+
+  const qsLib = useQsLib(qsFormat);
+  const queryStringLib = useQueryStringLib(qsStringFormat);
 
   return (
     <DemoContainer>
@@ -104,22 +176,35 @@ export default function CustomQsLibDemo() {
           label="URLSearchParams"
           sublabel="tags=react&tags=vue"
           utils={defaultUtils}
-          store={defaultStore as any}
-          values={defaultValues}
+          store={defaultStore}
         />
         <LibPanel
           label="qs"
-          sublabel="tags[]=react&tags[]=vue"
-          utils={qsUtils}
-          store={qsStore as any}
-          values={qsValues}
+          sublabel={qsFormatExamples[qsFormat]}
+          utils={qsLib.utils}
+          store={qsLib.store}
+          formatSelector={
+            <DemoSelect
+              label="arrayFormat"
+              options={qsFormats}
+              value={qsFormat}
+              onChange={(v) => setQsFormat(v as QsFormat)}
+            />
+          }
         />
         <LibPanel
           label="query-string"
-          sublabel="tags=react,vue"
-          utils={queryStringUtils}
-          store={queryStringStore as any}
-          values={queryStringValues}
+          sublabel={queryStringFormatExamples[qsStringFormat]}
+          utils={queryStringLib.utils}
+          store={queryStringLib.store}
+          formatSelector={
+            <DemoSelect
+              label="arrayFormat"
+              options={queryStringFormats}
+              value={qsStringFormat}
+              onChange={(v) => setQsStringFormat(v as QueryStringFormat)}
+            />
+          }
         />
       </div>
     </DemoContainer>
