@@ -22,13 +22,13 @@
     "@types/react-dom": "catalog:",
     "@vp-tw/nanostores-qs": "workspace:*",
     "astro": "catalog:",
+    "decimal.js": "catalog:",
     "nanostores": "catalog:",
     "object-inspect": "catalog:",
     "qs": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sharp": "catalog:",
-    "vitest": "catalog:",
-    "zod": "catalog:"
+    "vitest": "catalog:"
   }
 }
