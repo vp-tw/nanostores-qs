@@ -1,8 +1,21 @@
+import { resolve } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 
+const qs = resolve(import.meta.dirname, "../nanostores-qs/src");
+
 export default defineConfig({
+  vite: {
+    resolve: {
+      // Resolve to source .ts files so docs dev/build doesn't depend on lib dist.
+      // Order matters: subpath regex must precede bare import (prefix match).
+      alias: [
+        { find: /^@vp-tw\/nanostores-qs\/(.+)$/, replacement: resolve(qs, "$1.ts") },
+        { find: "@vp-tw/nanostores-qs", replacement: resolve(qs, "main.ts") },
+      ],
+    },
+  },
   site: "https://vdustr.github.io",
   // base is NOT set here — passed via CLI for production builds:
   //   astro build --base=/nanostores-qs/
