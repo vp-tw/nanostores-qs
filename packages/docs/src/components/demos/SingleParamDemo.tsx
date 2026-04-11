@@ -18,9 +18,13 @@ const qsUtils = createQsUtils();
 
 const sortOptions = ["newest", "oldest", "popular"] as const;
 
+const PAGE_MIN = 1;
+const PAGE_MAX = Number.MAX_SAFE_INTEGER;
+const PAGE_DEFAULT = 1;
+
 const pageStore = qsUtils.createSearchParamStore(
   "page",
-  presets.integer({ numInput: true, default: 1, min: 1 }),
+  presets.integer({ numInput: true, default: PAGE_DEFAULT, min: PAGE_MIN, max: PAGE_MAX }),
 );
 const searchStore = qsUtils.createSearchParamStore("q", presets.string({ optional: true }));
 const sortStore = qsUtils.createSearchParamStore("sort", presets.enum(sortOptions));
@@ -56,8 +60,10 @@ export default function SingleParamDemo() {
             onClear={() => searchStore.update(undefined)}
           />
           <DemoInput
-            label="page — integer({ numInput, default: 1, min: 1 })"
+            label="page — integer({ numInput, default, min, max })"
             type="number"
+            min={PAGE_MIN}
+            max={PAGE_MAX}
             placeholder="Page number"
             value={pageInput}
             onChange={(e) => pageStore.update(e.currentTarget.value)}
