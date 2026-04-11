@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [6066df5]
+  - @vp-tw/nanostores-qs@2.0.0
+
 ## 1.0.0
 
 ### Patch Changes
