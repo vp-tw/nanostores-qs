@@ -467,3 +467,70 @@ integer({ default: 1, array: true });
 // enum with wrong default type
 // @ts-expect-error "invalid" is not in the enum array
 presetEnum(["asc", "desc"], { default: "invalid" });
+
+// --- StoreConfig type tests ---
+
+// StoreConfig with defaultValue
+(() => {
+  const config = {} as createQsUtils.StoreConfig<{ value: number; defaultValue: number }>;
+  const _decode: (value: unknown) => number = config.decode;
+  const _defaultValue: number = config.defaultValue;
+  void [_decode, _defaultValue];
+})();
+
+// StoreConfig optional (no defaultValue key)
+(() => {
+  const config = {} as createQsUtils.StoreConfig<{ value: number }>;
+  const _decode: (value: unknown) => number = config.decode;
+  // @ts-expect-error no defaultValue on optional config
+  void config.defaultValue;
+  void _decode;
+})();
+
+// StoreConfig with resolve — resolve is required when resolved ≠ value
+(() => {
+  type Cfg = createQsUtils.StoreConfig<{
+    value: string;
+    defaultValue: string;
+    resolved: number;
+  }>;
+  // resolve must exist (not optional) because resolved ≠ value
+  const _resolve: (value: string) => number = ({} as Cfg).resolve;
+  void _resolve;
+})();
+
+// StoreConfig without resolved — resolve is optional
+(() => {
+  const config = {} as createQsUtils.StoreConfig<{ value: number; defaultValue: number }>;
+  const _resolve: ((value: number) => number) | undefined = config.resolve;
+  void _resolve;
+})();
+
+// StoreConfig satisfies usage
+(() => {
+  const _config = {
+    decode: (v: unknown): string => String(v),
+    defaultValue: "",
+    encode: (v: string): string | undefined => (v === "" ? undefined : v),
+  } satisfies createQsUtils.StoreConfig<{ value: string; defaultValue: string }>;
+  void _config;
+})();
+
+// StoreConfig with resolve satisfies
+(() => {
+  const _config = {
+    decode: (v: unknown): string => String(v),
+    defaultValue: "",
+    encode: (v: string): string | undefined => (v === "" ? undefined : v),
+    resolve: (v: string): number => Number(v),
+  } satisfies createQsUtils.StoreConfig<{ value: string; defaultValue: string; resolved: number }>;
+  void _config;
+})();
+
+// StoreConfigArray
+(() => {
+  const config = {} as createQsUtils.StoreConfigArray<{ value: number }>;
+  const _isArray: true = config.isArray;
+  const _decode: (value: Array<unknown>) => Array<number> = config.decode;
+  void [_isArray, _decode];
+})();

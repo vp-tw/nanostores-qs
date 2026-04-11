@@ -31,7 +31,13 @@ function enumPreset<const T extends readonly [string, ...Array<string>]>(values:
 
 // --- Reusable decimal input (raw string + resolve to Decimal) ---
 
-function decimalInput(defaultValue: string) {
+type DecimalInputConfig = createQsUtils.StoreConfig<{
+  value: string;
+  defaultValue: string;
+  resolved: Decimal;
+}>;
+
+function decimalInput(defaultValue: string): DecimalInputConfig {
   return {
     decode: (v: unknown): string => (v == null ? "" : String(v)),
     defaultValue: "",

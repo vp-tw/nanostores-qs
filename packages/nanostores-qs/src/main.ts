@@ -284,6 +284,58 @@ namespace createQsUtils {
   }
     ? TResolved
     : TValue;
+
+  // --- Consumer-facing config types ---
+
+  export interface StoreConfigDescriptor {
+    value: unknown;
+    defaultValue?: unknown;
+    resolved?: unknown;
+  }
+
+  type _InferResolved<T extends StoreConfigDescriptor> = T extends { resolved: infer R }
+    ? R
+    : T["value"];
+
+  type _ResolveField<T extends StoreConfigDescriptor, TValueInput> = [_InferResolved<T>] extends [
+    T["value"],
+  ]
+    ? { resolve?: (value: TValueInput) => _InferResolved<T> }
+    : { resolve: (value: TValueInput) => _InferResolved<T> };
+
+  export type StoreConfig<T extends StoreConfigDescriptor> = T extends {
+    defaultValue: infer TDefaultValue;
+  }
+    ? undefined extends TDefaultValue
+      ? {
+          decode: (value: unknown) => T["value"];
+          encode?: (value: T["value"] | undefined) => string | undefined;
+        } & _ResolveField<T, T["value"] | undefined>
+      : {
+          decode: (value: unknown) => T["value"];
+          defaultValue: TDefaultValue;
+          encode?: (value: T["value"]) => string | undefined;
+        } & _ResolveField<T, T["value"]>
+    : {
+        decode: (value: unknown) => T["value"];
+        encode?: (value: T["value"] | undefined) => string | undefined;
+      } & _ResolveField<T, T["value"] | undefined>;
+
+  export type StoreConfigArray<T extends { value: unknown; resolved?: unknown }> = {
+    isArray: true;
+    decode: (value: Array<unknown>) => Array<T["value"]>;
+    encode?: (value: Array<T["value"]>) => Array<string>;
+  } & ([T extends { resolved: infer R } ? R : T["value"]] extends [T["value"]]
+    ? {
+        resolve?: (
+          value: Array<T["value"]>,
+        ) => Array<T extends { resolved: infer R } ? R : T["value"]>;
+      }
+    : {
+        resolve: (
+          value: Array<T["value"]>,
+        ) => Array<T extends { resolved: infer R } ? R : T["value"]>;
+      });
 }
 
 const defaultOptions: createQsUtils.Options<createQsUtils.DefaultQsRecord> = {

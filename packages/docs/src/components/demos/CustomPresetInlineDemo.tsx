@@ -24,35 +24,35 @@ const sortStore = qsUtils.createSearchParamStore("sort", {
     return s as (typeof sortOptions)[number];
   },
   defaultValue: sortOptions[0],
-});
+} satisfies createQsUtils.StoreConfig<{
+  value: (typeof sortOptions)[number];
+  defaultValue: (typeof sortOptions)[0];
+}>);
 
-const priceStore = qsUtils.createSearchParamStore("price", {
-  decode: (v: unknown): string => (v == null ? "" : String(v)),
-  defaultValue: "",
-  encode: (v: string): string | undefined => (v === "" ? undefined : v),
-  resolve: (v: string): Decimal => {
-    if (v === "") return new Decimal(0);
-    try {
-      return new Decimal(v);
-    } catch {
-      return new Decimal(0);
-    }
-  },
-});
+type DecimalConfig = createQsUtils.StoreConfig<{
+  value: string;
+  defaultValue: string;
+  resolved: Decimal;
+}>;
 
-const taxStore = qsUtils.createSearchParamStore("tax", {
-  decode: (v: unknown): string => (v == null ? "" : String(v)),
-  defaultValue: "",
-  encode: (v: string): string | undefined => (v === "" ? undefined : v),
-  resolve: (v: string): Decimal => {
-    if (v === "") return new Decimal("0.1");
-    try {
-      return new Decimal(v);
-    } catch {
-      return new Decimal("0.1");
-    }
-  },
-});
+function decimalConfig(fallback: string): DecimalConfig {
+  return {
+    decode: (v: unknown): string => (v == null ? "" : String(v)),
+    defaultValue: "",
+    encode: (v: string): string | undefined => (v === "" ? undefined : v),
+    resolve: (v: string): Decimal => {
+      if (v === "") return new Decimal(fallback);
+      try {
+        return new Decimal(v);
+      } catch {
+        return new Decimal(fallback);
+      }
+    },
+  };
+}
+
+const priceStore = qsUtils.createSearchParamStore("price", decimalConfig("0"));
+const taxStore = qsUtils.createSearchParamStore("tax", decimalConfig("0.1"));
 
 export default function CustomPresetInlineDemo() {
   const sort = useStore(sortStore.$value);
