@@ -582,13 +582,13 @@ function createQsUtils<
       dry: updateDry,
     });
     const hasAnyResolve = Object.values(resolvedConfigRecord).some(
-      (c) => c && typeof (c as any).resolve === "function",
+      (c) => c && typeof c.resolve === "function",
     );
     const $resolved = hasAnyResolve
       ? computed($values, (values) =>
           mapValues(resolvedConfigRecord, (configInput, key) => {
-            if (configInput && typeof (configInput as any).resolve === "function") {
-              return (configInput as any).resolve(values[key]);
+            if (configInput && typeof configInput.resolve === "function") {
+              return configInput.resolve(values[key]);
             }
             return values[key];
           }),
@@ -636,10 +636,17 @@ function createQsUtils<
     const update: createQsUtils.UpdateSingle<TQsRecord, TConfig> = Object.assign(updateBase, {
       dry: updateDry,
     });
-    const hasResolve = resolvedConfig && typeof (resolvedConfig as any).resolve === "function";
-    const $resolved: any = hasResolve
-      ? computed(searchParamsStore.$resolved, (resolved) => resolved[typedName])
-      : $value;
+    type TResolved = createQsUtils.InferResolvedType<
+      createQsUtils.FallbackQueryParamConfig<TQsRecord, TConfig>,
+      TValue
+    >;
+    const hasResolve = resolvedConfig && typeof resolvedConfig.resolve === "function";
+    const $resolved: ReadableAtom<TResolved> = hasResolve
+      ? (computed(
+          searchParamsStore.$resolved,
+          (resolved) => resolved[typedName],
+        ) as ReadableAtom<TResolved>)
+      : ($value as ReadableAtom<TResolved>);
     return {
       $value,
       $resolved,

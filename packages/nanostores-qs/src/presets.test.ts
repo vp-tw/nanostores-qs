@@ -426,6 +426,35 @@ describe("float", () => {
     });
   });
 
+  describe("outOfRange: reject", () => {
+    it("throws on out-of-range values", () => {
+      const config = float({ min: 0, max: 10, outOfRange: "reject" });
+      expect(() => config.decode("-1")).toThrow("out of range");
+      expect(() => config.decode("11")).toThrow("out of range");
+    });
+
+    it("passes in-range values", () => {
+      const config = float({ min: 0, max: 10, outOfRange: "reject" });
+      expect(config.decode("5")).toBe(5);
+      expect(config.decode("0")).toBe(0);
+      expect(config.decode("10")).toBe(10);
+    });
+  });
+
+  describe("default", () => {
+    it("uses custom default for nil", () => {
+      const config = float({ default: 0.5 });
+      expect(config.defaultValue).toBe(0.5);
+      expect(config.decode(undefined)).toBe(0.5);
+      expect(config.decode(null)).toBe(0.5);
+    });
+
+    it("decodes valid values normally", () => {
+      const config = float({ default: 0.5 });
+      expect(config.decode("3.14")).toBe(3.14);
+    });
+  });
+
   describe("optional", () => {
     it("has no defaultValue", () => {
       const config = float({ optional: true });
@@ -823,6 +852,28 @@ describe("ymd", () => {
     });
   });
 
+  describe("decode throws on semantically invalid dates", () => {
+    it("throws on '2024-13-01' (month 13)", () => {
+      const config = ymd();
+      expect(() => config.decode("2024-13-01")).toThrow("invalid ymd date");
+    });
+
+    it("throws on '2024-02-30' (Feb 30)", () => {
+      const config = ymd();
+      expect(() => config.decode("2024-02-30")).toThrow("invalid ymd date");
+    });
+
+    it("throws on '2023-02-29' (non-leap year)", () => {
+      const config = ymd();
+      expect(() => config.decode("2023-02-29")).toThrow("invalid ymd date");
+    });
+
+    it("accepts '2024-02-29' (leap year)", () => {
+      const config = ymd();
+      expect(config.decode("2024-02-29")).toBe("2024-02-29");
+    });
+  });
+
   describe("optional", () => {
     it("has no defaultValue", () => {
       const config = ymd({ optional: true });
@@ -890,6 +941,11 @@ describe("hms", () => {
     it("throws on '25:00:00' (invalid hour)", () => {
       const config = hms();
       expect(() => config.decode("25:00:00")).toThrow("invalid hms format");
+    });
+
+    it("rejects '24:00:00' (ISO 8601 end-of-day — not supported)", () => {
+      const config = hms();
+      expect(() => config.decode("24:00:00")).toThrow("invalid hms format");
     });
   });
 
@@ -1053,6 +1109,19 @@ describe("tuple", () => {
       const config = tuple([integer(), string(), integer()]);
       // First integer is NaN, but position is preserved
       expect(config.encode([Number.NaN, "world", 42])).toEqual(["", "world", "42"]);
+    });
+
+    it("element without encode falls back to String(val)", () => {
+      const bareConfig = { decode: (v: unknown) => Number(v), defaultValue: 0 };
+      const config = tuple([bareConfig, string()]);
+      expect(config.encode([42, "hello"])).toEqual(["42", "hello"]);
+    });
+
+    it("element without encode: nil value falls back to String(val)", () => {
+      const bareConfig = { decode: (v: unknown) => Number(v), defaultValue: 0 };
+      const config = tuple([bareConfig]);
+      // String(undefined) → "undefined" — no special nil handling in fallback encode
+      expect(config.encode([undefined as any])).toEqual(["undefined"]);
     });
   });
 

@@ -35,6 +35,16 @@ All built-in presets accept these options:
 
 These options are **mutually exclusive** — pass exactly one of `optional`, `default`, or `array` (or none for the base variant).
 
+### `numInput` mode (integer / float only)
+
+`presets.integer()` and `presets.float()` support `{ numInput: true, default: n }`. In this mode:
+
+- `$value` holds a **string** (bindable to `<input>`)
+- `$resolved` holds a **number** (parsed + validated, falls back to `default` on invalid input)
+- Clearing the input sets `$value` to `""`, and `$resolved` maps it to the default
+
+This is useful for number inputs where the raw string must be preserved during editing (e.g., typing `"19."` should not immediately normalize to `"19"`).
+
 ## `presets.string(options?)`
 
 | Call                                 | Value Type            | Default     |
@@ -42,7 +52,7 @@ These options are **mutually exclusive** — pass exactly one of `optional`, `de
 | `presets.string()`                   | `string`              | `""`        |
 | `presets.string({ optional: true })` | `string \| undefined` | `undefined` |
 | `presets.string({ default: "all" })` | `string`              | `"all"`     |
-| `presets.string({ array: true })`    | `string[]`            | `[]`        |
+| `presets.string({ array: true })`    | `Array<string>`       | `[]`        |
 
 ### String-specific options
 
@@ -57,21 +67,23 @@ These options are **mutually exclusive** — pass exactly one of `optional`, `de
 
 ## `presets.integer(options?)`
 
-| Call                                  | Value Type            | Default     |
-| ------------------------------------- | --------------------- | ----------- |
-| `presets.integer()`                   | `number`              | `NaN`       |
-| `presets.integer({ optional: true })` | `number \| undefined` | `undefined` |
-| `presets.integer({ default: 1 })`     | `number`              | `1`         |
-| `presets.integer({ array: true })`    | `number[]`            | `[]`        |
+| Call                                              | Value Type            | Default     |
+| ------------------------------------------------- | --------------------- | ----------- |
+| `presets.integer()`                               | `number`              | `NaN`       |
+| `presets.integer({ optional: true })`             | `number \| undefined` | `undefined` |
+| `presets.integer({ default: 1 })`                 | `number`              | `1`         |
+| `presets.integer({ array: true })`                | `Array<number>`       | `[]`        |
+| `presets.integer({ numInput: true, default: 1 })` | `NumInputResult`      | `""`        |
 
 ### Integer-specific options
 
-| Option       | Type                                      | Default                   | Description                                  |
-| ------------ | ----------------------------------------- | ------------------------- | -------------------------------------------- |
-| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`                 | Rounding mode (`"parse"` uses `parseInt`)    |
-| `min`        | `number`                                  | `Number.MIN_SAFE_INTEGER` | Minimum allowed value                        |
-| `max`        | `number`                                  | `Number.MAX_SAFE_INTEGER` | Maximum allowed value                        |
-| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`                 | Clamp to range or reject out-of-range values |
+| Option       | Type                                      | Default                   | Description                                                                           |
+| ------------ | ----------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------- |
+| `round`      | `"round" \| "ceil" \| "floor" \| "parse"` | `"round"`                 | Rounding mode (`"parse"` uses `parseInt`)                                             |
+| `min`        | `number`                                  | `Number.MIN_SAFE_INTEGER` | Minimum allowed value                                                                 |
+| `max`        | `number`                                  | `Number.MAX_SAFE_INTEGER` | Maximum allowed value                                                                 |
+| `outOfRange` | `"clamp" \| "reject"`                     | `"clamp"`                 | Clamp to range or reject out-of-range values                                          |
+| `numInput`   | `true`                                    | —                         | Input binding mode: `$value` is `string`, `$resolved` is `number`. Requires `default` |
 
 When `outOfRange` is `"reject"`, out-of-range values fall back to `defaultValue` (or `undefined` for optional).
 
@@ -81,21 +93,23 @@ When `outOfRange` is `"reject"`, out-of-range values fall back to `defaultValue`
 
 ## `presets.float(options?)`
 
-| Call                                | Value Type            | Default     |
-| ----------------------------------- | --------------------- | ----------- |
-| `presets.float()`                   | `number`              | `NaN`       |
-| `presets.float({ optional: true })` | `number \| undefined` | `undefined` |
-| `presets.float({ default: 0 })`     | `number`              | `0`         |
-| `presets.float({ array: true })`    | `number[]`            | `[]`        |
+| Call                                            | Value Type            | Default     |
+| ----------------------------------------------- | --------------------- | ----------- |
+| `presets.float()`                               | `number`              | `NaN`       |
+| `presets.float({ optional: true })`             | `number \| undefined` | `undefined` |
+| `presets.float({ default: 0 })`                 | `number`              | `0`         |
+| `presets.float({ array: true })`                | `Array<number>`       | `[]`        |
+| `presets.float({ numInput: true, default: 0 })` | `NumInputResult`      | `""`        |
 
 ### Float-specific options
 
-| Option       | Type                  | Default                   | Description                                  |
-| ------------ | --------------------- | ------------------------- | -------------------------------------------- |
-| `fixed`      | `number`              | —                         | Decimal places (uses `toFixed(n)`)           |
-| `min`        | `number`              | `Number.MIN_SAFE_INTEGER` | Minimum allowed value                        |
-| `max`        | `number`              | `Number.MAX_SAFE_INTEGER` | Maximum allowed value                        |
-| `outOfRange` | `"clamp" \| "reject"` | `"clamp"`                 | Clamp to range or reject out-of-range values |
+| Option       | Type                  | Default     | Description                                                                           |
+| ------------ | --------------------- | ----------- | ------------------------------------------------------------------------------------- |
+| `fixed`      | `number`              | —           | Decimal places (uses `toFixed(n)`)                                                    |
+| `min`        | `number`              | `-Infinity` | Minimum allowed value                                                                 |
+| `max`        | `number`              | `Infinity`  | Maximum allowed value                                                                 |
+| `outOfRange` | `"clamp" \| "reject"` | `"clamp"`   | Clamp to range or reject out-of-range values                                          |
+| `numInput`   | `true`                | —           | Input binding mode: `$value` is `string`, `$resolved` is `number`. Requires `default` |
 
 <DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
   <FloatDemo client:load />
@@ -108,13 +122,15 @@ When `outOfRange` is `"reject"`, out-of-range values fall back to `defaultValue`
 | `presets.boolean()`                   | `boolean`              | `false`     |
 | `presets.boolean({ optional: true })` | `boolean \| undefined` | `undefined` |
 | `presets.boolean({ default: true })`  | `boolean`              | `true`      |
-| `presets.boolean({ array: true })`    | `boolean[]`            | `[]`        |
+| `presets.boolean({ array: true })`    | `Array<boolean>`       | `[]`        |
 
-### Encode behavior
+### Decode / encode behavior
 
-- **Base** (`boolean()`): `"true"` decodes to `true`, anything else to `false`. Encodes: value matching `defaultValue` is omitted from URL.
-- **`boolean({ default: true })`**: Since `true` is the default, `true` is omitted and `false` appears in the URL — the encode logic flips compared to `boolean()`.
-- **Optional** (`boolean({ optional: true })`): Strict decode — `"true"` -> `true`, `"false"` -> `false`, anything else throws. Both values appear in URL; omitted means `undefined`.
+All variants use **strict decode**: only `"true"` and `"false"` are accepted. Any other value throws and falls back to `defaultValue` (or `undefined` for optional, filtered out for array).
+
+- **Base** (`boolean()`): default is `false`. Invalid → fallback to `false`. Encode omits value when it equals `defaultValue`.
+- **`boolean({ default: true })`**: default is `true`. Invalid → fallback to `true`. Encode omits `true` (the default), so `false` appears in URL — the encode logic flips compared to `boolean()`.
+- **Optional** (`boolean({ optional: true })`): Invalid → fallback to `undefined`. Both `"true"` and `"false"` appear in URL; omitted means `undefined`.
 
 <DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
   <BooleanDemo client:load />
@@ -141,7 +157,8 @@ The first element of `enumArray` is the inherent default. Invalid values throw (
 | ---------------------------------- | ------------------- | --------------- |
 | `presets.date()`                   | `Date`              | `new Date(NaN)` |
 | `presets.date({ optional: true })` | `Date \| undefined` | `undefined`     |
-| `presets.date({ array: true })`    | `Date[]`            | `[]`            |
+| `presets.date({ default: d })`     | `Date`              | `d`             |
+| `presets.date({ array: true })`    | `Array<Date>`       | `[]`            |
 
 Decode: `new Date(String(value))`, throws if `getTime()` is `NaN`.
 Encode: `value.toISOString()`. Guards against Invalid Date — returns `undefined` if the date is invalid, preventing `RangeError` from `toISOString()`.
@@ -156,9 +173,9 @@ Encode: `value.toISOString()`. Guards against Invalid Date — returns `undefine
 | --------------------------------- | --------------------- | -------------- |
 | `presets.ymd()`                   | `string`              | `"0000-00-00"` |
 | `presets.ymd({ optional: true })` | `string \| undefined` | `undefined`    |
-| `presets.ymd({ array: true })`    | `string[]`            | `[]`           |
+| `presets.ymd({ array: true })`    | `Array<string>`       | `[]`           |
 
-Format: `YYYY-MM-DD`. Syntactic validation only — does not check whether the date is a real calendar date.
+Format: `YYYY-MM-DD`. Validates both format and semantic correctness — rejects values like `"2024-13-01"` or `"2024-02-30"` that aren't real calendar dates.
 
 <DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
   <YmdDemo client:load />
@@ -170,7 +187,7 @@ Format: `YYYY-MM-DD`. Syntactic validation only — does not check whether the d
 | --------------------------------- | --------------------- | ------------ |
 | `presets.hms()`                   | `string`              | `"00:00:00"` |
 | `presets.hms({ optional: true })` | `string \| undefined` | `undefined`  |
-| `presets.hms({ array: true })`    | `string[]`            | `[]`         |
+| `presets.hms({ array: true })`    | `Array<string>`       | `[]`         |
 
 Format: `HH:mm:ss`. Validates hour 00-23, minute/second 00-59.
 
@@ -180,7 +197,7 @@ Format: `HH:mm:ss`. Validates hour 00-23, minute/second 00-59.
 
 ## `presets.tuple(configs)`
 
-Combines multiple preset configs into a single array parameter. No `optional`, `default`, or `array` modifiers. Decode: each element decoded with its config. If any element throws, entire tuple falls back to combined `defaultValue`.
+Combines multiple preset configs into a single array parameter. No `optional`, `default`, or `array` modifiers. Decode: each element decoded independently with its config. If an element throws, only **that element** falls back to its own `defaultValue` — other elements are unaffected.
 
 <DemoWrapper source="packages/docs/src/components/demos/PresetsDemo.tsx">
   <TupleDemo client:load />

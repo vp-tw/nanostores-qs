@@ -329,8 +329,8 @@ function float(options: FloatBaseOptions & { array: true; maxItems?: number }): 
 function float(options: FloatBaseOptions & { numInput: true; default: number }): NumInputResult;
 function float(options?: FloatOptions): any {
   const fixed = options?.fixed;
-  const min = options?.min ?? Number.MIN_SAFE_INTEGER;
-  const max = options?.max ?? Number.MAX_SAFE_INTEGER;
+  const min = options?.min ?? -Infinity;
+  const max = options?.max ?? Infinity;
   const outOfRange = options?.outOfRange ?? "clamp";
 
   function parseAndClamp(value: unknown): number {
@@ -454,59 +454,27 @@ function boolean(
   options: BooleanBaseOptions & { array: true; maxItems?: number },
 ): ArrayResult<boolean>;
 function boolean(options?: BooleanOptions): any {
+  const isOptional = options && "optional" in options && options.optional === true;
+  const isArray = options && "array" in options && options.array === true;
   const defaultValue =
     options && "default" in options && options.default !== undefined ? options.default : false;
 
-  // optional: strict decode
-  if (options && "optional" in options && options.optional === true) {
-    return {
-      decode: (v: unknown) => {
-        if (isNil(v)) return undefined;
-        if (v === "true") return true;
-        if (v === "false") return false;
-        throw new Error("invalid boolean");
-      },
-      encode: (v: boolean | undefined) => {
-        if (isNil(v)) return undefined;
-        return v ? "true" : "false";
-      },
-    };
-  }
-
-  // array: strict decode, filter invalid
-  if (options && "array" in options && options.array === true) {
-    const maxItems = (options as ArrayOptions).maxItems;
-    return {
-      isArray: true as const,
-      decode: (values: Array<unknown>): Array<boolean> => {
-        const result = values.flatMap((v) => {
-          if (v === "true") return [true];
-          if (v === "false") return [false];
-          return [];
-        });
-        return maxItems !== undefined ? result.slice(0, maxItems) : result;
-      },
-      encode: (values: Array<boolean>): Array<string> => {
-        const capped = maxItems !== undefined ? values.slice(0, maxItems) : values;
-        return capped.map((v) => (v ? "true" : "false"));
-      },
-    };
-  }
-
-  // base or default: strict decode with nil fallback, conditional encode
-  return {
-    decode: (v: unknown): boolean => {
-      if (isNil(v)) return defaultValue;
-      if (v === "true") return true;
-      if (v === "false") return false;
+  const preset = createPreset<boolean, boolean>({
+    decode: (value: unknown): boolean => {
+      const s = String(value);
+      if (s === "true") return true;
+      if (s === "false") return false;
       throw new Error("invalid boolean");
     },
-    defaultValue,
-    encode: (v: boolean): string | undefined => {
-      if (v === defaultValue) return undefined;
-      return v ? "true" : "false";
-    },
-  };
+    defaultValue: false,
+    // optional/array: always encode to string; base/default: omit default value from URL
+    encode:
+      isOptional || isArray
+        ? (v: boolean) => String(v)
+        : (v: boolean) => (v === defaultValue ? undefined : String(v)),
+  });
+
+  return preset(options as any);
 }
 
 // --- Date preset ---
@@ -545,6 +513,14 @@ function ymd(options?: PresetOptions<string>): any {
     decode: (value: unknown): string => {
       const s = String(value);
       if (!ymdPattern.test(s)) throw new Error("invalid ymd format");
+      // Semantic validation: check if it's a real calendar date
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) throw new Error("invalid ymd date");
+      // Verify round-trip: new Date("2024-13-01") may parse but shift
+      const [y, m, day] = s.split("-").map(Number);
+      if (d.getUTCFullYear() !== y || d.getUTCMonth() + 1 !== m || d.getUTCDate() !== day) {
+        throw new Error("invalid ymd date");
+      }
       return s;
     },
     defaultValue: "0000-00-00",
