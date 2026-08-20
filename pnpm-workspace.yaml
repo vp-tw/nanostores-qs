@@ -21,7 +21,7 @@ catalog:
   "@typescript/native-preview": 7.0.0-dev.20260128.1
   "@vp-tw/eslint-config": ^1.0.5
   "@vp-tw/tsconfig": ^4.0.0
-  astro: ^7.0.6
+  astro: ^7.1.0
   commitizen: ^4.3.1
   cspell: ^9.6.2
   decimal.js: ^10.6.0
