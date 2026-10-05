@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
 concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
 jobs:
   release:
     name: Release
@@ -18,4 +22,3 @@ jobs:
           commit: "build: bump version"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
